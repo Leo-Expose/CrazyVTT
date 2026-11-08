@@ -7,10 +7,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { canEditCharacterIn, characterEditRefusal } from '@/services/permissions';
 import { useParams, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, AlertCircle, Loader2, Lock, Download, FileText } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2, Lock, Download, FileText, Users, Package } from 'lucide-react';
 import NewCharacterTemplateModal from '@/components/character/NewCharacterTemplateModal';
 import CharacterSheetSkeleton from '@/components/skeletons/CharacterSheetSkeleton';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import SignedOutNotice from '@/components/common/SignedOutNotice';
 import { useUnsavedWorkGuard } from '@/hooks/useUnsavedWorkGuard';
 import { reportSignedIn, reportSignedOut } from '@/services/unsavedWork';
@@ -20,14 +21,18 @@ import characterService from '@/services/character.service';
 import { storeCharacterInList } from '@/hooks/queries';
 import campaignService from '@/services/campaign.service';
 import { CharacterSheetRouter } from '@/components/character-sheets/CharacterSheetRouter';
-import type { Character, Campaign } from '@/types';
+import type { Character, Campaign, CharacterData } from '@/types';
+import { CollaborativeCharacterEditor } from '@/components/character/CollaborativeCharacterEditor';
+import { InventoryManager } from '@/components/character/InventoryManager';
 import Button from '@/components/ui/Button';
+import Tooltip from '@/components/ui/Tooltip';
 import { apiErrorMessage, apiValidationIssues, errorMessage, errorSummary } from '@/utils/errors';
 import { refusedSaveMessage } from '@/utils/sheetSaveRefusal';
 import { isStaleCharacterSave } from '@/utils/staleCharacter';
 import { useStaleSaveReapply } from '@/components/character/StaleSaveDialog';
 import { isSignedOutSave, SIGNED_OUT_NOT_SAVED } from '@/utils/signedOut';
-import type { CharacterData } from '@/types';
+import { DMReviewPanel } from '@/components/character/DMReviewPanel';
+import { ConflictResolver } from '@/components/character/ConflictResolver';
 
 export default function CharacterEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +64,12 @@ export default function CharacterEditorPage() {
   const characterRef = useRef(character);
   characterRef.current = character;
   const { reapply: reapplyStaleSave, dialog: staleSaveDialog } = useStaleSaveReapply();
+
+  // DM Review state
+  const [showDMReview, setShowDMReview] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
+  const [activeConflict, setActiveConflict] = useState<React.ComponentProps<typeof ConflictResolver>['conflict'] | null>(null);
+  const isDM = campaign && user && campaign.memberships?.some(m => m.userId === user.id && m.role === 'DM');
 
 
   // ============================================
@@ -433,21 +444,72 @@ export default function CharacterEditorPage() {
               <Download className="w-4 h-4" />
               Export
             </Button>
+
+            {/* Inventory Manager Toggle */}
+            <Tooltip content="Manage Inventory & Containers">
+              <Button
+                variant={showInventory ? 'primary' : 'secondary'}
+                className="flex items-center gap-2"
+                onClick={() => setShowInventory(!showInventory)}
+              >
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline">Inventory</span>
+              </Button>
+            </Tooltip>
+
+            {/* DM Review Panel Toggle */}
+            {campaign && user && (
+              <Tooltip content={isDM ? 'Open DM Review Panel' : 'View Collaborators'}>
+                <Button
+                  variant="secondary"
+                  className="flex items-center gap-2"
+                  onClick={() => setShowDMReview(true)}
+                >
+                  <Users className="w-4 h-4" />
+                  {isDM ? 'DM Review' : 'Collaborators'}
+                </Button>
+              </Tooltip>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Inventory & Container Manager Drawer/View */}
+      {showInventory && character && (
+        <div className="p-4 border-b border-ink-muted/15 bg-surface/30">
+          <ErrorBoundary>
+            <InventoryManager characterId={character.id} />
+          </ErrorBoundary>
+        </div>
+      )}
+
       {/* Character Sheet Editor */}
       <div className="p-4">
         {signedOut && <SignedOutNotice />}
-        <CharacterSheetRouter
-          onDirtyChange={setHasUnsavedChanges}
-          onEditStart={() => { editingFromRef.current = characterRef.current; }}
-          character={character}
-          mode="edit"
-          onSave={handleSheetSave}
-          onCancel={handleCancel}
-        />
+        {character.campaignId && user ? (
+          <ErrorBoundary>
+            <CollaborativeCharacterEditor
+              character={character}
+              onSave={handleSheetSave}
+              onCancel={handleCancel}
+              onDirtyChange={setHasUnsavedChanges}
+              onEditStart={() => { editingFromRef.current = characterRef.current; }}
+              campaignId={character.campaignId}
+              userId={user.id}
+              userRole={isDM ? 'DM' : 'PLAYER'}
+              userDisplayName={user.displayName}
+            />
+          </ErrorBoundary>
+        ) : (
+          <CharacterSheetRouter
+            onDirtyChange={setHasUnsavedChanges}
+            onEditStart={() => { editingFromRef.current = characterRef.current; }}
+            character={character}
+            mode="edit"
+            onSave={handleSheetSave}
+            onCancel={handleCancel}
+          />
+        )}
       </div>
     </div>
 
@@ -464,6 +526,33 @@ export default function CharacterEditorPage() {
         onClose={() => setShowSaveAsTemplate(false)}
         onCreated={() => setShowSaveAsTemplate(false)}
       />
+    )}
+
+    {/* DM Review Panel */}
+    {showDMReview && campaign && user && character && (
+      <ErrorBoundary>
+        <DMReviewPanel
+          character={character}
+          campaignId={campaign.id}
+          userId={user.id}
+          userDisplayName={user.displayName}
+          isOpen={showDMReview}
+          onClose={() => setShowDMReview(false)}
+        />
+      </ErrorBoundary>
+    )}
+
+    {/* Conflict Resolver Modal */}
+    {activeConflict && (
+      <ErrorBoundary>
+        <ConflictResolver
+          conflict={activeConflict}
+          onClose={() => setActiveConflict(null)}
+          onResolve={async (_conflictId, _resolution) => {
+            // Handled by DMReviewPanel internally
+          }}
+        />
+      </ErrorBoundary>
     )}
     </>
   );

@@ -15,7 +15,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-allowlist-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-allowlist-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 // The fixtures here are a format's first bytes and no more, apart from the
@@ -92,12 +92,12 @@ let counter = 0;
 async function importOne(asset: ArchivedAsset) {
   counter += 1;
   const id = `33333333-3333-4333-8333-${String(counter).padStart(12, '0')}`;
-  const file = path.join(SCRATCH, `one-${counter}.cozyvtt`);
+  const file = path.join(SCRATCH, `one-${counter}.crazyvtt`);
   await writeZip(file, [
     {
       name: 'manifest.json',
       data: JSON.stringify({
-        formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT test', campaignName: 'Allowlist',
+        formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT test', campaignName: 'Allowlist',
         gameSystem: 'DND_5E', mapCount: 0, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0, assetCount: 1,
         includesAudio: true, totalSizeBytes: asset.bytes.length,
       }),

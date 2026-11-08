@@ -17,7 +17,7 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-uvtt-errors-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-uvtt-errors-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 process.env.MAX_MAP_SIZE_MB = '1';
 
@@ -61,7 +61,7 @@ const mapCount = () => prisma.map.count({ where: { campaignId } });
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `uvtt-errors-${stamp}@test.cozyvtt.local`, displayName: 'UVTT Errors DM' });
+  const user = await createTestUser({ email: `uvtt-errors-${stamp}@test.crazyvtt.local`, displayName: 'UVTT Errors DM' });
   dmId = user.id;
   campaignId = (await createTestCampaign(dmId, { name: `UVTT errors ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

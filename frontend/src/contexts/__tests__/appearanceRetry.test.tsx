@@ -3,7 +3,7 @@
  *
  * The appearance (the instance name, logo and default theme) was asked for
  * once, as the page loaded; a page loaded while the server was restarting
- * kept the tab title "CozyVTT" and the default branding until reloaded. A
+ * kept the tab title "CrazyVTT" and the default branding until reloaded. A
  * failed request is now tried again until the server answers.
  */
 import { it, expect, vi, afterEach } from 'vitest';

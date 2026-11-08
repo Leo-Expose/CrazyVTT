@@ -68,34 +68,80 @@ export function useTokenAnimation(onTick: () => void) {
 }
 
 /**
- * Fog reveal fade — decays per-cell reveal opacity over ~400ms and
- * repaints while any cell is still fading. Socket handlers seed the
+ * Fog reveal fade — decays per-cell reveal opacity over configurable duration
+ * and repaints while any cell is still fading. Socket handlers seed the
  * returned map with 1.0 for newly-revealed cells; the fog draw layer
  * reads it for the fade alpha. Re-subscribes when fog state changes so
  * newly-seeded cells restart the loop.
+ * 
+ * Configuration:
+ * - duration: fade duration in ms (default 300ms)
+ * - easing: easing function (default ease-out cubic)
+ * - respectReducedMotion: whether to respect prefers-reduced-motion (default true)
  */
+export interface FogRevealAnimationConfig {
+  duration?: number;
+  easing?: (t: number) => number;
+  respectReducedMotion?: boolean;
+}
+
+const DEFAULT_FOG_REVEAL_CONFIG: Required<FogRevealAnimationConfig> = {
+  duration: 300,
+  easing: (t) => 1 - Math.pow(1 - t, 3), // ease-out cubic
+  respectReducedMotion: true,
+};
+
+/**
+ * Check if user prefers reduced motion
+ */
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)')?.matches ?? false;
+}
+
 export function useFogRevealAnimation(
   onTick: () => void,
   fogState: FogState | null,
-  revealedCells: Set<number> | null
+  revealedCells: Set<number> | null,
+  config: FogRevealAnimationConfig = {}
 ) {
   const revealOpacityRef = useRef<Map<number, number>>(new Map());
   const tickRef = useRef(onTick);
   tickRef.current = onTick;
 
+  const mergedConfig = { ...DEFAULT_FOG_REVEAL_CONFIG, ...config };
+  const { duration, easing, respectReducedMotion } = mergedConfig;
+  const shouldReduceMotion = respectReducedMotion && prefersReducedMotion();
+
   useEffect(() => {
     if (revealOpacityRef.current.size === 0) return;
 
     let animationFrameId: number;
+    const startTimes = new Map<number, number>();
 
-    const animateFog = () => {
+    const animateFog = (timestamp: number) => {
       let hasActive = false;
       revealOpacityRef.current.forEach((opacity, idx) => {
-        const next = opacity - 0.042; // ~400ms to fully fade at 60fps
-        if (next <= 0) {
+        void opacity;
+        // Initialize start time for new cells
+        if (!startTimes.has(idx)) {
+          startTimes.set(idx, timestamp);
+        }
+        
+        const startTime = startTimes.get(idx)!;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        if (shouldReduceMotion) {
+          // Instant reveal for reduced motion
           revealOpacityRef.current.delete(idx);
+          startTimes.delete(idx);
+        } else if (progress >= 1) {
+          revealOpacityRef.current.delete(idx);
+          startTimes.delete(idx);
         } else {
-          revealOpacityRef.current.set(idx, next);
+          const easedProgress = easing(progress);
+          revealOpacityRef.current.set(idx, 1 - easedProgress);
           hasActive = true;
         }
       });
@@ -109,7 +155,7 @@ export function useFogRevealAnimation(
 
     animationFrameId = requestAnimationFrame(animateFog);
     return () => { cancelAnimationFrame(animationFrameId); };
-  }, [fogState, revealedCells]); // re-subscribe when fog changes
+  }, [fogState, revealedCells, duration, easing, shouldReduceMotion]); // re-subscribe when fog changes
 
   return revealOpacityRef;
 }

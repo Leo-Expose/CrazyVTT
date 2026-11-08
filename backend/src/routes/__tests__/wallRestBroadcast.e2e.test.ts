@@ -28,8 +28,8 @@ const wall = () => ({ id: randomUUID(), x1: 0, y1: 0, x2: 50, y2: 0, type: 'wall
 
 beforeAll(async () => {
   const stamp = randomUUID().slice(0, 8);
-  const dmUser = await createTestUser({ email: `wallrest-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
-  const playerUser = await createTestUser({ email: `wallrest-p-${stamp}@test.cozyvtt.local`, displayName: 'Player' });
+  const dmUser = await createTestUser({ email: `wallrest-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
+  const playerUser = await createTestUser({ email: `wallrest-p-${stamp}@test.crazyvtt.local`, displayName: 'Player' });
   dmId = dmUser.id;
   playerId = playerUser.id;
   campaignId = (await createTestCampaign(dmId, { name: `Wall REST ${stamp}` })).id;

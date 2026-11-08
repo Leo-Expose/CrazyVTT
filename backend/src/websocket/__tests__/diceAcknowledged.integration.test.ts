@@ -34,7 +34,7 @@ type Answer = { ok: true; id?: string } | { ok: false; error: string };
 beforeAll(async () => {
   const users = await Promise.all(
     ['dm', 'player', 'watcher', 'flood'].map((name) =>
-      prisma.user.create({ data: { email: `diceack-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Dice ${name}` } })
+      prisma.user.create({ data: { email: `diceack-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Dice ${name}` } })
     )
   );
   [dmId, playerId, watcherId, floodId] = users.map((u) => u.id);

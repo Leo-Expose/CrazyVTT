@@ -57,7 +57,7 @@ async function litMap(name: string, globalIllumination: boolean, walls: unknown[
 
 beforeAll(async () => {
   const [dm, player] = await Promise.all(['dm', 'player'].map((n) =>
-    prisma.user.create({ data: { email: `sight-${n}-${runId}@test.cozyvtt.local`, passwordHash: 'unused', displayName: `Sight ${n}` } })));
+    prisma.user.create({ data: { email: `sight-${n}-${runId}@test.crazyvtt.local`, passwordHash: 'unused', displayName: `Sight ${n}` } })));
   dmId = dm.id;
   playerId = player.id;
   campaignId = (await prisma.campaign.create({ data: { name: `Sight ${runId}`, ownerId: dmId, vibeSettings: {} } })).id;

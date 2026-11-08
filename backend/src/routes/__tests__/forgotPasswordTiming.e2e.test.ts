@@ -44,7 +44,7 @@ afterAll(async () => {
 });
 
 it('answers a known address before the email has been sent', async () => {
-  const u = await createTestUser({ email: `forgot-timing-${Date.now()}@test.cozyvtt.local` });
+  const u = await createTestUser({ email: `forgot-timing-${Date.now()}@test.crazyvtt.local` });
   created.push(u.id);
 
   // The send never finishes until released, so a route that waits for it
@@ -60,7 +60,7 @@ it('answers a known address before the email has been sent', async () => {
 // Issuing a link takes several database round trips that an unknown address
 // never makes, so waiting for them told the two apart by the time taken.
 it('answers a known address before its link has been issued', async () => {
-  const u = await createTestUser({ email: `forgot-issue-${Date.now()}@test.cozyvtt.local` });
+  const u = await createTestUser({ email: `forgot-issue-${Date.now()}@test.crazyvtt.local` });
   created.push(u.id);
   let releaseIssue: () => void = () => {};
   const held = new Promise<string>((resolve) => { releaseIssue = () => resolve('never-sent'); });
@@ -81,7 +81,7 @@ it('answers a known address before its link has been issued', async () => {
 // Requests while a link is on its way find it as they would find one just
 // issued, so a burst of requests still sends one email.
 it('issues one link for requests that arrive while one is on its way', async () => {
-  const u = await createTestUser({ email: `forgot-burst-${Date.now()}@test.cozyvtt.local` });
+  const u = await createTestUser({ email: `forgot-burst-${Date.now()}@test.crazyvtt.local` });
   created.push(u.id);
   const issued = jest.spyOn(passwordResetTokens, 'issueResetToken');
   try {

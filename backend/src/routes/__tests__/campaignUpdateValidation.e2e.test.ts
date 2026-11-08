@@ -27,7 +27,7 @@ let campaignId: string;
 let agent: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
-  const dm = await createTestUser({ email: `cu-dm-${Date.now()}@test.cozyvtt.local`, displayName: 'DM' });
+  const dm = await createTestUser({ email: `cu-dm-${Date.now()}@test.crazyvtt.local`, displayName: 'DM' });
   dmId = dm.id;
   const campaign = await createTestCampaign(dm.id, { name: 'Update me' });
   campaignId = campaign.id;

@@ -163,7 +163,7 @@ export default function ImportCharacterModal({
     >
         {isTemplate && !previewData && (
           <p className="text-sm text-ink-secondary mb-4">
-            Any character JSON works here, including one exported from another CozyVTT
+            Any character JSON works here, including one exported from another CrazyVTT
             instance. Publishing it as a template makes it available for everyone here to
             copy — the original character is not affected.
           </p>

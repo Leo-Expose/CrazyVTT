@@ -15,7 +15,7 @@ describe('loadEnvFile', () => {
   let printed: string[];
 
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-load-env-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-load-env-'));
     process.chdir(dir);
     printed = [];
     const record = (...args: unknown[]): void => {

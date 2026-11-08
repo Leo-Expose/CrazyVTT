@@ -61,7 +61,7 @@ it('answers a known address exactly as an unknown one when issuing the link fail
   const logged = jest.spyOn(logger, 'error').mockImplementation(() => logger);
 
   const known = await ask(user.email);
-  const unknown = await ask(`nobody-${Date.now()}@test.cozyvtt.local`);
+  const unknown = await ask(`nobody-${Date.now()}@test.crazyvtt.local`);
 
   expect(known.status).toBe(unknown.status);
   expect(known.body).toEqual(unknown.body);
@@ -79,7 +79,7 @@ it('answers a known address exactly as an unknown one when clearing old links fa
   const logged = jest.spyOn(logger, 'error').mockImplementation(() => logger);
 
   const known = await ask(user.email);
-  const unknown = await ask(`nobody-${Date.now()}-b@test.cozyvtt.local`);
+  const unknown = await ask(`nobody-${Date.now()}-b@test.crazyvtt.local`);
 
   expect(known.status).toBe(200);
   expect(known.body).toEqual(unknown.body);

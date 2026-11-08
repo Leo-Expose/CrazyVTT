@@ -13,7 +13,7 @@ describe('resolveBackupDir', () => {
   });
 
   it('honours BACKUP_DIR', () => {
-    expect(resolveBackupDir({ BACKUP_DIR: '/var/lib/cozyvtt/backups' })).toBe('/var/lib/cozyvtt/backups');
+    expect(resolveBackupDir({ BACKUP_DIR: '/var/lib/crazyvtt/backups' })).toBe('/var/lib/crazyvtt/backups');
   });
 
   it('refuses a backup directory inside the uploads directory', () => {
@@ -36,7 +36,7 @@ describe('isInside', () => {
 // without Docker got whatever the process umask gave, usually 755.
 describeWhereModesApply('ensureBackupDir', () => {
   let root: string;
-  beforeEach(async () => { root = await fs.mkdtemp(path.join(os.tmpdir(), 'cozyvtt-backupdir-')); });
+  beforeEach(async () => { root = await fs.mkdtemp(path.join(os.tmpdir(), 'crazyvtt-backupdir-')); });
   afterEach(async () => { await fs.rm(root, { recursive: true, force: true }); });
 
   it('creates the folder readable by its owner alone', async () => {

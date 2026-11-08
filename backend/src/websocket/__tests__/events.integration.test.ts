@@ -31,7 +31,7 @@ interface InitiativeState { combatants: Array<{ tokenId: string; initiative: num
 // ── Seed data ────────────────────────────────────────────────────────────────
 
 const runId = randomUUID().slice(0, 8);
-const email = (name: string) => `ws-${name}-${runId}@test.cozyvtt.local`;
+const email = (name: string) => `ws-${name}-${runId}@test.crazyvtt.local`;
 
 const PLAYER_TOKEN_ID = randomUUID();
 const DM_TOKEN_ID = randomUUID();

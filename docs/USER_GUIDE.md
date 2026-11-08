@@ -1,6 +1,6 @@
-# CozyVTT User Guide
+# CrazyVTT User Guide
 
-Welcome to CozyVTT — your cozy, self-hosted virtual tabletop for adventuring with friends. Whether you're rolling dice across a dungeon crawl or weaving stories through the astral plane, CozyVTT keeps everyone at the same table, no matter where they are.
+Welcome to CrazyVTT — your cozy, self-hosted virtual tabletop for adventuring with friends. Whether you're rolling dice across a dungeon crawl or weaving stories through the astral plane, CrazyVTT keeps everyone at the same table, no matter where they are.
 
 This guide covers everything you need to get started, from the setup wizard to advanced session features.
 
@@ -25,7 +25,7 @@ This guide covers everything you need to get started, from the setup wizard to a
 
 ### First-Time Setup (Admin Only)
 
-When you first navigate to your CozyVTT instance, you'll be greeted by the **Setup Wizard** — a short four-step process that creates the administrator account and configures the platform. Nobody else has an account until it is done, so run it before you share the address with anyone.
+When you first navigate to your CrazyVTT instance, you'll be greeted by the **Setup Wizard** — a short four-step process that creates the administrator account and configures the platform. Nobody else has an account until it is done, so run it before you share the address with anyone.
 
 *Screenshot pending — Setup wizard welcome screen.*
 
@@ -63,7 +63,7 @@ Once setup is complete, you'll be logged in as the administrator and taken to yo
 
 ### Logging In
 
-Navigate to your CozyVTT URL and enter your email and password. If Multi-Factor Authentication (MFA) is enabled on your account, you'll be prompted for your authenticator code after entering your password. If you opened a link to a page, such as a campaign, while signed out, signing in takes you on to that page.
+Navigate to your CrazyVTT URL and enter your email and password. If Multi-Factor Authentication (MFA) is enabled on your account, you'll be prompted for your authenticator code after entering your password. If you opened a link to a page, such as a campaign, while signed out, signing in takes you on to that page.
 
 **Too many wrong passwords locks sign-in for a while.** There are two limits. A correct password never counts towards either, so signing in normally cannot lock you out.
 
@@ -92,7 +92,7 @@ When the second limit locks an account, the Admin Panel's **Activity** tab gets 
 
 ### User Accounts
 
-CozyVTT has two platform-level roles:
+CrazyVTT has two platform-level roles:
 
 | Role | What they can do |
 |------|-----------------|
@@ -125,7 +125,7 @@ The instance writes lines of its own too, such as an account locked after too ma
 | **By** | The administrator who acted, by display name and email address. **The instance** for a line the instance wrote itself |
 | **Action** | What was done, naming the account it was done to by its email address. Under a change to an account or to the settings, **What changed** opens a list of each value before and after, except a bio, which shows only **Bio: changed**. Lines about the settings written by earlier versions list every setting that was sent, with its new value only |
 
-**What the log keeps, and for how long.** Lines are kept for as long as the instance exists: nothing removes them, and there is no control to clear them. A line names the account it was about by its email address, and deleting that account leaves the line as it is. **By** is looked up each time the tab opens, so if the administrator's own account is deleted later, their lines stay and **By** shows **Deleted account**. **What a line stores about an account change:** the email address, display name and avatar address before and after, and whether Global Assets and template editing were granted or taken away. For a bio it stores only that the bio changed: none of the old or new text is kept, so nothing a person wrote about themselves stays in the log. Lines written by earlier versions of CozyVTT still hold the bio text they stored; they are not rewritten. The log is part of every backup.
+**What the log keeps, and for how long.** Lines are kept for as long as the instance exists: nothing removes them, and there is no control to clear them. A line names the account it was about by its email address, and deleting that account leaves the line as it is. **By** is looked up each time the tab opens, so if the administrator's own account is deleted later, their lines stay and **By** shows **Deleted account**. **What a line stores about an account change:** the email address, display name and avatar address before and after, and whether Global Assets and template editing were granted or taken away. For a bio it stores only that the bio changed: none of the old or new text is kept, so nothing a person wrote about themselves stays in the log. Lines written by earlier versions of CrazyVTT still hold the bio text they stored; they are not rewritten. The log is part of every backup.
 
 ### Campaign Roles
 
@@ -190,7 +190,7 @@ The campaign page is your command center during play. It's a three-column worksp
 
 You can **drag the dividers** between the columns to resize them, and collapse the side columns entirely to give the map more room. Your layout and last-used tab are remembered per browser. The **header bar** across the top contains navigation, connection status, and DM controls.
 
-**In a window narrower than 1024 pixels**, such as a laptop with two windows side by side, a tablet or a phone, the page first shows a **Desktop Required** notice. Click **Continue anyway** to open the table there: it keeps the same three-column desktop layout, so the panels are cramped, and the header's buttons wrap onto a second row. Your browser remembers the choice, so the notice does not come back; clearing the site's data for your CozyVTT brings it back. A layout made for phones is planned for a later release.
+**In a window narrower than 1024 pixels**, such as a laptop with two windows side by side, a tablet or a phone, the page first shows a **Desktop Required** notice. Click **Continue anyway** to open the table there: it keeps the same three-column desktop layout, so the panels are cramped, and the header's buttons wrap onto a second row. Your browser remembers the choice, so the notice does not come back; clearing the site's data for your CrazyVTT brings it back. A layout made for phones is planned for a later release.
 
 ---
 
@@ -330,7 +330,7 @@ Templates you publish are visible to everyone on your instance, so a template ne
 
 If someone else saved the template while you had it open, such as a template editor tidying it, your save is refused so that it cannot put the older version back. For the sheet, a box headed **This template has changed** lists your changes, already put onto the newest version, and works as it does for a character (see [The Character Editor](#the-character-editor)): **Save my changes** saves them, **Keep editing** goes back without saving. For **Save Details**, if the other person changed the name or description too, a message under the name says what it is now called, and pressing **Save Details** again saves yours in its place; otherwise yours is saved straight away.
 
-**Importing from another instance.** The **Import** button accepts any character JSON — one you exported from this instance, one you wrote yourself, or one exported from a *different* CozyVTT server. That last case is the useful one: export a character from wherever you built it, bring the file to a new instance, and publish it there for that group to copy. Character exports and templates hold the same thing — a sheet plus a game system — so no conversion is involved. You'll see a preview before anything is published, and you can set the name and description at that point.
+**Importing from another instance.** The **Import** button accepts any character JSON — one you exported from this instance, one you wrote yourself, or one exported from a *different* CrazyVTT server. That last case is the useful one: export a character from wherever you built it, bring the file to a new instance, and publish it there for that group to copy. Character exports and templates hold the same thing — a sheet plus a game system — so no conversion is involved. You'll see a preview before anything is published, and you can set the name and description at that point.
 
 > **A note on template images.** A template's picture has to be a **global** asset, because everyone who can see the template needs to be able to load it — a personal asset would show as broken for everyone but you. If you don't have permission to upload global assets, pick an existing global one or leave the image blank.
 
@@ -353,7 +353,7 @@ Once assigned, that character becomes available as a token in the campaign, and 
 
 ### Character Sheets by Game System
 
-CozyVTT includes sheets for several popular game systems. Here's a quick overview of what each one covers:
+CrazyVTT includes sheets for several popular game systems. Here's a quick overview of what each one covers:
 
 Every box on a sheet has a length limit, far above what a sheet needs: a character's name can be up to 200 characters, notes, descriptions, backstories and features up to 100,000, the D&D 5e proficiency boxes up to 2,000, and any other box up to 1,000.
 
@@ -404,7 +404,7 @@ For when the vibes turn from cozy to eldritch:
 
 Street magic meets corporate dystopia:
 
-> **Note:** Shadowrun 6th Edition is planned, not available yet. CozyVTT has groundwork for its rules, but no character sheet, so it is left out of the lists you pick a game system from.
+> **Note:** Shadowrun 6th Edition is planned, not available yet. CrazyVTT has groundwork for its rules, but no character sheet, so it is left out of the lists you pick a game system from.
 
 #### Flexible System
 
@@ -478,20 +478,20 @@ Two kinds of file can end up reachable by administrators alone. Both are found o
 
 **Files with no owner.** When an account is deleted, its avatar and the personal files nothing uses are deleted with it, and the files it uploaded that a campaign still uses stay, with no owner. A personal file that only one campaign uses or shares becomes that campaign's own when the account was in that campaign, so its table goes on seeing it; one that several campaigns use, a campaign the account was not in, or something outside a campaign such as a character template, stays personal with no owner, and the **Activity** tab gets a line naming it. A campaign's own files that outlive their uploader and then their campaign end up the same way. To list them, set the **Uploader** filter to **No Uploader (account deleted)**. Documents are listed only when the **Type** filter is set to **Document**. From there each one can be moved to Global or into a campaign, so people can use it again, or deleted.
 
-**Leftover files.** These are files in the uploads folder that no asset names at all: for example a file that could not be removed when its asset was deleted, or one that a restored backup brought back although the restored database does not know it. Nothing in CozyVTT shows or uses them; they only take up disk space.
+**Leftover files.** These are files in the uploads folder that no asset names at all: for example a file that could not be removed when its asset was deleted, or one that a restored backup brought back although the restored database does not know it. Nothing in CrazyVTT shows or uses them; they only take up disk space.
 
 1. Under **Leftover Files**, press **Check for Leftover Files**. You see the list, each file's size and when it last changed, and the total. Checking deletes nothing. At most 5,000 files are listed at a time; once those are deleted, check again for the rest.
 2. If you want them gone, press **Delete *N* Files** and confirm. Each file is checked again first and kept if an asset names it by then. You are told how many were deleted and how many were kept.
 
-A file changed in the last hour is not listed, since an upload may still be finishing; the check tells you how many it left out, and checking again later lists them. A deleted file cannot be brought back without a backup of the uploads folder. Only the folders CozyVTT writes uploads to are looked at; anything else you keep in the uploads folder is left alone. Do not run the check while a backup is being restored.
+A file changed in the last hour is not listed, since an upload may still be finishing; the check tells you how many it left out, and checking again later lists them. A deleted file cannot be brought back without a backup of the uploads folder. Only the folders CrazyVTT writes uploads to are looked at; anything else you keep in the uploads folder is left alone. Do not run the check while a backup is being restored.
 
-**How full the disk is.** CozyVTT does not limit how much one account uploads in total, so keep an eye on the disk. The **System Overview** on the Admin Panel's **Dashboard** tab shows, under **Storage**, how much space is free on the disk that holds the uploads. Once that disk is more than 80% full, a red warning at the top of the page says how full it is and what to do: delete files nobody needs from the **Assets** tab, delete old backups, or move the uploads folder to a larger disk (see [File Storage](DEPLOYMENT.md#file-storage)).
+**How full the disk is.** CrazyVTT does not limit how much one account uploads in total, so keep an eye on the disk. The **System Overview** on the Admin Panel's **Dashboard** tab shows, under **Storage**, how much space is free on the disk that holds the uploads. Once that disk is more than 80% full, a red warning at the top of the page says how full it is and what to do: delete files nobody needs from the **Assets** tab, delete old backups, or move the uploads folder to a larger disk (see [File Storage](DEPLOYMENT.md#file-storage)).
 
 ---
 
 ## Documents
 
-Rulebooks, house rules, handouts: the things a table reads rather than looks at. **Documents** on your dashboard keeps them apart from maps and tokens, and lets you read them without leaving CozyVTT.
+Rulebooks, house rules, handouts: the things a table reads rather than looks at. **Documents** on your dashboard keeps them apart from maps and tokens, and lets you read them without leaving CrazyVTT.
 
 ### What you can keep here
 
@@ -537,7 +537,7 @@ What you type is saved exactly as typed, and replaces the old text all at once: 
 
 Uploads are checked rather than trusted. A PDF must really be a PDF, and a text or Markdown file must really be text; a program renamed to `.md` is refused. Documents are always shown as text or as a PDF, never as a web page, so a file that contains HTML or a script is displayed as-is and nothing in it can run. There is no need to avoid typing `<` or `>` in a document; they show as typed.
 
-Pictures in a Markdown document or note only load from your own CozyVTT, and only a map, token or avatar picture from the asset library. An image that points at another website would make every reader's browser contact that site, revealing who opened the document, and one that points anywhere else on your CozyVTT would make every reader's browser ask for that page as them; instead its description (or *image not shown*, when it has none) is shown and nothing is fetched. To show a picture, upload it to your asset library as a map or token image and use its address, which looks like `/api/assets/maps/` or `/api/assets/tokens/` followed by a long id: for example `![The old mill](/api/assets/maps/bc5f19c0-158b-4330-a5cc-6133666a4fec)`. To find it, right-click the picture in the **Asset Library** and choose your browser's **Open image in new tab**: the address bar of the new tab shows it.
+Pictures in a Markdown document or note only load from your own CrazyVTT, and only a map, token or avatar picture from the asset library. An image that points at another website would make every reader's browser contact that site, revealing who opened the document, and one that points anywhere else on your CrazyVTT would make every reader's browser ask for that page as them; instead its description (or *image not shown*, when it has none) is shown and nothing is fetched. To show a picture, upload it to your asset library as a map or token image and use its address, which looks like `/api/assets/maps/` or `/api/assets/tokens/` followed by a long id: for example `![The old mill](/api/assets/maps/bc5f19c0-158b-4330-a5cc-6133666a4fec)`. To find it, right-click the picture in the **Asset Library** and choose your browser's **Open image in new tab**: the address bar of the new tab shows it.
 
 Links in a document or note open in a new tab, so following one never takes you away from the table.
 
@@ -677,7 +677,7 @@ Whoever's turn it is also gets a pulsing gold ring around their token on the map
 
 ### Session State Saving
 
-CozyVTT saves as you play: token positions, fog, walls, lights, chat and dice history, and the atmosphere are all stored the moment they change, so there is no save button and nothing is lost by closing the page. When you come back, everything is right where you left it. The one exception is an initiative order, which lasts only while the server is running.
+CrazyVTT saves as you play: token positions, fog, walls, lights, chat and dice history, and the atmosphere are all stored the moment they change, so there is no save button and nothing is lost by closing the page. When you come back, everything is right where you left it. The one exception is an initiative order, which lasts only while the server is running.
 
 Ending a session records it, with the DM's notes, under **Past Sessions**.
 
@@ -723,7 +723,7 @@ across a courtyard once you have a clear line to it.
 
 ### Appearance & Theming
 
-CozyVTT theming works in two layers:
+CrazyVTT theming works in two layers:
 
 **Per-user (every account)** — From your **Profile** page you pick the theme and font *you* want to see when you're logged in. Your choice is saved to your account and persists across logout/login. See the [Your Profile → Themes](#themes--fonts) section below.
 
@@ -731,7 +731,7 @@ CozyVTT theming works in two layers:
 
 - **Default theme** — 16 built-in themes spanning warm, cool, dark, neutral, and vibrant palettes
 - **Default font** — 8 open-source font families (Quicksand + Inter default, plus medieval, elegant, handwritten, etc.)
-- **Custom theme builder** — primary, accent, background, and text colors; complementary shades derived automatically. The picker shows a live **Readability** check with the contrast ratio of each key text/background pair, flagging anything below the 4.5:1 minimum, and CozyVTT adjusts text shades automatically where it can
+- **Custom theme builder** — primary, accent, background, and text colors; complementary shades derived automatically. The picker shows a live **Readability** check with the contrast ratio of each key text/background pair, flagging anything below the 4.5:1 minimum, and CrazyVTT adjusts text shades automatically where it can
 Changes preview live as you configure them.
 
 **Custom branding (logo, mascot, favicon)** is not part of the Appearance panel yet. The instance
@@ -817,24 +817,24 @@ Click **Sign Out** in the Danger Zone section, or **Logout** at the top of the d
 
 ## Troubleshooting & FAQ
 
-### CozyVTT does not open on an old phone, tablet or computer
+### CrazyVTT does not open on an old phone, tablet or computer
 
-CozyVTT needs Chrome or Edge 111, Firefox 128 or Safari 16.4 (iPadOS 16.4 on an iPad), or a newer version: Chrome, Edge and Safari from 2023, Firefox from 2024. An older browser may not load the app, or may draw parts of it wrongly. Update the browser, or the device's system software if that is what holds the browser back. An iPad that cannot update past iPadOS 15 needs another device. A phone or computer that installs its browser updates is not affected.
+CrazyVTT needs Chrome or Edge 111, Firefox 128 or Safari 16.4 (iPadOS 16.4 on an iPad), or a newer version: Chrome, Edge and Safari from 2023, Firefox from 2024. An older browser may not load the app, or may draw parts of it wrongly. Update the browser, or the device's system software if that is what holds the browser back. An iPad that cannot update past iPadOS 15 needs another device. A phone or computer that installs its browser updates is not affected.
 
 ### I can't connect to my campaign
 
 - Check that you have an active internet connection
 - Look at the connection indicator in the campaign header; it turns green once you're connected. You don't need a live session to connect
-- Try refreshing the page — CozyVTT will reconnect automatically
+- Try refreshing the page — CrazyVTT will reconnect automatically
 - If the problem persists, check with your platform administrator that the server is running
 
 ### A page says "Can't reach the server"
 
-CozyVTT did not answer when the page checked who is signed in, usually because the server is restarting, being upgraded or being restored from a backup. A restart or an upgrade does not sign you out. The page tries again by itself, after a few seconds and then every 30 seconds, and opens as soon as the server answers; **Try Again** checks at once. If it stays for more than a few minutes, ask your platform administrator whether the server is running.
+CrazyVTT did not answer when the page checked who is signed in, usually because the server is restarting, being upgraded or being restored from a backup. A restart or an upgrade does not sign you out. The page tries again by itself, after a few seconds and then every 30 seconds, and opens as soon as the server answers; **Try Again** checks at once. If it stays for more than a few minutes, ask your platform administrator whether the server is running.
 
 ### A page says "The instance is being restored from a backup"
 
-An administrator is restoring CozyVTT from a backup. When the restore starts, an open campaign page goes to the sign-in page, which says "The instance is being restored from a backup. Sign in again once it has finished." Until it has finished, signing in answers "The instance is being restored from a backup. Try again in a minute; everyone signs in again once it has finished." and a page you open says "Can't reach the server". Wait a minute or two and sign in again: a finished restore signs everyone out, and everything is as it was when the backup was made.
+An administrator is restoring CrazyVTT from a backup. When the restore starts, an open campaign page goes to the sign-in page, which says "The instance is being restored from a backup. Sign in again once it has finished." Until it has finished, signing in answers "The instance is being restored from a backup. Try again in a minute; everyone signs in again once it has finished." and a page you open says "Can't reach the server". Wait a minute or two and sign in again: a finished restore signs everyone out, and everything is as it was when the backup was made.
 
 ### My token disappeared from the map
 
@@ -848,7 +848,7 @@ If a character sheet window says **Error Loading Character Sheet**, that sheet h
 
 ### I lost connection mid-session
 
-CozyVTT reconnects by itself for as long as the connection is away, trying again every few seconds at first and then every 30 seconds, and at once when you come back to a tab or a phone screen you had left. The connection indicator shows **Connecting...** meanwhile. Your session state (token positions, etc.) is preserved, and chat messages other people sent while you were away, a pause or the end of the session, the map the table moved to, the vibe, the weather and ambient track, the spirit layer, and a dice history the DM cleared are all brought up to date once you're back. A chat message you send while disconnected is marked **Not sent**; click **Retry** once you are back. If the indicator shows **Connection Error** or **Disconnected**, press **Retry**, or refresh the page; everything should be right where you left it.
+CrazyVTT reconnects by itself for as long as the connection is away, trying again every few seconds at first and then every 30 seconds, and at once when you come back to a tab or a phone screen you had left. The connection indicator shows **Connecting...** meanwhile. Your session state (token positions, etc.) is preserved, and chat messages other people sent while you were away, a pause or the end of the session, the map the table moved to, the vibe, the weather and ambient track, the spirit layer, and a dice history the DM cleared are all brought up to date once you're back. A chat message you send while disconnected is marked **Not sent**; click **Retry** once you are back. If the indicator shows **Connection Error** or **Disconnected**, press **Retry**, or refresh the page; everything should be right where you left it.
 
 If the page says "You were removed from this campaign." or "This campaign was deleted.", the DM has removed you or the campaign is gone, and the page takes you to your dashboard.
 

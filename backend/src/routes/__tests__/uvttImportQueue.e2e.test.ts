@@ -23,7 +23,7 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-uvtt-queue-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-uvtt-queue-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 /**

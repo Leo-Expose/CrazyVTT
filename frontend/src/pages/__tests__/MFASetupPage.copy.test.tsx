@@ -3,7 +3,7 @@
  * plain HTTP, and say so when copying fails.
  *
  * The browser offers its clipboard to a page only over HTTPS (or on
- * localhost), and CozyVTT also runs over plain HTTP on a home network. There
+ * localhost), and CrazyVTT also runs over plain HTTP on a home network. There
  * the buttons threw and did nothing visible, so someone could tick "I have
  * saved my codes" believing they were copied. Where the browser refused the
  * copy, the button said "Copied!" anyway. They now fall back to the older

@@ -13,7 +13,7 @@ import os from 'os';
 import path from 'path';
 
 // Read once, when the admin routes load; a folder of this file's own.
-const BACKUP_DIR = fsSync.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-admin-routes-'));
+const BACKUP_DIR = fsSync.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-admin-routes-'));
 process.env.BACKUP_DIR = BACKUP_DIR;
 
 jest.mock('../../services/email', () => ({

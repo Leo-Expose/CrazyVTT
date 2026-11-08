@@ -31,7 +31,7 @@ async function enableMfa(agent: ReturnType<typeof request.agent>): Promise<strin
 }
 
 beforeAll(async () => {
-  const u = await createTestUser({ email: `mfa-backup-${Date.now()}@test.cozyvtt.local`, displayName: 'MFA Backup' });
+  const u = await createTestUser({ email: `mfa-backup-${Date.now()}@test.crazyvtt.local`, displayName: 'MFA Backup' });
   userId = u.id;
   email = u.email;
 });

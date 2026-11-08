@@ -75,7 +75,7 @@ async function signIns(schemaName: string, userId: string): Promise<number> {
 it('keeps each sign-in in the named schema, and a password change ends the others', async () => {
   const { hashPassword } = require('../../services/auth') as typeof import('../../services/auth');
   const user = await db.user.create({
-    data: { email: 'schema-sessions@test.cozyvtt.local', displayName: 'Schema', passwordHash: await hashPassword(PASSWORD) },
+    data: { email: 'schema-sessions@test.crazyvtt.local', displayName: 'Schema', passwordHash: await hashPassword(PASSWORD) },
   });
 
   const signIn = async () => {

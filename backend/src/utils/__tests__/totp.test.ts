@@ -3,7 +3,7 @@
  * six digits and nothing else.
  *
  * Every account with two-factor authentication on holds a secret made by the
- * library CozyVTT used before, and the authenticator app on the person's phone
+ * library CrazyVTT used before, and the authenticator app on the person's phone
  * was set up from it. A change of library that read those secrets differently
  * would lock every one of them out, so a secret made that way, with the codes
  * that library gave for it, is checked here as it is stored.
@@ -12,7 +12,7 @@
 import { verifyTotpOnce } from '../totp';
 
 /**
- * A secret as CozyVTT stored it until now: twenty printable characters
+ * A secret as CrazyVTT stored it until now: twenty printable characters
  * ("kpb%dgmyn}AtG(u7nhuA"), written in base32. The codes are the ones the old
  * library gave for it, at STORED_AT and 30 and 60 seconds either side.
  */

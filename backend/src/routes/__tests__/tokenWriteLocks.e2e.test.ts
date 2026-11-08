@@ -49,8 +49,8 @@ const token = (id: string, extra: Record<string, unknown>) => ({
 
 beforeAll(async () => {
   const stamp = randomUUID().slice(0, 8);
-  const dmUser = await createTestUser({ email: `locks-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
-  const playerUser = await createTestUser({ email: `locks-player-${stamp}@test.cozyvtt.local`, displayName: 'Player' });
+  const dmUser = await createTestUser({ email: `locks-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
+  const playerUser = await createTestUser({ email: `locks-player-${stamp}@test.crazyvtt.local`, displayName: 'Player' });
   dmId = dmUser.id;
   playerId = playerUser.id;
   campaignId = (await createTestCampaign(dmId, { name: `Locks ${stamp}` })).id;

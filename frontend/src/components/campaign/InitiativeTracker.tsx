@@ -50,6 +50,7 @@ import { TokenType } from '@/types';
 import { tokenDisplayName, tokenPublicName, characterRollPublicName } from '@/utils/tokenDisplayName';
 import { controlsToken } from '@/utils/tokenOwnership';
 import { campaignHasCharacter, canRollTokenCharacter } from '@/utils/tokenCharacter';
+import { getQualitativeHealth, getHealthTooltip } from '@/utils/rules/qualitativeHealth';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -166,6 +167,7 @@ interface CombatantRowProps {
   /** Open the row's menu at a point; `byKeyboard` puts the cursor in it. */
   onOpenMenu: (tokenId: string, x: number, y: number, byKeyboard: boolean) => void;
   onOpenSheet: (tokenId: string) => void;
+  gameSystem?: string;
 }
 
 /**
@@ -184,7 +186,7 @@ function CombatantRow({
   entry, isActive, isPeeked, isDM, canRoll, isDragOver, reorderHintId,
   onSetInitiative, onRoll, onRemove,
   onDragStart, onDragOver, onDrop, onDragEnd, onMove,
-  hasMenu, hasSheet, onOpenMenu, onOpenSheet,
+  hasMenu, hasSheet, onOpenMenu, onOpenSheet, gameSystem,
 }: CombatantRowProps) {
   const [editing, setEditing] = useState(false);
   const [inputVal, setInputVal] = useState(entry.initiative !== null ? String(entry.initiative) : '');
@@ -319,11 +321,28 @@ function CombatantRow({
             {name}
           </div>
         )}
-        {entry.hp && (
-          <div className="text-xs text-stone-gray">
-            HP {entry.hp.current}/{entry.hp.max}
-          </div>
-        )}
+        {entry.hp && (() => {
+          if (isDM || canRoll) {
+            return (
+              <div className="text-xs text-stone-gray">
+                HP {entry.hp.current}/{entry.hp.max}
+              </div>
+            );
+          }
+          const qHealth = getQualitativeHealth(
+            {
+              current: entry.hp.current,
+              max: entry.hp.max,
+              temp: entry.hp.temp,
+            },
+            gameSystem ?? 'DND_5E',
+          );
+          return (
+            <div className="text-xs text-stone-gray capitalize">
+              {getHealthTooltip(qHealth, false)}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Disposition icon */}
@@ -704,6 +723,7 @@ export default function InitiativeTracker() {
                     hasSheet={offersSheet(tokenOf(entry.tokenId))}
                     onOpenMenu={(tokenId, x, y, byKeyboard) => setMenu({ tokenId, x, y, byKeyboard })}
                     onOpenSheet={openSheet}
+                    gameSystem={campaign?.gameSystem ?? undefined}
                   />
                 ))}
               </div>

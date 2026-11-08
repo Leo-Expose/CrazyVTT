@@ -23,7 +23,7 @@ let stranger: ReturnType<typeof request.agent>;
 let characterId: string;
 
 async function signIn(label: string) {
-  const u = await createTestUser({ email: `permfirst-${label}-${Date.now()}@test.cozyvtt.local` });
+  const u = await createTestUser({ email: `permfirst-${label}-${Date.now()}@test.crazyvtt.local` });
   created.push(u.id);
   const agent = request.agent(app);
   expect((await agent.post('/api/auth/login').send({ email: u.email, password: TEST_PASSWORD })).status).toBe(200);

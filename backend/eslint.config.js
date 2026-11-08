@@ -13,13 +13,13 @@ const tseslint = require('typescript-eslint');
 module.exports = [
   // Only TypeScript is linted, as before the flat config format; the
   // JavaScript here is configuration.
-  { ignores: ['dist/', 'coverage/', '**/*.js', '**/*.cjs', '**/*.mjs'] },
+  { ignores: ['dist/', 'coverage/', 'backups/', '**/*.js', '**/*.cjs', '**/*.mjs'] },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
 
   {
-    name: 'cozyvtt/backend',
+    name: 'crazyvtt/backend',
     languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
     rules: {
@@ -48,7 +48,7 @@ module.exports = [
   },
 
   {
-    name: 'cozyvtt/backend-tests',
+    name: 'crazyvtt/backend-tests',
     files: ['**/__tests__/**/*.ts', '**/*.test.ts'],
     rules: {
       // A test that sets the environment, or a mock, and then loads a module

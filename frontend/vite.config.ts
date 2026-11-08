@@ -22,6 +22,8 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_PROXY_TARGET || env.VITE_API_URL || 'http://localhost:4000';
 
   return {
+    // Keep Docker dev's optimizer cache out of read-only dependency mounts.
+    cacheDir: mode === 'development' ? '/tmp/crazyvtt-vite' : undefined,
     plugins: [
       react(),
       tailwindcss(),

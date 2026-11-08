@@ -1,6 +1,6 @@
-# CozyVTT — Deployment Guide
+# CrazyVTT — Deployment Guide
 
-This guide covers deploying CozyVTT to a **production server** using Docker Compose (recommended) or manually. The default `docker compose up -d --build` command in this guide runs the **hardened production stack**: compiled binaries, Nginx reverse proxy, no exposed database/backend ports.
+This guide covers deploying CrazyVTT to a **production server** using Docker Compose (recommended) or manually. The default `docker compose up -d --build` command in this guide runs the **hardened production stack**: compiled binaries, Nginx reverse proxy, no exposed database/backend ports.
 
 > 🛠️ **Just want to hack on the code locally?** You're in the wrong file. See **[DEVELOPMENT.md](./DEVELOPMENT.md)** for the dev setup (hot reload, exposed ports, source-mounted volumes).
 
@@ -20,7 +20,7 @@ This guide covers deploying CozyVTT to a **production server** using Docker Comp
 10. [Database Backups](#database-backups)
 11. [Monitoring and Logs](#monitoring-and-logs)
 12. [Troubleshooting](#troubleshooting)
-13. [Updating CozyVTT](#updating-cozyvtt)
+13. [Updating CrazyVTT](#updating-crazyvtt)
 14. [Hardening Checklist](#hardening-checklist)
 15. [Cloudflare Tunnel (Recommended for Public Instances)](#cloudflare-tunnel-recommended-for-public-instances)
 16. [The API Documentation](#the-api-documentation)
@@ -34,7 +34,7 @@ This guide covers deploying CozyVTT to a **production server** using Docker Comp
 - A domain name pointing to your server's IP (optional for LAN-only use)
 - At least 1 GB RAM; 2 GB recommended for comfortable operation
 
-Once it is built, CozyVTT needs no internet access to run, and visitors' browsers contact no site but yours: the pages, pictures and fonts all come from your own server. Building the images downloads software, and the Creature Library's **Import D&D 5e SRD** button fetches the creatures from Open5e (api.open5e.com) when an administrator presses it; email is sent only through the SMTP server you configure.
+Once it is built, CrazyVTT needs no internet access to run, and visitors' browsers contact no site but yours: the pages, pictures and fonts all come from your own server. Building the images downloads software, and the Creature Library's **Import D&D 5e SRD** button fetches the creatures from Open5e (api.open5e.com) when an administrator presses it; email is sent only through the SMTP server you configure.
 
 ---
 
@@ -45,8 +45,8 @@ This is the recommended path. `docker-compose.yml` is the production stack: Post
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/CheekyChinchilla/CozyVTT.git
-cd CozyVTT
+git clone https://github.com/CheekyChinchilla/CrazyVTT.git
+cd CrazyVTT
 ```
 
 ### 2. Configure environment
@@ -72,7 +72,7 @@ NODE_ENV=production
 
 **Use letters and digits only in `DATABASE_PASSWORD`**, which is what `openssl rand -hex 16` gives you. The stack writes the password into the database's address, so a character such as `/`, `#`, `?` or `%` breaks that address. The database container still starts and looks healthy, but the backend cannot connect: `docker compose logs backend` shows `Database connection successful`, because that first check does not use the password, and then `Migration failed`, and the container keeps restarting. If you see that, check the password's characters first. A `$` has a different problem: Docker Compose reads a `$` in `.env` as the start of a variable name, so the password it uses is not the one you typed.
 
-`CORS_ORIGIN` is also the only other address a browser page may make changes from. A page on any other address, another port on the same server included, is refused if it tries to sign in, save or delete anything as whoever is signed in. CozyVTT serves the app and its API from one address, as the bundled nginx and every setup in this guide do, so that check needs nothing from you. Set `CORS_ORIGIN` to the address your players type, `https://`, host and any port included: email links are built from it unless you set `APP_URL`.
+`CORS_ORIGIN` is also the only other address a browser page may make changes from. A page on any other address, another port on the same server included, is refused if it tries to sign in, save or delete anything as whoever is signed in. CrazyVTT serves the app and its API from one address, as the bundled nginx and every setup in this guide do, so that check needs nothing from you. Set `CORS_ORIGIN` to the address your players type, `https://`, host and any port included: email links are built from it unless you set `APP_URL`.
 
 ### Changing the database password
 
@@ -82,11 +82,11 @@ Change it inside the database first, with the stack up (the database container r
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 24)
-docker compose exec database psql -U cozyvtt -d cozyvtt -c "ALTER USER cozyvtt WITH PASSWORD '$NEW_PASSWORD';"
+docker compose exec database psql -U crazyvtt -d crazyvtt -c "ALTER USER crazyvtt WITH PASSWORD '$NEW_PASSWORD';"
 echo "$NEW_PASSWORD"
 ```
 
-The command uses the default names. If you changed them in `.env`, put your `DATABASE_USER` in place of `cozyvtt` after `-U` and after `ALTER USER`, and your `DATABASE_NAME` in place of `cozyvtt` after `-d`. Then put the printed value in `.env` as `DATABASE_PASSWORD`, and restart. The stack builds the database's address from it, so there is no `DATABASE_URL` to change in `.env` (a line you added there is ignored on Docker):
+The command uses the default names. If you changed them in `.env`, put your `DATABASE_USER` in place of `crazyvtt` after `-U` and after `ALTER USER`, and your `DATABASE_NAME` in place of `crazyvtt` after `-d`. Then put the printed value in `.env` as `DATABASE_PASSWORD`, and restart. The stack builds the database's address from it, so there is no `DATABASE_URL` to change in `.env` (a line you added there is ignored on Docker):
 
 ```bash
 docker compose up -d
@@ -101,12 +101,12 @@ docker compose up -d --build
 ```
 
 This starts four containers on an isolated internal network:
-- `cozyvtt-database` — PostgreSQL 15 (internal only, not exposed to host)
-- `cozyvtt-backend` — Express API on internal port 4000
-- `cozyvtt-frontend` — React SPA served by Nginx on internal port 80
-- `cozyvtt-nginx` — Reverse proxy, the only container with public ports (80 and 443)
+- `crazyvtt-database` — PostgreSQL 15 (internal only, not exposed to host)
+- `crazyvtt-backend` — Express API on internal port 4000
+- `crazyvtt-frontend` — React SPA served by Nginx on internal port 80
+- `crazyvtt-nginx` — Reverse proxy, the only container with public ports (80 and 443)
 
-Every container runs with Docker's `no-new-privileges` option, so no program in it can gain privileges, and with only the few Linux capabilities (the separate powers root normally holds) that its start-up needs, such as giving a folder to the right owner or switching to an unprivileged user. The frontend container's files are read-only: it only serves the built app, and nginx keeps its scratch files in memory. So are the proxy's (`cozyvtt-nginx`): it writes its settings, rendered from `nginx/nginx.conf` as it starts, to memory, and keeps large uploads and downloads as they pass on a volume of its own, `nginx_temp`, which Compose creates on the first start and which needs no backup. The backend's files are read-only as well, apart from `backend/uploads`, `backend/backups` and `backend/logs` and its `/tmp`, where a backup or a restore keeps its working copy of the database: a volume of its own, `backend_tmp`, created on the first start like `nginx_temp`, with nothing in it to back up. The backend starts as root only long enough to give its mounted folders the right owner, then runs as an unprivileged user, `appuser`. Commands you run inside the backend container take `-u appuser`, as every one in this guide does: root in that container cannot write the backend's files.
+Every container runs with Docker's `no-new-privileges` option, so no program in it can gain privileges, and with only the few Linux capabilities (the separate powers root normally holds) that its start-up needs, such as giving a folder to the right owner or switching to an unprivileged user. The frontend container's files are read-only: it only serves the built app, and nginx keeps its scratch files in memory. So are the proxy's (`crazyvtt-nginx`): it writes its settings, rendered from `nginx/nginx.conf` as it starts, to memory, and keeps large uploads and downloads as they pass on a volume of its own, `nginx_temp`, which Compose creates on the first start and which needs no backup. The backend's files are read-only as well, apart from `backend/uploads`, `backend/backups` and `backend/logs` and its `/tmp`, where a backup or a restore keeps its working copy of the database: a volume of its own, `backend_tmp`, created on the first start like `nginx_temp`, with nothing in it to back up. The backend starts as root only long enough to give its mounted folders the right owner, then runs as an unprivileged user, `appuser`. Commands you run inside the backend container take `-u appuser`, as every one in this guide does: root in that container cannot write the backend's files.
 
 Database migrations run automatically when the backend starts.
 
@@ -177,7 +177,7 @@ Stopping the backend takes about a second. It finishes the requests it is answer
 By default, the Nginx container binds to host ports **80** (HTTP) and **443** (HTTPS). If those ports are already in use, set `HTTP_PORT` and/or `HTTPS_PORT` in your `.env`:
 
 ```env
-# Access CozyVTT at http://yourserver:8080
+# Access CrazyVTT at http://yourserver:8080
 HTTP_PORT=8080
 HTTPS_PORT=8443
 ```
@@ -196,7 +196,7 @@ If you already run a reverse proxy (Traefik, Caddy, another Nginx, or a Cloudfla
 
 ### First, the one thing that trips everyone up
 
-CozyVTT runs as three pieces: a **frontend** (the web pages you see), a **backend** (the API and live game connection), and a **database**. Your browser talks to both the frontend and the backend, on the same web address:
+CrazyVTT runs as three pieces: a **frontend** (the web pages you see), a **backend** (the API and live game connection), and a **database**. Your browser talks to both the frontend and the backend, on the same web address:
 
 | Web address | Must reach |
 |---|---|
@@ -260,7 +260,7 @@ There's a second catch. Out of the box, the backend and frontend use `expose`, w
    curl -sI https://your-domain.com/ | grep -i -E 'content-security|x-frame'
    ```
 
-   CozyVTT sets these on the frontend container, so removing the bundled Nginx does not lose them — a proxy passes response headers through by default. If nothing comes back, your proxy is stripping or replacing them; see `frontend/security-headers.conf` for the policy CozyVTT sends, and copy it into whatever your proxy sets instead. Everything the page loads comes from your own instance, so the policy names no other site.
+   CrazyVTT sets these on the frontend container, so removing the bundled Nginx does not lose them — a proxy passes response headers through by default. If nothing comes back, your proxy is stripping or replacing them; see `frontend/security-headers.conf` for the policy CrazyVTT sends, and copy it into whatever your proxy sets instead. Everything the page loads comes from your own instance, so the policy names no other site.
 
 ### Option B — Shared Docker network (recommended for Traefik/Caddy)
 
@@ -292,24 +292,24 @@ If your proxy also runs in Docker, this is cleaner: it talks to the containers d
 ```yaml
 # ~/.cloudflared/config.yml
 ingress:
-  - hostname: cozyvtt.example.com
+  - hostname: crazyvtt.example.com
     service: http://localhost:80        # or your HTTP_PORT
   - service: http_status:404
 ```
 
 This is also the option that keeps upload limits (`NGINX_MAX_BODY_SIZE`) working without extra configuration. So that nginx believes the tunnel about each visitor's address and about HTTPS, add `NGINX_TRUSTED_PROXIES=172.16.0.0/12` to `.env` (the range on most servers; [check yours](#the-range-for-a-proxy-on-the-same-server)), and keep nginx's ports to this server with `HTTP_PORT=127.0.0.1:80` and `HTTPS_PORT=127.0.0.1:443`, as [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits) explains.
 
-**2. Run `cloudflared` as a container** on CozyVTT's own Docker network. Nothing is published to the host at all — the tunnel reaches the containers by name:
+**2. Run `cloudflared` as a container** on CrazyVTT's own Docker network. Nothing is published to the host at all — the tunnel reaches the containers by name:
 
 ```yaml
 ingress:
-  - hostname: cozyvtt.example.com
+  - hostname: crazyvtt.example.com
     path: ^/api/
     service: http://backend:4000
-  - hostname: cozyvtt.example.com
+  - hostname: crazyvtt.example.com
     path: ^/socket.io/
     service: http://backend:4000
-  - hostname: cozyvtt.example.com
+  - hostname: crazyvtt.example.com
     service: http://frontend:80
   - service: http_status:404
 ```
@@ -320,13 +320,13 @@ ingress:
 
 ```yaml
 ingress:
-  - hostname: cozyvtt.example.com
+  - hostname: crazyvtt.example.com
     path: ^/api/
     service: http://localhost:4000
-  - hostname: cozyvtt.example.com
+  - hostname: crazyvtt.example.com
     path: ^/socket.io/
     service: http://localhost:4000
-  - hostname: cozyvtt.example.com        # catch-all — must be LAST
+  - hostname: crazyvtt.example.com        # catch-all — must be LAST
     service: http://localhost:8080
   - service: http_status:404
 ```
@@ -339,20 +339,20 @@ After editing `~/.cloudflared/config.yml`, restart the tunnel and re-run the che
 
 ```bash
 sudo systemctl restart cloudflared
-curl -s -w '\n%{http_code} %{content_type}\n' https://cozyvtt.example.com/api/setup/status
+curl -s -w '\n%{http_code} %{content_type}\n' https://crazyvtt.example.com/api/setup/status
 ```
 
 ### Visitor addresses and sign-in limits
 
-CozyVTT limits how often one visitor may get a password wrong: five failed sign-ins in fifteen minutes, then that visitor waits. Only a wrong password (or a wrong code when turning two-factor sign-in off, or a password reset link that no longer works) counts. Typing the right password never does, even when everyone in a household signs in at the same moment. Only two passwords from one address are checked at once, though: a third person pressing **Sign In** in the same second is asked to try again in a moment, which counts for nothing.
+CrazyVTT limits how often one visitor may get a password wrong: five failed sign-ins in fifteen minutes, then that visitor waits. Only a wrong password (or a wrong code when turning two-factor sign-in off, or a password reset link that no longer works) counts. Typing the right password never does, even when everyone in a household signs in at the same moment. Only two passwords from one address are checked at once, though: a third person pressing **Sign In** in the same second is asked to try again in a moment, which counts for nothing.
 
 Wrong passwords are also counted for the account itself, whatever addresses they come from: ten in an hour for one email address, and that account refuses sign-in for an hour, from everywhere, with "Too many failed sign-ins for this account, please try again later". A new password opens the account at once, whether the owner sets it with the **Forgot password?** link, you give them a temporary one from **Admin → Users**, or they change it from a device still signed in. You can also open it without changing the password: a locked account shows **Locked until** on its row in **Admin → Users**, and **Clear lock** there clears it after asking. The counts are kept in memory, so restarting the backend also clears them. Each time an account locks, a line appears in **Admin → Activity**, so you can see when someone is guessing at your users' passwords.
 
 The two-factor code (the six-digit code from an authenticator app, or a backup code, asked for after the password on accounts that use two-factor sign-in) has a separate limit: five wrong codes in fifteen minutes from one visitor, and five for one account from anywhere. Only a wrong code counts, so people signing in together behind one address are all let through, exactly as with passwords.
 
-Both limits tell visitors apart by their *IP address*, the address their device connects from, so CozyVTT has to see each visitor's own address and not your tunnel's or proxy's. So does the general limit of 300 requests a minute from one address (`RATE_LIMIT_MAX_REQUESTS`, see [Other settings](#other-settings)), which counts every request the app makes, each picture on a map included. A visitor who connects over IPv6 usually has a whole block of addresses from their internet provider, so all of these limits count every address in one block (a /56 network, the addresses that share their first 56 bits) as one visitor.
+Both limits tell visitors apart by their *IP address*, the address their device connects from, so CrazyVTT has to see each visitor's own address and not your tunnel's or proxy's. So does the general limit of 300 requests a minute from one address (`RATE_LIMIT_MAX_REQUESTS`, see [Other settings](#other-settings)), which counts every request the app makes, each picture on a map included. A visitor who connects over IPv6 usually has a whole block of addresses from their internet provider, so all of these limits count every address in one block (a /56 network, the addresses that share their first 56 bits) as one visitor.
 
-**With the bundled nginx, a visitor who connects straight to your server is counted by their own address.** When a tunnel or another proxy stands in front of nginx, every request reaches nginx from that proxy, and nginx has to be told it may believe what the proxy says. A proxy names the visitor it is passing along in a header called `X-Forwarded-For`, and says whether the visitor used HTTPS in `X-Forwarded-Proto` (which decides whether CozyVTT marks the sign-in cookie as HTTPS-only). Anyone can send those headers, so nginx believes them only from the addresses you list in `NGINX_TRUSTED_PROXIES` in `.env`. From anyone else it ignores them, so a visitor from the internet cannot pretend to be someone else.
+**With the bundled nginx, a visitor who connects straight to your server is counted by their own address.** When a tunnel or another proxy stands in front of nginx, every request reaches nginx from that proxy, and nginx has to be told it may believe what the proxy says. A proxy names the visitor it is passing along in a header called `X-Forwarded-For`, and says whether the visitor used HTTPS in `X-Forwarded-Proto` (which decides whether CrazyVTT marks the sign-in cookie as HTTPS-only). Anyone can send those headers, so nginx believes them only from the addresses you list in `NGINX_TRUSTED_PROXIES` in `.env`. From anyone else it ignores them, so a visitor from the internet cannot pretend to be someone else.
 
 | Your setup | Line to add to `.env` |
 |---|---|
@@ -371,7 +371,7 @@ docker compose up -d
 
 Why `172.16.0.0/12` for a proxy on the same server: Docker hands nginx a connection from the server itself, or from another container, from an address on one of its own networks, and Docker numbers its first networks between `172.16.0.0` and `172.31.255.255`. Some servers use other ranges; [The range for a proxy on the same server](#the-range-for-a-proxy-on-the-same-server) below shows how to find yours.
 
-> 🔒 **With a tunnel on the same server, keep nginx's ports to that server.** Docker also hands nginx some connections from outside from its own network's address: a visitor who connects over IPv6, and on Docker Desktop (Windows and Mac) or rootless Docker every visitor. Once you trust that range, such a visitor could choose the address CozyVTT counts them as. A tunnel only needs to reach nginx from the server itself, so publish nginx's ports there alone, with these two lines in `.env`:
+> 🔒 **With a tunnel on the same server, keep nginx's ports to that server.** Docker also hands nginx some connections from outside from its own network's address: a visitor who connects over IPv6, and on Docker Desktop (Windows and Mac) or rootless Docker every visitor. Once you trust that range, such a visitor could choose the address CrazyVTT counts them as. A tunnel only needs to reach nginx from the server itself, so publish nginx's ports there alone, with these two lines in `.env`:
 >
 > ```env
 > HTTP_PORT=127.0.0.1:80
@@ -380,27 +380,27 @@ Why `172.16.0.0/12` for a proxy on the same server: Docker hands nginx a connect
 >
 > Then run `docker compose up -d`. The tunnel keeps pointing at `http://localhost:80`. A firewall rule is no substitute: Docker's published ports bypass UFW.
 
-To check it, open CozyVTT from a device outside your network (a phone on mobile data, with Wi-Fi off), then run this on the server:
+To check it, open CrazyVTT from a device outside your network (a phone on mobile data, with Wi-Fi off), then run this on the server:
 
 ```bash
 docker compose logs --tail 5 nginx
 ```
 
-After the `cozyvtt-nginx |` label, each line starts with the address CozyVTT saw, for example:
+After the `crazyvtt-nginx |` label, each line starts with the address CrazyVTT saw, for example:
 
 ```
-cozyvtt-nginx  | 203.0.113.25 - - [28/Sep/2026:14:09:46 +0000] "GET /api/auth/me HTTP/1.1" 200 ...
+crazyvtt-nginx  | 203.0.113.25 - - [28/Sep/2026:14:09:46 +0000] "GET /api/auth/me HTTP/1.1" 200 ...
 ```
 
 You want the phone's public address there. **If it starts with `172.`, `10.` or `192.168.`**, every visitor is being counted as that one address: a few wrong passwords from anyone lock everybody out of signing in for fifteen minutes, only two people can sign in at the same moment, and the whole table shares the 300 requests a minute, which a group opening a map with many pictures at once can use up, so the app's requests are refused for the rest of that minute. That happens when:
 
 - **A tunnel or proxy stands in front of nginx and is not listed** in `NGINX_TRUSTED_PROXIES`, or the range you listed does not hold the address shown. Add its line from the table above, or the range [your server uses](#the-range-for-a-proxy-on-the-same-server).
 - **Docker hands visitors to nginx from its own address** and there is no proxy in front: Docker Desktop and rootless Docker do this for every visitor, and a server reached over IPv6 does it for those visitors. Listing Docker's range would let them choose their address, so put a [Cloudflare Tunnel](#cloudflare-tunnel-recommended-for-public-instances) or your own proxy in front instead, set up as above.
-- **nginx never read the setting**, because `nginx/trusted-proxies.envsh` lost its permission to run (a ZIP download, or a copy through some Windows or NAS file systems, can do this): `docker compose logs nginx | grep "not executable"` then prints a line ending in `Ignoring /docker-entrypoint.d/19-cozyvtt-trusted-proxies.envsh, not executable`, and `chmod +x nginx/trusted-proxies.envsh` followed by `docker compose restart nginx` fixes it.
+- **nginx never read the setting**, because `nginx/trusted-proxies.envsh` lost its permission to run (a ZIP download, or a copy through some Windows or NAS file systems, can do this): `docker compose logs nginx | grep "not executable"` then prints a line ending in `Ignoring /docker-entrypoint.d/19-crazyvtt-trusted-proxies.envsh, not executable`, and `chmod +x nginx/trusted-proxies.envsh` followed by `docker compose restart nginx` fixes it.
 
 If the address is one of Cloudflare's own (the ranges on [cloudflare.com/ips](https://www.cloudflare.com/ips/)), Cloudflare's proxy is in front of your server's public address: add those ranges as in the table.
 
-Only list addresses that are your own proxies. Whatever connects from a listed address can choose the address CozyVTT counts it as.
+Only list addresses that are your own proxies. Whatever connects from a listed address can choose the address CrazyVTT counts it as.
 
 **If you removed the bundled nginx**, the backend takes the **last** address in the `X-Forwarded-For` header your proxy sends as the visitor's own. Proxies add the address they were connected from there, which is right when nothing else stands in front of yours. If something does (Cloudflare's proxy in front of Caddy, say), set your proxy to believe it, or every visitor counts as the same address: `trusted_proxies` in Caddy, `forwardedHeaders.trustedIPs` in Traefik, `set_real_ip_from` in nginx.
 
@@ -408,33 +408,33 @@ Only list addresses that are your own proxies. Whatever connects from a listed a
 
 `172.16.0.0/12` covers the addresses Docker gives its first networks, `172.16.0.0` to `172.31.255.255`. Once those are taken it moves on to ranges starting `192.168.`, and a server whose Docker settings list address pools of their own (`default-address-pools` in `/etc/docker/daemon.json`) often uses ranges starting `10.`. To find the range on your server:
 
-1. Open CozyVTT through your tunnel or proxy, then run this on the server:
+1. Open CrazyVTT through your tunnel or proxy, then run this on the server:
 
    ```bash
    docker compose logs --tail 5 nginx
    ```
 
-   Until nginx believes your proxy, each line starts, after the `cozyvtt-nginx |` label, with the address your proxy reaches nginx from:
+   Until nginx believes your proxy, each line starts, after the `crazyvtt-nginx |` label, with the address your proxy reaches nginx from:
 
    ```
-   cozyvtt-nginx  | 192.168.16.1 - - [28/Sep/2026:14:09:46 +0000] "GET /api/auth/me HTTP/1.1" 200 ...
+   crazyvtt-nginx  | 192.168.16.1 - - [28/Sep/2026:14:09:46 +0000] "GET /api/auth/me HTTP/1.1" 200 ...
    ```
 
    If that address starts with `172.16.` up to `172.31.`, `172.16.0.0/12` covers it and you are done.
 
-2. Otherwise, ask Docker for the range of the network that address is on. This prints the name of CozyVTT's network:
+2. Otherwise, ask Docker for the range of the network that address is on. This prints the name of CrazyVTT's network:
 
    ```bash
-   docker inspect cozyvtt-nginx --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}} {{end}}'
+   docker inspect crazyvtt-nginx --format '{{range $name, $net := .NetworkSettings.Networks}}{{$name}} {{end}}'
    ```
 
-   It prints something like `cozyvtt_internal`, where the first part is the name of the folder CozyVTT is in. Put the name it printed in this command:
+   It prints something like `crazyvtt_internal`, where the first part is the name of the folder CrazyVTT is in. Put the name it printed in this command:
 
    ```bash
-   docker network inspect cozyvtt_internal --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}'
+   docker network inspect crazyvtt_internal --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}'
    ```
 
-   It prints the network's range, something like `192.168.16.0/20` (a second range, with colons, if the network also has IPv6 addresses). If your proxy runs in a container of its own on another Docker network, use that container's name in place of `cozyvtt-nginx` in the first command.
+   It prints the network's range, something like `192.168.16.0/20` (a second range, with colons, if the network also has IPv6 addresses). If your proxy runs in a container of its own on another Docker network, use that container's name in place of `crazyvtt-nginx` in the first command.
 
 3. Put what it printed in `.env` in place of `172.16.0.0/12`, for example `NGINX_TRUSTED_PROXIES=192.168.16.0/20`, run `docker compose up -d`, and run the check above.
 
@@ -449,13 +449,13 @@ Whatever proxy you use, it must:
 - Allow request bodies of at least **55 MB** (covers the default `MAX_MAP_SIZE_MB=50` plus overhead), and more if you raise any `MAX_*_SIZE_MB` — see [Upload Size Limits](#upload-size-limits)
 - For importing campaigns: allow `/api/campaigns/import` (which also covers `/api/campaigns/import/preview`) a request body of at least **505 MB**, the 500 MB largest archive plus overhead, and give it about **300 seconds** to answer, since a large archive takes minutes to unpack. The bundled nginx allows 512 MB there whatever `NGINX_MAX_BODY_SIZE` says. Without this, importing an archive bigger than your body limit shows "This archive is larger than the server accepts", and a slow import shows an error while the backend carries on and finishes it. Where your proxy can, pass the upload straight through instead of saving it first (`proxy_request_buffering off` in nginx)
 - For the Admin Dashboard's backups: allow `/api/admin/backups/restore` a request body as large as your biggest backup (the bundled nginx allows 4 GB), and give both `/api/admin/backups` and `/api/admin/backups/restore` about **600 seconds** to answer (most proxies wait 60). Making or restoring a backup, uploaded files and all, happens inside that one request. Without this, restoring a backup bigger than your body limit fails with **413**, and making a backup that takes longer than your proxy waits shows **504**; the backend carries on, and the backup appears in the list when it is done. Where your proxy can, have it pass the restore upload straight through instead of saving it first (`proxy_request_buffering off` in nginx), so a stranger cannot fill its disk
-- Let a large campaign import or backup restore take its time to arrive on a slow connection. CozyVTT itself waits up to an hour for an upload, so it is your proxy's limits that count: give these paths a body timeout that drops a client that **stops** sending, not one that ends a slow but steady upload. nginx's `client_body_timeout` works that way (60 seconds between two pieces of the upload, by default), and the bundled nginx relies on it
+- Let a large campaign import or backup restore take its time to arrive on a slow connection. CrazyVTT itself waits up to an hour for an upload, so it is your proxy's limits that count: give these paths a body timeout that drops a client that **stops** sending, not one that ends a slow but steady upload. nginx's `client_body_timeout` works that way (60 seconds between two pieces of the upload, by default), and the bundled nginx relies on it
 
 Optional: have your proxy compress the backend's answers (gzip for `application/json`), as the bundled nginx does. A map's tokens, walls and fog travel as JSON and shrink to a fraction of their size. The frontend container already compresses the app's own scripts and styles.
 
-> ⚠️ **A proxy that only serves the web pages looks like it works.** If `/api` isn't routed to the backend, those requests come back as the CozyVTT web page itself with a success code, so the site loads normally while every API call quietly fails. Symptoms: a brand-new install shows the login page instead of the setup wizard, and `/setup` bounces straight back to the home page. The `curl` check above tells you in one command.
+> ⚠️ **A proxy that only serves the web pages looks like it works.** If `/api` isn't routed to the backend, those requests come back as the CrazyVTT web page itself with a success code, so the site loads normally while every API call quietly fails. Symptoms: a brand-new install shows the login page instead of the setup wizard, and `/setup` bounces straight back to the home page. The `curl` check above tells you in one command.
 
-> ⚠️ **Cloudflare users:** Cloudflare-proxied requests — including Cloudflare Tunnel — are capped at **100 MB** per request body on Free and Pro plans. Uploads above that are rejected at Cloudflare's edge no matter how CozyVTT or your proxy is configured. Cloudflare also gives up on a request that has had no answer for **100 seconds**. Both limits apply to the dashboard's backups: restoring a backup over 100 MB fails at Cloudflare, and making or restoring one that takes longer than 100 seconds shows an error even though the backend carries on. They apply to campaign imports too: an archive over 100 MB cannot be imported through Cloudflare, and a large import may show an error although it finishes. Exports are not affected, because the server starts sending an export straight away. To restore a large backup, copy it to the server and use the restore script steps under [Via Admin Dashboard](#via-admin-dashboard).
+> ⚠️ **Cloudflare users:** Cloudflare-proxied requests — including Cloudflare Tunnel — are capped at **100 MB** per request body on Free and Pro plans. Uploads above that are rejected at Cloudflare's edge no matter how CrazyVTT or your proxy is configured. Cloudflare also gives up on a request that has had no answer for **100 seconds**. Both limits apply to the dashboard's backups: restoring a backup over 100 MB fails at Cloudflare, and making or restoring one that takes longer than 100 seconds shows an error even though the backend carries on. They apply to campaign imports too: an archive over 100 MB cannot be imported through Cloudflare, and a large import may show an error although it finishes. Exports are not affected, because the server starts sending an export straight away. To restore a large backup, copy it to the server and use the restore script steps under [Via Admin Dashboard](#via-admin-dashboard).
 
 ### Updating after you've edited `docker-compose.yml`
 
@@ -490,7 +490,7 @@ Then `docker compose up -d --build`. Skip these two commands and the next `git p
 
 ### Optional: avoid the conflicts entirely (advanced)
 
-If you update often and would rather never deal with the above, Docker Compose can read a **second, personal file** that sits on top of the shipped one. Name it `docker-compose.override.yml` and put it next to `docker-compose.yml`; `docker compose up -d` picks it up automatically, and CozyVTT's `.gitignore` already excludes it, so `git pull` will never touch it.
+If you update often and would rather never deal with the above, Docker Compose can read a **second, personal file** that sits on top of the shipped one. Name it `docker-compose.override.yml` and put it next to `docker-compose.yml`; `docker compose up -d` picks it up automatically, and CrazyVTT's `.gitignore` already excludes it, so `git pull` will never touch it.
 
 Copy the ready-made example to get started:
 
@@ -515,7 +515,7 @@ services:
 Two things to know:
 
 - **Adding settings works naturally.** The `ports` lines above are simply added to the shipped configuration. You leave `docker-compose.yml` untouched, so it updates cleanly forever.
-- **Removing a service doesn't.** There's no way to delete something in this second file — it can only add or change. The `profiles: ["disabled"]` line above is the workaround: it tags the nginx service so it never starts. (If you'd rather not use that, you can leave the line out and start CozyVTT with `docker compose up -d database backend frontend`, naming the services you want — but you have to remember it every time.)
+- **Removing a service doesn't.** There's no way to delete something in this second file — it can only add or change. The `profiles: ["disabled"]` line above is the workaround: it tags the nginx service so it never starts. (If you'd rather not use that, you can leave the line out and start CrazyVTT with `docker compose up -d database backend frontend`, naming the services you want — but you have to remember it every time.)
 
 Check that it did what you expect, then restart:
 
@@ -531,20 +531,20 @@ docker compose up -d
 
 > One catch: this automatic pickup only happens when you run plain `docker compose` commands. If you pass `-f` yourself, list both files: `docker compose -f docker-compose.yml -f docker-compose.override.yml up -d`.
 
-### Can I run CozyVTT in a folder, like `example.com/cozyvtt/`?
+### Can I run CrazyVTT in a folder, like `example.com/crazyvtt/`?
 
-Not at the moment. Give CozyVTT its own web address instead — `cozyvtt.example.com`, or `example.com` itself.
+Not at the moment. Give CrazyVTT its own web address instead — `crazyvtt.example.com`, or `example.com` itself.
 
-**Why:** the addresses of your maps and token pictures are saved starting with a `/`, which means "the top of this website". Put CozyVTT in a folder and those addresses point one level too high, so none of the pictures load. Changing the *domain* is free for the same reason — the domain was never part of the saved address — which is why moving from one hostname to another just works.
+**Why:** the addresses of your maps and token pictures are saved starting with a `/`, which means "the top of this website". Put CrazyVTT in a folder and those addresses point one level too high, so none of the pictures load. Changing the *domain* is free for the same reason — the domain was never part of the saved address — which is why moving from one hostname to another just works.
 
-**What to do instead:** add a DNS record for `cozyvtt.example.com` pointing at your server, then match on that hostname rather than a path. In Traefik that means a `Host()` rule instead of `PathPrefix()`:
+**What to do instead:** add a DNS record for `crazyvtt.example.com` pointing at your server, then match on that hostname rather than a path. In Traefik that means a `Host()` rule instead of `PathPrefix()`:
 
 ```yaml
-# instead of:  PathPrefix(`/cozyvtt`)
-- "traefik.http.routers.cozyvtt.rule=Host(`cozyvtt.example.com`)"
+# instead of:  PathPrefix(`/crazyvtt`)
+- "traefik.http.routers.crazyvtt.rule=Host(`crazyvtt.example.com`)"
 ```
 
-It takes about five minutes, and it is the setup CozyVTT is built and tested for.
+It takes about five minutes, and it is the setup CrazyVTT is built and tested for.
 
 Running in a folder is on the backlog rather than ruled out. If it matters to you, say so on the issue tracker — how many people need it is what decides whether it gets built.
 
@@ -552,7 +552,7 @@ Running in a folder is on the backlog rather than ruled out. If it matters to yo
 
 ## SSL/TLS with Let's Encrypt
 
-> ℹ️ **Not validated by the maintainer.** The maintainer's reference deployment uses [Cloudflare Tunnel](#cloudflare-tunnel-recommended-for-public-instances) (easier, better security, free, hides your origin IP), so this Let's Encrypt path has not been part of the maintainer's own deployment testing. The instructions below are accurate to the bundled Nginx config and should work, but community confirmation and contributions are very welcome — if you successfully deploy CozyVTT with Let's Encrypt, please open an issue or PR with any tweaks you needed.
+> ℹ️ **Not validated by the maintainer.** The maintainer's reference deployment uses [Cloudflare Tunnel](#cloudflare-tunnel-recommended-for-public-instances) (easier, better security, free, hides your origin IP), so this Let's Encrypt path has not been part of the maintainer's own deployment testing. The instructions below are accurate to the bundled Nginx config and should work, but community confirmation and contributions are very welcome — if you successfully deploy CrazyVTT with Let's Encrypt, please open an issue or PR with any tweaks you needed.
 >
 > Use this path if you have a reason to avoid Cloudflare (data residency, paranoia about edge TLS termination, regional access issues, or just personal preference) — those are all legitimate.
 
@@ -560,17 +560,17 @@ Running in a folder is on the backlog rather than ruled out. If it matters to yo
 
 - A domain name pointing at your server
 - Ports 80 and 443 open in your firewall and published by the stack (the default configuration). Let's Encrypt checks your domain by fetching a small file from port 80, now and again at every renewal, so port 80 has to stay reachable
-- A terminal in the CozyVTT folder, the one with `docker-compose.yml`, for every command below
+- A terminal in the CrazyVTT folder, the one with `docker-compose.yml`, for every command below
 
 ### HTTPS is remembered by browsers
 
-CozyVTT's backend sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` with every answer it gives, the API's included. That header (HSTS) tells a browser to use only HTTPS for that name, and for every name under it, for a year (365 days). A browser takes notice of it only when it arrives over HTTPS with a certificate the browser trusts, so it begins to apply the first time someone uses your instance that way: through a trusted certificate of your own, such as one from Let's Encrypt, a Cloudflare Tunnel or any other proxy that adds HTTPS. A self-signed or Let's Encrypt staging certificate, which the browser warns about, does not start it, even if the visitor clicks past the warning.
+CrazyVTT's backend sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` with every answer it gives, the API's included. That header (HSTS) tells a browser to use only HTTPS for that name, and for every name under it, for a year (365 days). A browser takes notice of it only when it arrives over HTTPS with a certificate the browser trusts, so it begins to apply the first time someone uses your instance that way: through a trusted certificate of your own, such as one from Let's Encrypt, a Cloudflare Tunnel or any other proxy that adds HTTPS. A self-signed or Let's Encrypt staging certificate, which the browser warns about, does not start it, even if the visitor clicks past the warning.
 
 So decide before you start that this name stays on HTTPS. If you try HTTPS briefly and then go back to plain HTTP on the same name, every browser that loaded the app over HTTPS refuses `http://` for that name, and for any name under it such as `play.vtt.example.com` if you use `vtt.example.com`, for up to a year, until the time runs out or each visitor clears it in their browser. A different name for testing avoids it.
 
 ### How it works
 
-Let's Encrypt gives a certificate to whoever can show they control the domain. Certbot, the program that asks for it, shows that by writing a small file into a folder, and Let's Encrypt then fetches that file from `http://your-domain.com/.well-known/acme-challenge/` on port 80. So the nginx container has to serve that folder, and the folder has to be one the container can see. The `nginx/conf.d/` folder is already shared with the container (it appears there as `/etc/nginx/cozyvtt.d/`), so a folder inside it, `nginx/conf.d/acme/`, is shared too.
+Let's Encrypt gives a certificate to whoever can show they control the domain. Certbot, the program that asks for it, shows that by writing a small file into a folder, and Let's Encrypt then fetches that file from `http://your-domain.com/.well-known/acme-challenge/` on port 80. So the nginx container has to serve that folder, and the folder has to be one the container can see. The `nginx/conf.d/` folder is already shared with the container (it appears there as `/etc/nginx/crazyvtt.d/`), so a folder inside it, `nginx/conf.d/acme/`, is shared too.
 
 This is certbot's "webroot" method. It leaves nginx running, which matters at renewal: certbot renews by itself every couple of months, and the other method, `--standalone`, needs port 80 for itself and so fails while nginx holds it.
 
@@ -585,7 +585,7 @@ This is certbot's "webroot" method. It leaves nginx running, which matters at re
 
    `apt-get` prints a long list of what it installs and ends without an error; `mkdir` prints nothing. `ls nginx/conf.d` should now list `acme`.
 
-2. Create `nginx/conf.d/acme.conf`, putting your domain in place of `your-domain.com`. It answers Let's Encrypt's check on port 80 and carries on serving CozyVTT over HTTP as before:
+2. Create `nginx/conf.d/acme.conf`, putting your domain in place of `your-domain.com`. It answers Let's Encrypt's check on port 80 and carries on serving CrazyVTT over HTTP as before:
 
    ```nginx
    # nginx/conf.d/acme.conf: Let's Encrypt's check on port 80.
@@ -595,10 +595,10 @@ This is certbot's "webroot" method. It leaves nginx running, which matters at re
        server_name your-domain.com;
 
        location /.well-known/acme-challenge/ {
-           root /etc/nginx/cozyvtt.d/acme;
+           root /etc/nginx/crazyvtt.d/acme;
        }
 
-       include /etc/nginx/cozyvtt/locations.conf;
+       include /etc/nginx/crazyvtt/locations.conf;
    }
    ```
 
@@ -617,7 +617,7 @@ This is certbot's "webroot" method. It leaves nginx running, which matters at re
    sudo certbot certonly --webroot -w "$PWD/nginx/conf.d/acme" -d your-domain.com
    ```
 
-   The first time, certbot asks for your email address and for you to accept its terms. It should end with `Successfully received certificate` and say that the certificate was saved under `/etc/letsencrypt/live/your-domain.com/`. `$PWD` is the folder you are in, which is why this runs from the CozyVTT folder.
+   The first time, certbot asks for your email address and for you to accept its terms. It should end with `Successfully received certificate` and say that the certificate was saved under `/etc/letsencrypt/live/your-domain.com/`. `$PWD` is the folder you are in, which is why this runs from the CrazyVTT folder.
 
    If it fails instead:
 
@@ -649,7 +649,7 @@ Your HTTPS settings go in a file of your own in the `nginx/conf.d/` folder, whic
 3. Create `nginx/conf.d/https.conf` with this content, putting your domain in place of `your-domain.com` on the two `server_name` lines:
 
    ```nginx
-   # nginx/conf.d/https.conf: CozyVTT over HTTPS, with the certificate in nginx/certs/
+   # nginx/conf.d/https.conf: CrazyVTT over HTTPS, with the certificate in nginx/certs/
 
    # Visitors who type http:// for your domain are sent to https://.
    # Let's Encrypt's HTTP check still reaches its folder, because the redirect
@@ -659,7 +659,7 @@ Your HTTPS settings go in a file of your own in the `nginx/conf.d/` folder, whic
        server_name your-domain.com;
 
        location /.well-known/acme-challenge/ {
-           root /etc/nginx/cozyvtt.d/acme;
+           root /etc/nginx/crazyvtt.d/acme;
        }
 
        location / {
@@ -687,13 +687,13 @@ Your HTTPS settings go in a file of your own in the `nginx/conf.d/` folder, whic
 
        # The same rules as the plain-HTTP server: /api/ and /socket.io/ to
        # the backend, everything else to the frontend.
-       include /etc/nginx/cozyvtt/locations.conf;
+       include /etc/nginx/crazyvtt/locations.conf;
    }
    ```
 
-   The last line is what sends each request to the right container. It reads CozyVTT's own list of rules, so an upgrade that changes them reaches your HTTPS server as well.
+   The last line is what sends each request to the right container. It reads CrazyVTT's own list of rules, so an upgrade that changes them reaches your HTTPS server as well.
 
-   The first server sends to HTTPS only requests for your domain: a plain-HTTP request by your server's IP address, or under another name that leads to it, is still answered by CozyVTT's own server without HTTPS. To send those to your domain over HTTPS too, write `listen 80 default_server;` in place of `listen 80;`, and `return 301 https://your-domain.com$request_uri;` in place of the `return` line.
+   The first server sends to HTTPS only requests for your domain: a plain-HTTP request by your server's IP address, or under another name that leads to it, is still answered by CrazyVTT's own server without HTTPS. To send those to your domain over HTTPS too, write `listen 80 default_server;` in place of `listen 80;`, and `return 301 https://your-domain.com$request_uri;` in place of the `return` line.
 
 4. Restart Nginx and check it started:
    ```bash
@@ -701,9 +701,9 @@ Your HTTPS settings go in a file of your own in the `nginx/conf.d/` folder, whic
    docker compose logs --tail 20 nginx
    ```
 
-   The log should end with lines about worker processes starting. If nginx found a mistake in your file, it does not start, and the last line names the file and the line, for example `nginx: [emerg] ... in /etc/nginx/cozyvtt.d/https.conf:12`.
+   The log should end with lines about worker processes starting. If nginx found a mistake in your file, it does not start, and the last line names the file and the line, for example `nginx: [emerg] ... in /etc/nginx/crazyvtt.d/https.conf:12`.
 
-5. Open `https://your-domain.com`. You should see CozyVTT with a padlock in the address bar, and `http://your-domain.com` should send you there. If it does not, `acme.conf` is still in `nginx/conf.d/`: remove it and restart nginx again.
+5. Open `https://your-domain.com`. You should see CrazyVTT with a padlock in the address bar, and `http://your-domain.com` should send you there. If it does not, `acme.conf` is still in `nginx/conf.d/`: remove it and restart nginx again.
 
 ### Keep the certificate renewed
 
@@ -715,19 +715,19 @@ systemctl list-timers | grep certbot
 
 A line with a time under `NEXT` means it is. Two more things make renewal complete:
 
-1. **Copy the renewed certificate to where nginx reads it, and restart nginx.** Certbot runs every script in `/etc/letsencrypt/renewal-hooks/deploy/` after it renews a certificate. Create one, putting the full path to your CozyVTT folder in place of `/path/to/CozyVTT`:
+1. **Copy the renewed certificate to where nginx reads it, and restart nginx.** Certbot runs every script in `/etc/letsencrypt/renewal-hooks/deploy/` after it renews a certificate. Create one, putting the full path to your CrazyVTT folder in place of `/path/to/CrazyVTT`:
 
    ```bash
-   sudo tee /etc/letsencrypt/renewal-hooks/deploy/cozyvtt.sh >/dev/null <<'EOF'
+   sudo tee /etc/letsencrypt/renewal-hooks/deploy/crazyvtt.sh >/dev/null <<'EOF'
    #!/bin/sh
    # Runs after certbot renews a certificate: put it where nginx reads it, then restart nginx.
    set -e
-   COZYVTT=/path/to/CozyVTT
+   COZYVTT=/path/to/CrazyVTT
    cp "$RENEWED_LINEAGE/fullchain.pem" "$COZYVTT/nginx/certs/server.crt"
    cp "$RENEWED_LINEAGE/privkey.pem" "$COZYVTT/nginx/certs/server.key"
    docker compose -f "$COZYVTT/docker-compose.yml" restart nginx
    EOF
-   sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/cozyvtt.sh
+   sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/crazyvtt.sh
    ```
 
    `RENEWED_LINEAGE` is a value certbot fills in: the folder of the certificate it just renewed.
@@ -741,11 +741,11 @@ A line with a time under `NEXT` means it is. Two more things make renewal comple
    Certbot asks Let's Encrypt's test server for a pretend renewal, which makes the same check on port 80. It should end with `Congratulations, all simulated renewals succeeded`, and it changes nothing. It does not run the script above either, so run that once by hand to see that it works:
 
    ```bash
-   sudo RENEWED_LINEAGE=/etc/letsencrypt/live/your-domain.com /etc/letsencrypt/renewal-hooks/deploy/cozyvtt.sh
+   sudo RENEWED_LINEAGE=/etc/letsencrypt/live/your-domain.com /etc/letsencrypt/renewal-hooks/deploy/crazyvtt.sh
    docker compose logs --tail 5 nginx
    ```
 
-   When it works, the first command ends with Docker's `Container cozyvtt-nginx  Started` line, and the log shows nginx starting again. If it says `cp: cannot stat` instead, the domain in its path is not the one certbot used: `sudo ls /etc/letsencrypt/live` lists the right one.
+   When it works, the first command ends with Docker's `Container crazyvtt-nginx  Started` line, and the log shows nginx starting again. If it says `cp: cannot stat` instead, the domain in its path is not the one certbot used: `sudo ls /etc/letsencrypt/live` lists the right one.
 
 If the dry run fails, it names the domain and the reason; the table under "Obtain a certificate" lists the usual ones. One more:
 
@@ -758,7 +758,7 @@ If the dry run fails, it names the domain and the reason; the table under "Obtai
 An earlier version of this guide had you stop nginx and run `certbot certonly --standalone`. That certificate works until it expires, about 90 days after it was issued, and then fails to renew. Run `sudo certbot renew --dry-run` to see whether yours is affected: if it says `Could not bind TCP port 80`, it is. To fix it:
 
 1. Make the folder: `mkdir -p nginx/conf.d/acme`
-2. In `nginx/conf.d/https.conf`, make the port-80 server's check location read `root /etc/nginx/cozyvtt.d/acme;` (it may say `root /var/www/certbot;`), or add the location as shown above if it has none. Then restart nginx: `docker compose restart nginx`
+2. In `nginx/conf.d/https.conf`, make the port-80 server's check location read `root /etc/nginx/crazyvtt.d/acme;` (it may say `root /var/www/certbot;`), or add the location as shown above if it has none. Then restart nginx: `docker compose restart nginx`
 3. Run the command from step 4 of "Obtain a certificate" again with `--force-renewal` added. It replaces the certificate and changes how certbot renews it from now on
 4. Copy the new certificate with the commands in step 1 of "Configure Nginx to use the certificate", restart nginx, and set up the script and the dry run under "Keep the certificate renewed"
 5. If you added the weekly `cron` line from the earlier steps, remove it with `crontab -e`: the script does its job
@@ -801,10 +801,10 @@ The `apt-get update` output should include lines starting `Get:` or `Hit:` for `
 
 ```bash
 sudo apt-get install -y postgresql-15
-sudo -u postgres createuser cozyvtt
-sudo -u postgres createdb -O cozyvtt cozyvtt
-sudo -u postgres psql -c "ALTER USER cozyvtt WITH PASSWORD 'your-db-password';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE cozyvtt TO cozyvtt;"
+sudo -u postgres createuser crazyvtt
+sudo -u postgres createdb -O crazyvtt crazyvtt
+sudo -u postgres psql -c "ALTER USER crazyvtt WITH PASSWORD 'your-db-password';"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE crazyvtt TO crazyvtt;"
 ```
 
 ### 3. Configure and build
@@ -830,9 +830,9 @@ VITE_API_URL="" VITE_SOCKET_URL="" npm run build
 # Output: frontend/dist/
 ```
 
-If your database runs on another server and asks for an encrypted connection, add the setting to the end of `DATABASE_URL`, such as `postgresql://cozyvtt:your-db-password@db.example.com:5432/cozyvtt?sslmode=verify-full`. The backend reads these settings with the `pg` driver for every connection it makes. That driver checks the database's certificate for `sslmode=require` too, so a database whose certificate it cannot check is refused (`self-signed certificate` in the backend's log): name the certificate authority's file as well, such as `?sslmode=verify-full&sslrootcert=/path/to/ca.crt`. The driver also offers `sslmode=no-verify`, which encrypts the connection without checking the certificate. The Admin Dashboard's **Create Backup** and **Restore** give `pg_dump` and `psql` `sslmode=require` in its place, which does the same for them. Leave `sslrootcert` out of an address with `no-verify`: given that file, `pg_dump` and `psql` check the certificate against it under `require`, so backups and restores fail where the backend connects.
+If your database runs on another server and asks for an encrypted connection, add the setting to the end of `DATABASE_URL`, such as `postgresql://crazyvtt:your-db-password@db.example.com:5432/crazyvtt?sslmode=verify-full`. The backend reads these settings with the `pg` driver for every connection it makes. That driver checks the database's certificate for `sslmode=require` too, so a database whose certificate it cannot check is refused (`self-signed certificate` in the backend's log): name the certificate authority's file as well, such as `?sslmode=verify-full&sslrootcert=/path/to/ca.crt`. The driver also offers `sslmode=no-verify`, which encrypts the connection without checking the certificate. The Admin Dashboard's **Create Backup** and **Restore** give `pg_dump` and `psql` `sslmode=require` in its place, which does the same for them. Leave `sslrootcert` out of an address with `no-verify`: given that file, `pg_dump` and `psql` check the certificate against it under `require`, so backups and restores fail where the backend connects.
 
-To keep CozyVTT's tables apart from other software's in a database they share, end `DATABASE_URL` with `?schema=` and a name of its own, such as `?schema=cozyvtt` (join it to another setting with `&`: `?sslmode=verify-full&schema=cozyvtt`). Everything CozyVTT stores goes into that PostgreSQL schema, the sign-ins included. **Create Backup** then backs up that schema alone, and **Restore** replaces that schema alone; see [Database Backups](#database-backups). The backup and restore scripts work with the `public` schema only, and refuse such an address.
+To keep CrazyVTT's tables apart from other software's in a database they share, end `DATABASE_URL` with `?schema=` and a name of its own, such as `?schema=crazyvtt` (join it to another setting with `&`: `?sslmode=verify-full&schema=crazyvtt`). Everything CrazyVTT stores goes into that PostgreSQL schema, the sign-ins included. **Create Backup** then backs up that schema alone, and **Restore** replaces that schema alone; see [Database Backups](#database-backups). The backup and restore scripts work with the `public` schema only, and refuse such an address.
 
 ### 4. Run the backend with pm2
 
@@ -841,16 +841,16 @@ Step 3 ended in the `frontend` folder, so this goes back to `backend` first. pm2
 ```bash
 sudo npm install -g pm2
 cd ../backend
-pm2 start dist/server.js --name cozyvtt-backend
+pm2 start dist/server.js --name crazyvtt-backend
 pm2 save
 pm2 startup  # Follow the printed instructions to enable autostart
 ```
 
-`pm2 status` should then list `cozyvtt-backend` as `online`. If it says `errored`, or the restart count under `↺` keeps rising, `pm2 logs cozyvtt-backend` shows why; a line containing `[FATAL]` names the setting in `backend/.env` to fix.
+`pm2 status` should then list `crazyvtt-backend` as `online`. If it says `errored`, or the restart count under `↺` keeps rising, `pm2 logs crazyvtt-backend` shows why; a line containing `[FATAL]` names the setting in `backend/.env` to fix.
 
 ### 5. Serve with Nginx
 
-Create `/etc/nginx/sites-available/cozyvtt`:
+Create `/etc/nginx/sites-available/crazyvtt`:
 
 ```nginx
 # The live table's address for the page's security policy below: this
@@ -977,7 +977,7 @@ server {
 
     # Frontend static files (SPA)
     location / {
-        root  /path/to/cozyvtt/frontend/dist;
+        root  /path/to/crazyvtt/frontend/dist;
         index index.html;
         # A folder in the build, such as assets/, is also the address of an app
         # page (/assets is the Asset Library), so a path that names a folder
@@ -1003,7 +1003,7 @@ server {
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/cozyvtt /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/crazyvtt /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -1044,7 +1044,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=noreply@your-domain.com
 SMTP_PASS=your-smtp-password
-SMTP_FROM="CozyVTT <noreply@your-domain.com>"
+SMTP_FROM="CrazyVTT <noreply@your-domain.com>"
 SMTP_SECURE=false   # true for port 465 (TLS), false for port 587 (STARTTLS)
 APP_URL=https://your-domain.com
 ```
@@ -1089,9 +1089,9 @@ Whatever these say, a map, token or avatar picture can be at most 16,384 pixels 
 
 `MAX_DOCUMENT_SIZE_MB` covers the PDF, text and Markdown files in the document library. Core rulebooks often run past 50 MB; if your group's do, raise this one and `NGINX_MAX_BODY_SIZE` together.
 
-**Universal VTT imports need more room than the map limit.** A `.uvtt` file carries its picture as text, which is about a third (4/3) bigger than the picture itself. CozyVTT accepts a `.uvtt` file of up to the map limit times 4/3, plus 8 MB for the walls and lights (about 75 MB with the default `MAX_MAP_SIZE_MB=50`), and answers a larger one with a message saying so. With the default `NGINX_MAX_BODY_SIZE=55M`, the proxy refuses any `.uvtt` file over 55 MB with a 413, which means a picture larger than about 40 MB, although a plain map upload of up to 50 MB works. To let through every file CozyVTT accepts, multiply `MAX_MAP_SIZE_MB` by 4/3 and add 10: that covers the 8 MB for walls and lights and leaves a little over for the way the browser wraps the upload. With the default map limit, set `NGINX_MAX_BODY_SIZE=76M`. Whatever the limit, each import waits at most 20 seconds for its turn behind other DMs' imports and has 30 seconds to finish once it starts, so that one slow import cannot hold up every other DM's. Past either limit nothing is saved, and the DM's Map Library shows "Another map import is running on the server. Try again in a minute." or "This map import took longer than 30 seconds and was stopped, so nothing was saved. Try again in a minute." That answer comes at most 50 seconds after the upload has reached the backend, within the 60 seconds the bundled nginx waits for it. A proxy of your own must wait at least that long, or the DM sees only "Failed to import UVTT file."
+**Universal VTT imports need more room than the map limit.** A `.uvtt` file carries its picture as text, which is about a third (4/3) bigger than the picture itself. CrazyVTT accepts a `.uvtt` file of up to the map limit times 4/3, plus 8 MB for the walls and lights (about 75 MB with the default `MAX_MAP_SIZE_MB=50`), and answers a larger one with a message saying so. With the default `NGINX_MAX_BODY_SIZE=55M`, the proxy refuses any `.uvtt` file over 55 MB with a 413, which means a picture larger than about 40 MB, although a plain map upload of up to 50 MB works. To let through every file CrazyVTT accepts, multiply `MAX_MAP_SIZE_MB` by 4/3 and add 10: that covers the 8 MB for walls and lights and leaves a little over for the way the browser wraps the upload. With the default map limit, set `NGINX_MAX_BODY_SIZE=76M`. Whatever the limit, each import waits at most 20 seconds for its turn behind other DMs' imports and has 30 seconds to finish once it starts, so that one slow import cannot hold up every other DM's. Past either limit nothing is saved, and the DM's Map Library shows "Another map import is running on the server. Try again in a minute." or "This map import took longer than 30 seconds and was stopped, so nothing was saved. Try again in a minute." That answer comes at most 50 seconds after the upload has reached the backend, within the 60 seconds the bundled nginx waits for it. A proxy of your own must wait at least that long, or the DM sees only "Failed to import UVTT file."
 
-**If you raise a limit, raise the proxy limit too.** A file larger than the proxy's body cap is rejected with an HTTP 413 before it ever reaches CozyVTT:
+**If you raise a limit, raise the proxy limit too.** A file larger than the proxy's body cap is rejected with an HTTP 413 before it ever reaches CrazyVTT:
 
 | Setup | What to change |
 |---|---|
@@ -1114,7 +1114,7 @@ The admin panel shows the same numbers under **Settings → Upload Size Limits**
 
 ### Campaign Import and Export Limits
 
-A campaign archive (the `.cozyvtt` file made by **Export Campaign** and read by **Import**) can be up to 500 MB, and the server reads all of it. So each user may, in any hour:
+A campaign archive (the `.crazyvtt` file made by **Export Campaign** and read by **Import**) can be up to 500 MB, and the server reads all of it. So each user may, in any hour:
 
 - preview 20 archives (the step where the import window shows what an archive holds),
 - import 20 campaigns,
@@ -1167,7 +1167,7 @@ The rest of what the backend reads from its environment. Every one is optional; 
 | `NODE_ENV` | none, which runs the backend as `development` | Set it to `production` on a real instance. Anything else accepts a weak `SESSION_SECRET` with only a warning and writes no files to `backend/logs/` | No: the compose file sets `production` |
 | `UPLOAD_DIR` | `uploads` | Where uploaded files are stored, relative to the backend folder | No: change the uploads volume in `docker-compose.override.yml` instead; [Database Backups](#database-backups) shows how that file works |
 | `BACKUP_DIR` | `backups` | Where the Admin Dashboard writes backups (see [File Storage](#file-storage)) | No: change the backups volume instead |
-| `INSTANCE_NAME` | none | The name emails use while the **Instance Name** in **Admin → Settings** is empty or still CozyVTT | No |
+| `INSTANCE_NAME` | none | The name emails use while the **Instance Name** in **Admin → Settings** is empty or still CrazyVTT | No |
 | `FRONTEND_URL` | none | An older name for `APP_URL`, read only when `APP_URL` is not set | No: the compose file always sets `APP_URL` |
 
 The instance's name is not an environment setting: set it in the setup wizard or in **Admin → Settings → Instance Name**. It is the browser tab's title and is used in every email the instance sends.
@@ -1182,7 +1182,7 @@ Uploaded files are stored at `backend/uploads/`. In the Docker setup this direct
 
 Back up `backend/uploads/` alongside your database dumps. See [Database Backups](#database-backups) below.
 
-**Watch the disk the uploads are on.** CozyVTT does not limit how much one account can upload in total (there is no per-user storage quota yet; it is planned as an admin setting). What stops a runaway account is the upload rate limit, and what tells you the disk is filling is the Admin Panel: its **System Overview** shows how much space is free on the disk that holds `backend/uploads/`, and once that disk is more than 80% full it shows a red warning saying so. A full disk makes uploads fail, and on most installs the backups and the database are on the same disk and stop working too. To check by hand, run:
+**Watch the disk the uploads are on.** CrazyVTT does not limit how much one account can upload in total (there is no per-user storage quota yet; it is planned as an admin setting). What stops a runaway account is the upload rate limit, and what tells you the disk is filling is the Admin Panel: its **System Overview** shows how much space is free on the disk that holds `backend/uploads/`, and once that disk is more than 80% full it shows a red warning saying so. A full disk makes uploads fail, and on most installs the backups and the database are on the same disk and stop working too. To check by hand, run:
 
 ```bash
 df -h backend/uploads
@@ -1204,7 +1204,7 @@ On an install without Docker the backend writes them to a `backups` folder in it
 
 Because a backup holds every credential on the instance, the backend keeps the folder and each file in it readable by its own user alone (the folder is mode `700`, each backup `600`), and `backup.sh` does the same for its folder and the dumps in it, including any an earlier version left readable. While a backup or a restore runs, the working copy of the database it keeps in the system's temporary folder (`/tmp` unless `TMPDIR` says otherwise) sits in a folder of its own with the same protection, and is removed when it finishes, whether it worked or not. On a Docker host that user is the container's `appuser`, so copying a backup off the machine by hand needs `sudo`; downloading it from the dashboard needs nothing. The database password is never on a tool's command line either: `pg_dump` and `psql` read it from their environment, where the process list cannot show it.
 
-If the backend is stopped part-way through a backup or a restore (killed, or the machine loses power), its temporary folder (`cozyvtt-db-…` or `cozyvtt-restore-…`) is left behind. On Docker, the backend's `/tmp` is a volume of its own, `backend_tmp`, which outlives the container, and the backend removes such a folder each time it starts, for example with `docker compose restart backend`. On a manual install it stays until you delete it.
+If the backend is stopped part-way through a backup or a restore (killed, or the machine loses power), its temporary folder (`crazyvtt-db-…` or `crazyvtt-restore-…`) is left behind. On Docker, the backend's `/tmp` is a volume of its own, `backend_tmp`, which outlives the container, and the backend removes such a folder each time it starts, for example with `docker compose restart backend`. On a manual install it stays until you delete it.
 
 For large or multi-server deployments, consider mounting an S3-compatible object store (MinIO, AWS S3) as a FUSE filesystem at `backend/uploads/`. No code changes required.
 
@@ -1233,7 +1233,7 @@ An instance always keeps at least one admin. While you are the only one, you can
 
 **Admin Dashboard → Backups → Create Backup** generates a ZIP holding a `pg_dump` of the database and every uploaded file, which you can download for offsite storage. It is written to `backend/backups/` on the host, which the backend creates and takes ownership of on its first start, so there is nothing to make by hand. The bin beside a backup in the list deletes that file for good; it asks first, naming the file.
 
-**Backups are never deleted automatically.** Every backup made with **Create Backup**, and the database-only backup each restore makes first, stays in the folder until you delete it with the bin. A backup holds every uploaded file, so each one is about as large as `backend/uploads/`, and the folder grows with every backup: delete the ones you no longer need, or download them for safekeeping and then delete them. Watch the disk space with `df -h backend/backups`. (The 30-day pruning of the backup script below applies only to the script's own `cozyvtt_*.sql.gz` files.)
+**Backups are never deleted automatically.** Every backup made with **Create Backup**, and the database-only backup each restore makes first, stays in the folder until you delete it with the bin. A backup holds every uploaded file, so each one is about as large as `backend/uploads/`, and the folder grows with every backup: delete the ones you no longer need, or download them for safekeeping and then delete them. Watch the disk space with `df -h backend/backups`. (The 30-day pruning of the backup script below applies only to the script's own `crazyvtt_*.sql.gz` files.)
 
 A backup keeps the instance as it was when it was made. An account deleted since is still in it, with its email address, characters and files, and restoring that backup brings the account back; the admins' activity log is in it too, and it keeps every line for as long as the instance exists (see [The activity log](USER_GUIDE.md#the-activity-log-admins)). Delete old backups you no longer need if that matters to you.
 
@@ -1241,20 +1241,20 @@ To keep them in another folder under Docker, name that folder in a small file of
 
 **Do not start from `docker-compose.override.example.yml` for this.** That example is for running your own reverse proxy: it switches off the bundled nginx, and on a default install that takes your site offline.
 
-First, check whether you already have an override file. From the CozyVTT folder:
+First, check whether you already have an override file. From the CrazyVTT folder:
 
 ```bash
 ls docker-compose.override.yml
 ```
 
-**If it says `No such file or directory`** (the usual case on a default install), create the file with only these lines, using your own folder in place of `/srv/cozyvtt-backups`:
+**If it says `No such file or directory`** (the usual case on a default install), create the file with only these lines, using your own folder in place of `/srv/crazyvtt-backups`:
 
 ```bash
 cat > docker-compose.override.yml <<'EOF'
 services:
   backend:
     volumes:
-      - /srv/cozyvtt-backups:/app/backups
+      - /srv/crazyvtt-backups:/app/backups
 EOF
 ```
 
@@ -1268,7 +1268,7 @@ services:
     ports:
       - "127.0.0.1:4000:4000"
     volumes:
-      - /srv/cozyvtt-backups:/app/backups
+      - /srv/crazyvtt-backups:/app/backups
   frontend:
     ports:
       - "127.0.0.1:8080:80"
@@ -1284,7 +1284,7 @@ docker compose config | grep -B1 'target: /app/backups'
 It should print your folder once, like this:
 
 ```
-        source: /srv/cozyvtt-backups
+        source: /srv/crazyvtt-backups
         target: /app/backups
 ```
 
@@ -1299,20 +1299,20 @@ The list should include `nginx`, the bundled web server that answers your visito
 The backend takes ownership of the new folder when it starts and makes it private to itself. On a NAS or USB drive that does not accept Linux owners or permissions, it cannot; it still starts, and its log (`docker compose logs backend`) says so. Backups there are then readable by whoever can read that drive, so choose one only you can reach. Backups already in `backend/backups/` stay there; to move the ones you want to keep:
 
 ```bash
-sudo sh -c 'mv backend/backups/*.zip /srv/cozyvtt-backups/'
+sudo sh -c 'mv backend/backups/*.zip /srv/crazyvtt-backups/'
 ```
 
 **Do not pick a folder inside `backend/uploads/`.** A backup holds every credential on the instance, and `uploads/` is the folder you may sync or copy anywhere. Under Docker nothing stops you: the backend sees only its own `/app/backups` and cannot tell where that is on the host. `BACKUP_DIR` applies only to an install without Docker, and there a folder inside the uploads directory is refused.
 
-**Admin Dashboard → Backups → Restore** replaces the database with the backup's, copies the backup's uploaded files over the existing ones (a file the backup does not have is left where it is), then runs this version's migrations, so a backup from an older CozyVTT can be restored into a newer one and is brought up to date on its own.
+**Admin Dashboard → Backups → Restore** replaces the database with the backup's, copies the backup's uploaded files over the existing ones (a file the backup does not have is left where it is), then runs this version's migrations, so a backup from an older CrazyVTT can be restored into a newer one and is brought up to date on its own.
 
-Before anything is touched, the file is checked: its name must end in `.zip`, it must be a ZIP archive of at most 4 GB that unpacks to at most 10 GiB in at most 100,000 files, and its database must be a complete `pg_dump` of a CozyVTT database, holding nothing but SQL. A file that fails any of these is refused with the reason on screen, and nothing has changed. Only one restore runs at a time: while one is running, a second restore, and **Create Backup**, are refused until it has finished. A backup of the database as it is at that moment is then written to the backup list (database only, named like any other backup), so restoring the wrong file can be undone by restoring that one; the restore names it when it finishes. The database is loaded in a single step that is undone as a whole if any part of it fails, so a backup that cannot be applied leaves your existing data untouched, and the reason is in the backend log:
+Before anything is touched, the file is checked: its name must end in `.zip`, it must be a ZIP archive of at most 4 GB that unpacks to at most 10 GiB in at most 100,000 files, and its database must be a complete `pg_dump` of a CrazyVTT database, holding nothing but SQL. A file that fails any of these is refused with the reason on screen, and nothing has changed. Only one restore runs at a time: while one is running, a second restore, and **Create Backup**, are refused until it has finished. A backup of the database as it is at that moment is then written to the backup list (database only, named like any other backup), so restoring the wrong file can be undone by restoring that one; the restore names it when it finishes. The database is loaded in a single step that is undone as a whole if any part of it fails, so a backup that cannot be applied leaves your existing data untouched, and the reason is in the backend log:
 
 ```bash
 docker compose logs backend | grep -i restore
 ```
 
-**If the dashboard cannot back up the database as it is, it restores nothing.** That backup is what lets a restore be undone, so without it the dashboard stops and says so. It happens when the database itself is damaged, or when it runs a newer PostgreSQL than the backend's tools (the log then says `server version mismatch`). If the message names the backups folder instead, the backend cannot write there: fix the folder's owner or free space on its disk and try again, which keeps the undo. The same message, saying nothing was changed, can also come before any of this, when the uploaded backup itself cannot be saved in that folder. To restore anyway, take the database out of the dashboard backup and load it with the restore script, which asks you to confirm and makes no copy first. The commands below read the backup from `backend/backups/`. A backup you uploaded from your own computer is not kept on the server, so copy it there first (for example `scp backup-2026-01-01T03-00-00.zip you@your-server:`) and use its path in place of `backend/backups/…` in both `unzip` lines. With the file in your own home folder, the first `unzip` line needs no `sudo`; keep `sudo` on the second, because on Docker `backend/uploads` belongs to the container's user. From the CozyVTT folder, with the stack running and your backup's name in place of the example:
+**If the dashboard cannot back up the database as it is, it restores nothing.** That backup is what lets a restore be undone, so without it the dashboard stops and says so. It happens when the database itself is damaged, or when it runs a newer PostgreSQL than the backend's tools (the log then says `server version mismatch`). If the message names the backups folder instead, the backend cannot write there: fix the folder's owner or free space on its disk and try again, which keeps the undo. The same message, saying nothing was changed, can also come before any of this, when the uploaded backup itself cannot be saved in that folder. To restore anyway, take the database out of the dashboard backup and load it with the restore script, which asks you to confirm and makes no copy first. The commands below read the backup from `backend/backups/`. A backup you uploaded from your own computer is not kept on the server, so copy it there first (for example `scp backup-2026-01-01T03-00-00.zip you@your-server:`) and use its path in place of `backend/backups/…` in both `unzip` lines. With the file in your own home folder, the first `unzip` line needs no `sudo`; keep `sudo` on the second, because on Docker `backend/uploads` belongs to the container's user. From the CrazyVTT folder, with the stack running and your backup's name in place of the example:
 
 ```bash
 (umask 077; sudo unzip -p backend/backups/backup-2026-01-01T03-00-00.zip database.sql | gzip > restore-me.sql.gz)
@@ -1335,27 +1335,27 @@ If the backend is stopped while a restore is running, the uploaded backup it was
 
 **Restore only backups made by this dashboard or by the backup script, on an instance you trust.** A backup is a set of instructions the database carries out with its owner's full rights. The restore refuses the database tool's own commands, and a line that starts with a copy statement that is not table data, but it cannot tell harmless SQL from harmful SQL. A file made to do harm can put anything at all in your database, and on the Docker setup it can also run programs inside the database container.
 
-**If your `DATABASE_URL` names a schema** (it ends in `?schema=` and a name, as in [step 3 of the manual install](#3-configure-and-build)), a backup holds that schema alone, and a restore drops and recreates that schema alone: `public` and every other schema in the database are left as they were. The one exception is anything another program built on CozyVTT's tables, such as a view of them, or a foreign key in its own table pointing at one of them: the database removes it along with the schema, so make it again after a restore. A backup restores only onto an instance whose `DATABASE_URL` names the schema it came from; any other is refused with **This file cannot be restored because it is a backup of the database schema "…", and this instance keeps its data in the schema "…"**, and nothing changes. To move such a backup between schemas, set the same `?schema=` on the instance you restore it on. The backup and restore scripts below work with the `public` schema only and stop with a message if `DATABASE_URL` names another; use the dashboard. A file `backup.sh` made on such an install with 1.5.3 or earlier holds the whole database, and neither the dashboard nor the scripts restore it; see [Restoring an older script backup of an install that names a schema](#restoring-an-older-script-backup-of-an-install-that-names-a-schema).
+**If your `DATABASE_URL` names a schema** (it ends in `?schema=` and a name, as in [step 3 of the manual install](#3-configure-and-build)), a backup holds that schema alone, and a restore drops and recreates that schema alone: `public` and every other schema in the database are left as they were. The one exception is anything another program built on CrazyVTT's tables, such as a view of them, or a foreign key in its own table pointing at one of them: the database removes it along with the schema, so make it again after a restore. A backup restores only onto an instance whose `DATABASE_URL` names the schema it came from; any other is refused with **This file cannot be restored because it is a backup of the database schema "…", and this instance keeps its data in the schema "…"**, and nothing changes. To move such a backup between schemas, set the same `?schema=` on the instance you restore it on. The backup and restore scripts below work with the `public` schema only and stop with a message if `DATABASE_URL` names another; use the dashboard. A file `backup.sh` made on such an install with 1.5.3 or earlier holds the whole database, and neither the dashboard nor the scripts restore it; see [Restoring an older script backup of an install that names a schema](#restoring-an-older-script-backup-of-an-install-that-names-a-schema).
 
-A backup restores onto an instance whose database user has a different name, which is what moving to a new machine with a fresh `.env` produces: everything in it ends up owned by the instance's own database user. Restoring drops and recreates the database's `public` schema (or the schema `DATABASE_URL` names), which needs the database role to own the database and that schema. The Docker setup does that for you. On a manual install, make sure of it once, using your own database and user names if you chose different ones (in each command the `cozyvtt` after `-d` or `DATABASE` is the database, the one after `TO` the user). The second command is needed on PostgreSQL 14, and on a database first created on 14 and upgraded since; on newer ones it does no harm:
+A backup restores onto an instance whose database user has a different name, which is what moving to a new machine with a fresh `.env` produces: everything in it ends up owned by the instance's own database user. Restoring drops and recreates the database's `public` schema (or the schema `DATABASE_URL` names), which needs the database role to own the database and that schema. The Docker setup does that for you. On a manual install, make sure of it once, using your own database and user names if you chose different ones (in each command the `crazyvtt` after `-d` or `DATABASE` is the database, the one after `TO` the user). The second command is needed on PostgreSQL 14, and on a database first created on 14 and upgraded since; on newer ones it does no harm:
 
 ```bash
-sudo -u postgres psql -c "ALTER DATABASE cozyvtt OWNER TO cozyvtt;"
-sudo -u postgres psql -d cozyvtt -c "ALTER SCHEMA public OWNER TO cozyvtt;"
+sudo -u postgres psql -c "ALTER DATABASE crazyvtt OWNER TO crazyvtt;"
+sudo -u postgres psql -d crazyvtt -c "ALTER SCHEMA public OWNER TO crazyvtt;"
 ```
 
 A manual install also needs a `psql` from August 2025 or later (PostgreSQL 13.22, 14.19, 15.14, 16.10, 17.6, or any 18): the restore runs in psql's restricted mode, which older releases do not have. With an older one the restore stops before changing anything, and the log says `invalid command \restrict`. The Docker image already has a recent one.
 
 ### Via the included scripts
 
-Run these from the folder you installed CozyVTT into, with the stack running:
+Run these from the folder you installed CrazyVTT into, with the stack running:
 
 ```bash
-# Create a backup — written to ./backups/cozyvtt_YYYYMMDD_HHMMSS.sql.gz
+# Create a backup — written to ./backups/crazyvtt_YYYYMMDD_HHMMSS.sql.gz
 ./backend/scripts/backup.sh
 
 # Restore one (this REPLACES the current database — it asks you to confirm)
-./backend/scripts/restore.sh ./backups/cozyvtt_20260101_030000.sql.gz
+./backend/scripts/restore.sh ./backups/crazyvtt_20260101_030000.sql.gz
 ```
 
 Both notice that you are running under Docker and do the work inside the
@@ -1364,7 +1364,7 @@ Backups older than 30 days are pruned; set `BACKUP_RETAIN_DAYS` to change that.
 
 **A restore either works completely or changes nothing.** The restore script
 checks the backup file before it touches your database: the archive has to be
-whole, and what is inside has to be a complete backup of a CozyVTT database
+whole, and what is inside has to be a complete backup of a CrazyVTT database
 holding nothing but SQL. Anything else is refused with the reason, and nothing
 has changed. It then replaces the database's contents in a single step that is
 undone entirely if any part of it fails, so a backup that cannot be applied
@@ -1382,7 +1382,7 @@ every sign-in has ended and everyone signs in again. The script cannot reach
 the running backend, though: a game table that is already open keeps its live
 connection, with the identity and campaign role it had before the restore,
 until the backend restarts. The restart also brings a backup from an older
-CozyVTT up to this version. The script prints the command when it finishes:
+CrazyVTT up to this version. The script prints the command when it finishes:
 
 ```bash
 docker compose restart backend
@@ -1398,20 +1398,20 @@ Where `/tmp` is small (it is held in memory on some systems), point it
 somewhere with more room:
 
 ```bash
-TMPDIR=/var/tmp ./backend/scripts/restore.sh ./backups/cozyvtt_20260101_030000.sql.gz
+TMPDIR=/var/tmp ./backend/scripts/restore.sh ./backups/crazyvtt_20260101_030000.sql.gz
 ```
 
-If you run CozyVTT without Docker, give them a `DATABASE_URL` instead:
+If you run CrazyVTT without Docker, give them a `DATABASE_URL` instead:
 
 ```bash
-DATABASE_URL="postgresql://user:pass@host:5432/cozyvtt" ./backend/scripts/backup.sh
+DATABASE_URL="postgresql://user:pass@host:5432/crazyvtt" ./backend/scripts/backup.sh
 ```
 
 Write the address exactly as the backend's `.env` has it. A password holding a character an address cannot carry as it is, such as `/`, `#`, `?` or `%`, is written percent-encoded there (`%2F` for `/`, `%25` for `%`), and the scripts decode it as the backend does. Leave out `:5432` and port 5432 is used.
 
 Under Docker, the scripts take the database's user and name from
 `DATABASE_USER` and `DATABASE_NAME` in their environment, not from `.env`, and
-assume `cozyvtt` for both. If you changed either in `.env`, put the same values
+assume `crazyvtt` for both. If you changed either in `.env`, put the same values
 in front of the command, for example:
 
 ```bash
@@ -1421,12 +1421,12 @@ DATABASE_USER=myuser DATABASE_NAME=mydb ./backend/scripts/backup.sh
 ### Via Command Line
 
 If you would rather not use the backup script, this one command makes the same
-backup by hand (with the default `cozyvtt` names; put yours in place of both if
+backup by hand (with the default `crazyvtt` names; put yours in place of both if
 you changed them):
 
 ```bash
 (umask 077; docker compose exec -T database \
-  pg_dump -U cozyvtt -d cozyvtt --no-owner --no-privileges \
+  pg_dump -U crazyvtt -d crazyvtt --no-owner --no-privileges \
     --exclude-table-data=public.session \
   | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz)
 ```
@@ -1446,12 +1446,12 @@ step that is undone if any part fails, and empties the login sessions.
 
 ### Restoring an older script backup of an install that names a schema
 
-Only for a manual install whose `DATABASE_URL` ends in `?schema=` and a name, and only for a file `backup.sh` made with 1.5.3 or earlier. Those files hold the whole database, every schema in it, so the dashboard refuses them and the scripts stop at the `?schema=` address. Load one into a new, empty database and point CozyVTT at that. Your current database is not touched, so you can go back to it by undoing step 3.
+Only for a manual install whose `DATABASE_URL` ends in `?schema=` and a name, and only for a file `backup.sh` made with 1.5.3 or earlier. Those files hold the whole database, every schema in it, so the dashboard refuses them and the scripts stop at the `?schema=` address. Load one into a new, empty database and point CrazyVTT at that. Your current database is not touched, so you can go back to it by undoing step 3.
 
-1. Make the empty database, owned by CozyVTT's database user (use your own names if you changed them; the second `cozyvtt` is the user):
+1. Make the empty database, owned by CrazyVTT's database user (use your own names if you changed them; the second `crazyvtt` is the user):
 
    ```bash
-   sudo -u postgres createdb -O cozyvtt cozyvtt_restored
+   sudo -u postgres createdb -O crazyvtt crazyvtt_restored
    ```
 
    It prints nothing if it worked.
@@ -1459,13 +1459,13 @@ Only for a manual install whose `DATABASE_URL` ends in `?schema=` and a name, an
 2. Load the backup into it as that user, putting your file name and database password in place of the examples:
 
    ```bash
-   gunzip -c backups/cozyvtt_20261001_020000.sql.gz \
-     | psql "postgresql://cozyvtt:YOUR_PASSWORD@localhost:5432/cozyvtt_restored" -v ON_ERROR_STOP=1 -q
+   gunzip -c backups/crazyvtt_20261001_020000.sql.gz \
+     | psql "postgresql://crazyvtt:YOUR_PASSWORD@localhost:5432/crazyvtt_restored" -v ON_ERROR_STOP=1 -q
    ```
 
-   It prints a short `set_config` table and stops. A line starting `ERROR:` means the load stopped there; drop the database with `sudo -u postgres dropdb cozyvtt_restored` and start again from step 1 once the cause is fixed. Running it as CozyVTT's user keeps everything it creates owned by that user, which the backend needs.
+   It prints a short `set_config` table and stops. A line starting `ERROR:` means the load stopped there; drop the database with `sudo -u postgres dropdb crazyvtt_restored` and start again from step 1 once the cause is fixed. Running it as CrazyVTT's user keeps everything it creates owned by that user, which the backend needs.
 
-3. In `backend/.env`, change the database name in `DATABASE_URL` (the part after the last `/` and before `?`) to `cozyvtt_restored`. Keep the `?schema=` part as it is.
+3. In `backend/.env`, change the database name in `DATABASE_URL` (the part after the last `/` and before `?`) to `crazyvtt_restored`. Keep the `?schema=` part as it is.
 
 4. Bring the restored data up to this version and restart the backend the way you run it:
 
@@ -1477,7 +1477,7 @@ Only for a manual install whose `DATABASE_URL` ends in `?schema=` and a name, an
 
 5. Once you have checked your campaigns are there, make a backup from the dashboard. It holds your schema alone and restores as usual.
 
-The new database also holds a copy of whatever other software kept in the old one; CozyVTT ignores it.
+The new database also holds a copy of whatever other software kept in the old one; CrazyVTT ignores it.
 
 ### Automated Daily Backups (cron)
 
@@ -1488,10 +1488,10 @@ like it does when you run it by hand:
 crontab -e
 
 # Add this line: daily at 3 AM, with the output kept in backup.log
-0 3 * * * cd /path/to/cozyvtt && ./backend/scripts/backup.sh >> backup.log 2>&1
+0 3 * * * cd /path/to/crazyvtt && ./backend/scripts/backup.sh >> backup.log 2>&1
 ```
 
-Put the folder you installed CozyVTT into in place of `/path/to/cozyvtt`, and
+Put the folder you installed CrazyVTT into in place of `/path/to/crazyvtt`, and
 the `DATABASE_USER=... DATABASE_NAME=...` prefix in front of the script if you
 changed those names. The user whose crontab this is needs to be able to run
 `docker compose` without `sudo`.
@@ -1593,7 +1593,7 @@ If you run your own reverse proxy and want an uptime monitor to reach `/health` 
 ### Database Connectivity
 
 ```bash
-docker compose exec database pg_isready -U cozyvtt
+docker compose exec database pg_isready -U crazyvtt
 ```
 
 ---
@@ -1604,7 +1604,7 @@ docker compose exec database pg_isready -U cozyvtt
 
 …and going to `/setup` sends you straight back to the home page.
 
-**Cause:** your `/api` requests aren't reaching the backend, so the app can't tell that this is a new installation. Almost always a reverse-proxy routing problem, not a CozyVTT problem.
+**Cause:** your `/api` requests aren't reaching the backend, so the app can't tell that this is a new installation. Almost always a reverse-proxy routing problem, not a CrazyVTT problem.
 
 **Check it:**
 
@@ -1666,9 +1666,9 @@ docker compose logs --tail 30 backend nginx
 Three lines like these appear each time the stack starts and are harmless: the database tries to set the permissions of its folders, which already have the right ones, and the frontend's image tries to make it listen on IPv6 as well, which nothing needs: the bundled nginx reaches it over Docker's own network.
 
 ```
-cozyvtt-database  | chmod: /var/lib/postgresql/data: Operation not permitted
-cozyvtt-database  | chmod: /var/run/postgresql: Operation not permitted
-cozyvtt-frontend  | 10-listen-on-ipv6-by-default.sh: info: can not modify /etc/nginx/conf.d/default.conf (read-only file system?)
+crazyvtt-database  | chmod: /var/lib/postgresql/data: Operation not permitted
+crazyvtt-database  | chmod: /var/run/postgresql: Operation not permitted
+crazyvtt-frontend  | 10-listen-on-ipv6-by-default.sh: info: can not modify /etc/nginx/conf.d/default.conf (read-only file system?)
 ```
 
 If the container keeps running and `docker compose ps` shows the database as `healthy`, there is nothing to fix.
@@ -1698,7 +1698,7 @@ The bundled nginx looks the backend and frontend up again within ten seconds of 
 docker compose restart nginx
 ```
 
-It ends by printing `Container cozyvtt-nginx  Started`, and the site answers normally again. To stop it happening, put the shipped `nginx/nginx.conf` back and move your changes out of it, with the steps in the 1.5.2 upgrade notes in `CHANGELOG.md`: keep a copy of your changes, `git checkout nginx/nginx.conf`, pull, then put HTTPS in `nginx/conf.d/` and a proxy's addresses in `.env`. The `git stash` steps for `docker-compose.yml` do not suit this file: 1.5.2 reworked it, so a `git stash pop` of your old edits conflicts with most of it.
+It ends by printing `Container crazyvtt-nginx  Started`, and the site answers normally again. To stop it happening, put the shipped `nginx/nginx.conf` back and move your changes out of it, with the steps in the 1.5.2 upgrade notes in `CHANGELOG.md`: keep a copy of your changes, `git checkout nginx/nginx.conf`, pull, then put HTTPS in `nginx/conf.d/` and a proxy's addresses in `.env`. The `git stash` steps for `docker-compose.yml` do not suit this file: 1.5.2 reworked it, so a `git stash pop` of your old edits conflicts with most of it.
 
 ### Live features don't work (dice, token movement, chat)
 
@@ -1722,9 +1722,9 @@ docker compose logs backend | grep -i "upload limits"
 
 ---
 
-## Updating CozyVTT
+## Updating CrazyVTT
 
-Read the new version's **Upgrading** notes at the top of `CHANGELOG.md` first, on GitHub before you pull or in your CozyVTT folder straight after. They say whether that release needs anything from you. If you are more than one release behind, read the notes of every release you skipped, oldest first: the commands below stay the same, and the database migrations of every release in between run in order on the first start. 1.5.2 needs one thing if a Cloudflare Tunnel or another proxy sits in front of CozyVTT: it needs `NGINX_TRUSTED_PROXIES` in `.env`, as [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits) explains, or every visitor counts as the proxy's one address. Then:
+Read the new version's **Upgrading** notes at the top of `CHANGELOG.md` first, on GitHub before you pull or in your CrazyVTT folder straight after. They say whether that release needs anything from you. If you are more than one release behind, read the notes of every release you skipped, oldest first: the commands below stay the same, and the database migrations of every release in between run in order on the first start. 1.5.2 needs one thing if a Cloudflare Tunnel or another proxy sits in front of CrazyVTT: it needs `NGINX_TRUSTED_PROXIES` in `.env`, as [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits) explains, or every visitor counts as the proxy's one address. Then:
 
 ```bash
 git pull origin main
@@ -1768,7 +1768,7 @@ Details in
 
 ### Without Docker
 
-Coming from 1.5.1 or earlier, install Node.js 26 first, as in [Install Node.js 26](#1-install-nodejs-26): CozyVTT is built and tested on Node.js 26 only. Check that `node --version` prints a version starting `v26`, then update:
+Coming from 1.5.1 or earlier, install Node.js 26 first, as in [Install Node.js 26](#1-install-nodejs-26): CrazyVTT is built and tested on Node.js 26 only. Check that `node --version` prints a version starting `v26`, then update:
 
 ```bash
 git pull origin main
@@ -1777,7 +1777,7 @@ cd backend
 npm install
 npx prisma migrate deploy
 npm run build   # also prepares the database client (prisma generate)
-pm2 restart cozyvtt-backend
+pm2 restart crazyvtt-backend
 
 cd ../frontend
 npm install
@@ -1786,7 +1786,7 @@ VITE_API_URL="" VITE_SOCKET_URL="" npm run build
 # Static files in frontend/dist/ are now updated — Nginx serves them immediately
 ```
 
-Coming from 1.5.1 or earlier, also bring your Nginx site file, `/etc/nginx/sites-available/cozyvtt`, up to date with the example in [Serve with Nginx](#5-serve-with-nginx). Copy these lines from the example into the same places in your file:
+Coming from 1.5.1 or earlier, also bring your Nginx site file, `/etc/nginx/sites-available/crazyvtt`, up to date with the example in [Serve with Nginx](#5-serve-with-nginx). Copy these lines from the example into the same places in your file:
 
 1. In the `server` block for port 443: the five `gzip` lines and `server_tokens off;`.
 2. In `location /`: the `if (-d $request_filename)` block, `try_files $uri /index.html;` in place of your `try_files` line, and the six `add_header` lines below it.
@@ -1805,8 +1805,8 @@ sudo systemctl reload nginx
 Coming from 1.4.0 or earlier, also make the database role the owner of the database and its `public` schema once, so a backup can be restored (see [Database Backups](#database-backups)); use your own names if you changed them:
 
 ```bash
-sudo -u postgres psql -c "ALTER DATABASE cozyvtt OWNER TO cozyvtt;"
-sudo -u postgres psql -d cozyvtt -c "ALTER SCHEMA public OWNER TO cozyvtt;"
+sudo -u postgres psql -c "ALTER DATABASE crazyvtt OWNER TO crazyvtt;"
+sudo -u postgres psql -d crazyvtt -c "ALTER SCHEMA public OWNER TO crazyvtt;"
 ```
 
 ---
@@ -1823,16 +1823,16 @@ Before going live:
 - [ ] **CORS_ORIGIN** — Set to your specific domain, not a wildcard
 - [ ] **Setup finished** — The setup wizard has been completed, so `curl -s https://your-domain.com/api/setup/status` prints `"setupCompleted":true`. Until then the wizard, protected by the setup token, is the only thing the instance offers
 - [ ] **Registration** — **Enable Public Registration** is **off** for private instances. You choose this in the setup wizard, and can change it later with **Allow Public Registration** in **Admin → Settings**
-- [ ] **Admin MFA** — Every administrator account has two-factor authentication on. CozyVTT requires it: an administrator without it sees a banner for 7 days, then can only set it up, change their password or sign out
+- [ ] **Admin MFA** — Every administrator account has two-factor authentication on. CrazyVTT requires it: an administrator without it sees a banner for 7 days, then can only set it up, change their password or sign out
 - [ ] **Backups tested** — Automated backups configured and a restore drill completed successfully
 - [ ] **Upload isolation** — `backend/uploads/` is served only through authenticated backend endpoints, not directly by the web server
-- [ ] **Security headers** — CozyVTT sends its own (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) from the container that serves the app page, so they arrive whether you use the bundled Nginx or your own proxy. A manual install has no such container: its Nginx example in [Manual Deployment](#manual-deployment) sets them in `location /`. Confirm with `curl -sI https://your-host/ | grep -i content-security`. If your proxy strips or overwrites response headers, stop doing that. **HSTS**: the backend already sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` with every answer from `/api`, so a browser that has used the instance over HTTPS keeps that name on HTTPS for a year (see [HTTPS is remembered by browsers](#https-is-remembered-by-browsers)). The app page itself carries it only if you turn on the commented line in the `nginx/conf.d/https.conf` example
+- [ ] **Security headers** — CrazyVTT sends its own (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) from the container that serves the app page, so they arrive whether you use the bundled Nginx or your own proxy. A manual install has no such container: its Nginx example in [Manual Deployment](#manual-deployment) sets them in `location /`. Confirm with `curl -sI https://your-host/ | grep -i content-security`. If your proxy strips or overwrites response headers, stop doing that. **HSTS**: the backend already sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` with every answer from `/api`, so a browser that has used the instance over HTTPS keeps that name on HTTPS for a year (see [HTTPS is remembered by browsers](#https-is-remembered-by-browsers)). The app page itself carries it only if you turn on the commented line in the `nginx/conf.d/https.conf` example
 - [ ] **Database isolation** — PostgreSQL container uses `expose` (not `ports`); unreachable from outside the Docker network
 - [ ] **Log size** — Nothing to set up: the backend rotates `backend/logs/` itself and Docker caps each container's log (see [Monitoring and Logs](#monitoring-and-logs)). Remove any `logrotate` rule you added for `backend/logs/`
 - [ ] **OS updates** — A plan exists for keeping the host OS and Docker up to date
-- [ ] **Brute-force protection** — `fail2ban` (or equivalent) is configured to block IPs hammering `/api/auth/login` and SSH; CozyVTT's own limits are 5 failed sign-ins per 15 minutes per visitor address and 10 per hour per account from everywhere (each lock is noted in **Admin → Activity**), but a host-level ban catches scanners earlier
-- [ ] **Visitor addresses** — CozyVTT sees each visitor's own address, not your tunnel's or proxy's. Check it as described in [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits)
-- [ ] **Stable update plan** — You watch the [CozyVTT repo](https://github.com/CheekyChinchilla/CozyVTT) for releases and apply security patches promptly (no auto-update is bundled — that's your choice)
+- [ ] **Brute-force protection** — `fail2ban` (or equivalent) is configured to block IPs hammering `/api/auth/login` and SSH; CrazyVTT's own limits are 5 failed sign-ins per 15 minutes per visitor address and 10 per hour per account from everywhere (each lock is noted in **Admin → Activity**), but a host-level ban catches scanners earlier
+- [ ] **Visitor addresses** — CrazyVTT sees each visitor's own address, not your tunnel's or proxy's. Check it as described in [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits)
+- [ ] **Stable update plan** — You watch the [CrazyVTT repo](https://github.com/CheekyChinchilla/CrazyVTT) for releases and apply security patches promptly (no auto-update is bundled — that's your choice)
 - [ ] **Vulnerability reporting path** — You've read [SECURITY.md](../SECURITY.md) and know how to report issues responsibly
 - [ ] **Origin hidden (optional but recommended)** — Instance is fronted by a Cloudflare Tunnel, Tailscale Funnel, or equivalent so the server's real IP is never exposed (see below)
 
@@ -1840,7 +1840,7 @@ Before going live:
 
 ## Cloudflare Tunnel (Recommended for Public Instances)
 
-If CozyVTT is reachable from the internet, fronting it with a **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** is the cheapest, lowest-effort way to harden the deployment. Tunnels are free for personal use and provide:
+If CrazyVTT is reachable from the internet, fronting it with a **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** is the cheapest, lowest-effort way to harden the deployment. Tunnels are free for personal use and provide:
 
 - **No open ports** — your VPS doesn't need 80/443 (or anything) reachable from the internet; the tunnel daemon makes an outbound connection to Cloudflare and accepts incoming traffic through that
 - **Origin IP hidden** — attackers can't directly reach your server even if they know your domain
@@ -1860,10 +1860,10 @@ If CozyVTT is reachable from the internet, fronting it with a **[Cloudflare Tunn
    ```bash
    cloudflared tunnel login
    ```
-4. Create a tunnel and point it at your local CozyVTT:
+4. Create a tunnel and point it at your local CrazyVTT:
    ```bash
-   cloudflared tunnel create cozyvtt
-   cloudflared tunnel route dns cozyvtt cozyvtt.example.com
+   cloudflared tunnel create crazyvtt
+   cloudflared tunnel route dns crazyvtt crazyvtt.example.com
    ```
    `tunnel create` prints the path of the file it wrote, after `Tunnel credentials written to`, and the tunnel's id. Step 5 needs both.
 5. Create `~/.cloudflared/config.yml`, with the id and the path from step 4:
@@ -1872,7 +1872,7 @@ If CozyVTT is reachable from the internet, fronting it with a **[Cloudflare Tunn
    credentials-file: /home/you/.cloudflared/<tunnel-id>.json
 
    ingress:
-     - hostname: cozyvtt.example.com
+     - hostname: crazyvtt.example.com
        service: http://localhost:80   # or whatever HTTP_PORT you set
      - service: http_status:404
    ```
@@ -1884,7 +1884,7 @@ If CozyVTT is reachable from the internet, fronting it with a **[Cloudflare Tunn
    ```
 7. Confirm the API is reachable through the tunnel, not just the web pages:
    ```bash
-   curl -s -w '\n%{http_code} %{content_type}\n' https://cozyvtt.example.com/api/setup/status
+   curl -s -w '\n%{http_code} %{content_type}\n' https://crazyvtt.example.com/api/setup/status
    ```
    You want a line of JSON and, below it, `200 application/json; charset=utf-8`. Anything else means the tunnel isn't reaching the backend — see [Troubleshooting](#troubleshooting).
 8. Tell nginx to believe the tunnel, and keep nginx's ports to this server. Add these three lines to `.env`:
@@ -1893,8 +1893,8 @@ If CozyVTT is reachable from the internet, fronting it with a **[Cloudflare Tunn
    HTTP_PORT=127.0.0.1:80
    HTTPS_PORT=127.0.0.1:443
    ```
-   then run `docker compose up -d`. `172.16.0.0/12` is the range on most servers; [check yours](#the-range-for-a-proxy-on-the-same-server). Without the first line, every visitor is counted as the tunnel's one address, so a few wrong passwords from anyone lock everybody out of signing in, and everyone shares one limit of 300 requests a minute, which a table opening a map together can reach. Without the other two, a visitor reaching your server over IPv6 could choose the address CozyVTT counts them as. [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits) explains both.
-9. Confirm CozyVTT sees each visitor's own address and not the tunnel's, with the check in [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits).
+   then run `docker compose up -d`. `172.16.0.0/12` is the range on most servers; [check yours](#the-range-for-a-proxy-on-the-same-server). Without the first line, every visitor is counted as the tunnel's one address, so a few wrong passwords from anyone lock everybody out of signing in, and everyone shares one limit of 300 requests a minute, which a table opening a map together can reach. Without the other two, a visitor reaching your server over IPv6 could choose the address CrazyVTT counts them as. [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits) explains both.
+9. Confirm CrazyVTT sees each visitor's own address and not the tunnel's, with the check in [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits).
 
 Once running, ports 80 and 443 are open to the server itself and nothing else, so only SSH (port 22, or your chosen alternative) needs to be reachable from the internet, and even that you can put behind Cloudflare Access if you want.
 
@@ -1912,7 +1912,7 @@ Alternatives in the same family: **Tailscale Funnel** (P2P, no third-party termi
 
 ## The API Documentation
 
-CozyVTT keeps a description of its HTTP routes in [`backend/docs/API_DOCUMENTATION.yaml`](../backend/docs/API_DOCUMENTATION.yaml) (an OpenAPI 3.0 file), and of its live-connection events in [`backend/docs/WEBSOCKET_DOCUMENTATION.md`](../backend/docs/WEBSOCKET_DOCUMENTATION.md). They are for developers. Running an instance needs neither, and there is nothing to set up or host.
+CrazyVTT keeps a description of its HTTP routes in [`backend/docs/API_DOCUMENTATION.yaml`](../backend/docs/API_DOCUMENTATION.yaml) (an OpenAPI 3.0 file), and of its live-connection events in [`backend/docs/WEBSOCKET_DOCUMENTATION.md`](../backend/docs/WEBSOCKET_DOCUMENTATION.md). They are for developers. Running an instance needs neither, and there is nothing to set up or host.
 
 They describe what the web client calls. That is **not a public API**: it is not versioned, carries no compatibility promise, and can change in any release. A program can still use it by signing in as a user, and it then acts with that user's permissions. The [Community Projects](../README.md#community-projects) section of the README says more.
 
@@ -1921,7 +1921,7 @@ They describe what the web client calls. That is **not a public API**: it is not
 The YAML file is plain text and reads fine in any editor. For a formatted view, either:
 
 - open [editor.swagger.io](https://editor.swagger.io) and paste the file in, or
-- with Node.js installed, build a single page from the CozyVTT folder and open it in your browser:
+- with Node.js installed, build a single page from the CrazyVTT folder and open it in your browser:
 
   ```bash
   npx @redocly/cli build-docs backend/docs/API_DOCUMENTATION.yaml --output api-docs.html

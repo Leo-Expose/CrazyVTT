@@ -1,6 +1,6 @@
-# CozyVTT — Architecture
+# CrazyVTT — Architecture
 
-This document describes the system architecture, data models, and key design decisions in CozyVTT.
+This document describes the system architecture, data models, and key design decisions in CrazyVTT.
 
 ---
 
@@ -20,7 +20,7 @@ This document describes the system architecture, data models, and key design dec
 
 ## High-Level Overview
 
-CozyVTT is a monorepo containing a Node.js/Express API backend and a React SPA frontend. The backend serves the REST API, the Socket.io live connection and the uploaded files; it does not serve the built frontend. In production the Docker stack (`docker-compose.yml`) runs four containers on one internal network: `nginx` is the only one with published ports, it sends `/api/`, `/socket.io/` and `/health` to `backend` and everything else to `frontend`, which serves the built SPA, and `database` is PostgreSQL, which publishes no port and which only the backend connects to. Without Docker, a host nginx does the public `nginx` container's job and serves `frontend/dist` itself (the deployment guide's manual install). In development, a Vite dev server runs separately and proxies API/WebSocket traffic to the backend.
+CrazyVTT is a monorepo containing a Node.js/Express API backend and a React SPA frontend. The backend serves the REST API, the Socket.io live connection and the uploaded files; it does not serve the built frontend. In production the Docker stack (`docker-compose.yml`) runs four containers on one internal network: `nginx` is the only one with published ports, it sends `/api/`, `/socket.io/` and `/health` to `backend` and everything else to `frontend`, which serves the built SPA, and `database` is PostgreSQL, which publishes no port and which only the backend connects to. Without Docker, a host nginx does the public `nginx` container's job and serves `frontend/dist` itself (the deployment guide's manual install). In development, a Vite dev server runs separately and proxies API/WebSocket traffic to the backend.
 
 ```mermaid
 graph TB
@@ -57,10 +57,10 @@ The Docker production stack (`docker-compose.yml`) puts two nginx servers in fro
 
 | File | What it does |
 |---|---|
-| `nginx.conf` | A template the image's entrypoint renders (only the variables in `NGINX_ENVSUBST_FILTER`): body size, compression, resolver, which addresses are believed about the visitor's address and protocol, the plain-HTTP server, and last `include /etc/nginx/cozyvtt.d/*.conf` |
+| `nginx.conf` | A template the image's entrypoint renders (only the variables in `NGINX_ENVSUBST_FILTER`): body size, compression, resolver, which addresses are believed about the visitor's address and protocol, the plain-HTTP server, and last `include /etc/nginx/crazyvtt.d/*.conf` |
 | `locations.conf` | The proxying rules, included by the plain-HTTP server and by the HTTPS server a self-hoster writes from the deployment guide's example |
 | `trusted-proxies.envsh` | Sourced by the entrypoint before it renders the template: turns `NGINX_TRUSTED_PROXIES` from `.env` into `set_real_ip_from` lines and the `geo` list that decides whether `X-Forwarded-Proto` is believed |
-| `conf.d/` | The self-hoster's own files, HTTPS among them, mounted at `/etc/nginx/cozyvtt.d`; git ignores all but its README |
+| `conf.d/` | The self-hoster's own files, HTTPS among them, mounted at `/etc/nginx/crazyvtt.d`; git ignores all but its README |
 | `certs/` | Their certificates; git ignores them |
 
 The first three are mounted one file each, and a single-file mount keeps the file it found when the container was made, so `NGINX_CONF_STAMP` on the service has to change with any of them; `backend/src/__tests__/keepInStep.test.ts` holds it to their hash.
@@ -304,7 +304,7 @@ The production build (`npm run build`, which is `vite build`) bundles with Rolld
 
 ### State Management
 
-CozyVTT uses three complementary state layers, each with a clear boundary. The rule of thumb: **React Query owns server resources, Zustand owns live socket-fed session state, and React Context owns app/session wiring — never two layers for the same datum.**
+CrazyVTT uses three complementary state layers, each with a clear boundary. The rule of thumb: **React Query owns server resources, Zustand owns live socket-fed session state, and React Context owns app/session wiring — never two layers for the same datum.**
 
 | Layer | Owns | Examples |
 |-------|------|----------|
@@ -665,7 +665,7 @@ erDiagram
 
 ### Session Authentication
 
-CozyVTT uses **express-session** with **connect-pg-simple** to store sessions in PostgreSQL, through a `pg` pool of its own (`sessionPool` in `config/session.ts`), apart from the Prisma client's. The pool is built from the same reading of `DATABASE_URL` (`databaseConnectionSettings` in `config/prismaClient.ts`), so its size follows `?connection_limit=`, and the store names the schema `?schema=` gives: the sign-ins sit beside the tables, where `services/sessionStore.ts` ends them. This means sessions survive server restarts and scale to multiple processes.
+CrazyVTT uses **express-session** with **connect-pg-simple** to store sessions in PostgreSQL, through a `pg` pool of its own (`sessionPool` in `config/session.ts`), apart from the Prisma client's. The pool is built from the same reading of `DATABASE_URL` (`databaseConnectionSettings` in `config/prismaClient.ts`), so its size follows `?connection_limit=`, and the store names the schema `?schema=` gives: the sign-ins sit beside the tables, where `services/sessionStore.ts` ends them. This means sessions survive server restarts and scale to multiple processes.
 
 Every password hash and check goes through `hashPassword` and `verifyPassword` (`services/auth.ts`), which run at most `HASH_SLOTS` (2) at once: Argon2id takes 64 MB a hash and a libuv thread, which file reads share. At most `HASH_QUEUE_MAX` (50) wait, each for at most `HASH_WAIT_MS` (10 seconds, inside the sign-in limiters' 15-second wait); past either the call throws `ServerBusyError`, which each route that hashes answers with 503 through `answeredBusy`, never counting it as a wrong password. The line is first come first served and a correct password is never counted, so one address could keep it full by itself: every route that hashes runs `hashingPerAddress` (`middleware/hashingPerAddress.ts`) first, which lets one address have `HASHING_PER_ADDRESS` (2) such requests running at once, keyed as the limiters key addresses, and answers a third 429 without counting it. Backup codes are hashed one after another, so a request takes one place in the line at a time, and a backup code is checked against all of an account's stored codes in one turn (`firstMatchingHash`), so a busy server refuses the check before it starts and never partway, with some codes compared and no wrong code counted. A sign-in for an email with no account is checked against a dummy hash, so it takes as long as a wrong password; `server.ts` has it made as the server starts (`makeDummyPasswordHash`, outside the line), so that sign-in takes one turn as a known email's does, and the first such sign-in makes it if that failed.
 
@@ -680,10 +680,10 @@ sequenceDiagram
     DB-->>S: User record
     S->>S: Verify the argon2id hash
     S->>DB: Create session record (session store)
-    S-->>C: Set-Cookie: cozyvtt.sid (httpOnly, sameSite=lax, Secure over HTTPS)
+    S-->>C: Set-Cookie: crazyvtt.sid (httpOnly, sameSite=lax, Secure over HTTPS)
 
     Note over C,S: Subsequent requests
-    C->>S: GET /api/campaigns (Cookie: cozyvtt.sid)
+    C->>S: GET /api/campaigns (Cookie: crazyvtt.sid)
     S->>DB: Look up session
     DB-->>S: Session + user id
     S->>S: req.session.userId names the user
@@ -882,9 +882,9 @@ Instance backups (`backup-{timestamp}.zip`) are kept outside this tree, in
 directory (`backend/src/utils/backupDir.ts`). A backup is written as
 `<name>.partial` and renamed once complete; the backup list removes a partial
 file that no backup is writing. Its database dump waits in a folder of its own
-in the system's temporary directory (`cozyvtt-db-…`, made by `mkdtemp`, so only
+in the system's temporary directory (`crazyvtt-db-…`, made by `mkdtemp`, so only
 the backend's user can open it), and a restore unpacks the archive into another
-(`cozyvtt-restore-…`). Each is removed when its work ends. Under Docker that
+(`crazyvtt-restore-…`). Each is removed when its work ends. Under Docker that
 directory is `/tmp`, the `backend_tmp` volume, which outlives the container, so
 `scripts/start.sh` also removes any that a stopped backend left.
 
@@ -953,7 +953,7 @@ has no variable font, so a browser fetches only
 what the page uses), and the build inlines the smallest as `data:` addresses.
 It is strict where it counts, `script-src 'self'` with no
 `unsafe-inline`, which the built page allows because Vite emits no inline
-script. It deliberately omits `upgrade-insecure-requests`, since CozyVTT is
+script. It deliberately omits `upgrade-insecure-requests`, since CrazyVTT is
 commonly served over plain HTTP on a home network and that directive would
 break such an instance.
 
@@ -1022,7 +1022,7 @@ did not import as MAP, and says so in the import's warnings.
 
 sharp, over libvips, is what the backend decodes pictures with: a thumbnail
 at upload and at Universal VTT import, and the picture's width for the
-Universal VTT export. libvips has readers for far more than a CozyVTT picture
+Universal VTT export. libvips has readers for far more than a CrazyVTT picture
 can be, SVG through librsvg, TIFF and HEIF among them, and picks one by the
 bytes it is handed. `backend/src/utils/sharpInput.ts`, the only module that
 imports sharp (a test holds it to that), keeps it to PNG, JPEG, WebP and GIF

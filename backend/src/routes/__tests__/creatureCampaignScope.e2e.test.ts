@@ -66,8 +66,8 @@ beforeAll(async () => {
   // Neither is a platform admin: an admin may read everything by design, which
   // would hide the bug under test.
   const [o, v] = await Promise.all([
-    createTestUser({ email: `creature-out-${stamp}@test.cozyvtt.local`, displayName: 'Outsider DM' }),
-    createTestUser({ email: `creature-vic-${stamp}@test.cozyvtt.local`, displayName: 'Victim DM' }),
+    createTestUser({ email: `creature-out-${stamp}@test.crazyvtt.local`, displayName: 'Outsider DM' }),
+    createTestUser({ email: `creature-vic-${stamp}@test.crazyvtt.local`, displayName: 'Victim DM' }),
   ]);
   outsiderId = o.id;
   victimId = v.id;

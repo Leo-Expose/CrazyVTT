@@ -44,7 +44,7 @@ const created: string[] = [];
 const NEW_PASSWORD = 'AnotherGoodPass42!';
 
 async function user(label: string) {
-  const u = await createTestUser({ email: `resetlink-${label}-${stamp}@test.cozyvtt.local` });
+  const u = await createTestUser({ email: `resetlink-${label}-${stamp}@test.crazyvtt.local` });
   created.push(u.id);
   return u;
 }
@@ -108,7 +108,7 @@ it('voids outstanding links when the owner changes their password', async () => 
 });
 
 it('voids outstanding links when an admin resets the password', async () => {
-  const admin = await createTestUser({ email: `resetlink-admin-${stamp}@test.cozyvtt.local`, role: 'ADMIN' });
+  const admin = await createTestUser({ email: `resetlink-admin-${stamp}@test.crazyvtt.local`, role: 'ADMIN' });
   created.push(admin.id);
   const u = await user('admin-reset');
   const outstanding = await link(u.id);

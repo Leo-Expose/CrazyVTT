@@ -37,6 +37,7 @@ import {
 } from '../initiativeState';
 import { bestEffort, campaignSockets, getSocketInstance, stillInCampaign } from '../utils';
 import { stateRequestAllowed, withinCeiling } from '../shared';
+import { resetTokenMovement } from '../../services/movement';
 
 /** What a send needs of a socket; a connected one and a fetched one both have it. */
 type Recipient = Pick<AuthenticatedFields, 'userId' | 'role'> & {
@@ -640,6 +641,11 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       state.round = 1;
       state.currentTokenId = state.combatants[0].tokenId;
       setCombatState(socket.campaignId, state);
+      
+      // Reset movement for the first combatant
+      const firstCombatant = state.combatants[0];
+      await resetTokenMovement(socket.campaignId, firstCombatant.tokenId, firstCombatant.mapId, true);
+      
       await broadcastInitiativeState(socket.campaignId);
       logger.info('initiative.start', { campaignId: socket.campaignId, first: state.combatants[0].name });
     } catch (error) {
@@ -663,17 +669,31 @@ export function registerInitiativeHandlers(io: Server, socket: AuthenticatedSock
       const currentIndex = state.combatants.findIndex((c) => c.tokenId === state.currentTokenId);
       const nextIndex = currentIndex + 1;
 
+      // Reset movement for the combatant whose turn is ending
+      const endingCombatant = state.combatants[currentIndex];
+      if (endingCombatant) {
+        await resetTokenMovement(socket.campaignId, endingCombatant.tokenId, endingCombatant.mapId);
+      }
+
+      let newRound = false;
       if (nextIndex >= state.combatants.length) {
         // Wrap around — new round
         state.round += 1;
         state.currentTokenId = state.combatants[0].tokenId;
+        newRound = true;
       } else {
         state.currentTokenId = state.combatants[nextIndex].tokenId;
       }
 
+      // Reset movement for the new combatant whose turn is starting
+      const startingCombatant = state.combatants.find(c => c.tokenId === state.currentTokenId);
+      if (startingCombatant) {
+        await resetTokenMovement(socket.campaignId, startingCombatant.tokenId, startingCombatant.mapId, true);
+      }
+
       setCombatState(socket.campaignId, state);
       await broadcastInitiativeState(socket.campaignId);
-      logger.debug('initiative.next', { round: state.round, current: state.currentTokenId, campaignId: socket.campaignId });
+      logger.debug('initiative.next', { round: state.round, current: state.currentTokenId, campaignId: socket.campaignId, newRound });
     } catch (error) {
       logger.error('initiative.next failed', { err: error });
       socket.emit('error', { message: 'Failed to advance initiative' });

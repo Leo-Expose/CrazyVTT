@@ -41,7 +41,7 @@ async function login(email: string): Promise<ReturnType<typeof request.agent>> {
 
 /** A fresh user with one live socket. */
 async function userWithSocket(label: string) {
-  const user = await createTestUser({ email: `livesess-${label}-${randomUUID().slice(0, 8)}@test.cozyvtt.local`, displayName: label });
+  const user = await createTestUser({ email: `livesess-${label}-${randomUUID().slice(0, 8)}@test.crazyvtt.local`, displayName: label });
   created.push(user.id);
   const cookie = await server.loginAs(user.id);
   const client = await server.connectClient(cookie);
@@ -66,7 +66,7 @@ function expectEnding(client: ClientSocket) {
 }
 
 beforeAll(async () => {
-  const a = await createTestUser({ email: `livesess-admin-${randomUUID().slice(0, 8)}@test.cozyvtt.local`, role: PlatformRole.ADMIN });
+  const a = await createTestUser({ email: `livesess-admin-${randomUUID().slice(0, 8)}@test.crazyvtt.local`, role: PlatformRole.ADMIN });
   adminId = a.id;
   admin = await login(a.email);
   server = await createWsTestServer();
@@ -164,7 +164,7 @@ describe('which sign-in a live connection belongs to', () => {
   };
 
   it('ends only the connections of the named sign-in, or every one but it', async () => {
-    const user = await createTestUser({ email: `livesess-two-${randomUUID().slice(0, 8)}@test.cozyvtt.local`, displayName: 'two' });
+    const user = await createTestUser({ email: `livesess-two-${randomUUID().slice(0, 8)}@test.crazyvtt.local`, displayName: 'two' });
     created.push(user.id);
     const [first, second] = await Promise.all([server.loginAs(user.id), server.loginAs(user.id)]);
     const onFirst = await server.connectClient(first);
@@ -190,7 +190,7 @@ describe('which sign-in a live connection belongs to', () => {
   });
 
   it('signing out hands the helper the sign-in it ends', async () => {
-    const user = await createTestUser({ email: `livesess-out-${randomUUID().slice(0, 8)}@test.cozyvtt.local`, displayName: 'out' });
+    const user = await createTestUser({ email: `livesess-out-${randomUUID().slice(0, 8)}@test.crazyvtt.local`, displayName: 'out' });
     created.push(user.id);
     const agent = request.agent(app);
     const signedIn = await agent.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD });

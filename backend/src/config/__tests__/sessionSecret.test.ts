@@ -3,7 +3,7 @@
  * refuse in production.
  *
  * The Docker stacks pass SESSION_SECRET from the .env file at the top of the
- * CozyVTT folder (docker-compose.yml, docker-compose.dev.yml), as an empty
+ * CrazyVTT folder (docker-compose.yml, docker-compose.dev.yml), as an empty
  * value when it is unset, and a variable already set is never replaced from
  * backend/.env. The warning named backend/.env alone, so a developer on the
  * Docker dev stack who followed it changed nothing.
@@ -18,8 +18,8 @@ describe('sessionSecretWarning', () => {
     expect(warning).toMatch(/^\[WARN\] SESSION_SECRET is not set\. /);
   });
 
-  it('names the .env file at the top of the CozyVTT folder for the Docker stacks', () => {
-    expect(warning).toMatch(/\.env file at the top of the CozyVTT folder when you run CozyVTT with Docker/);
+  it('names the .env file at the top of the CrazyVTT folder for the Docker stacks', () => {
+    expect(warning).toMatch(/\.env file at the top of the CrazyVTT folder when you run CrazyVTT with Docker/);
   });
 
   it('names backend/.env for a backend run without Docker', () => {

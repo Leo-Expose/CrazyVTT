@@ -18,7 +18,7 @@ export default [
   reactHooks.configs.flat.recommended,
 
   {
-    name: 'cozyvtt/frontend',
+    name: 'crazyvtt/frontend',
     plugins: { 'react-refresh': reactRefresh.plugin },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
     rules: {
@@ -66,7 +66,7 @@ export default [
   },
 
   {
-    name: 'cozyvtt/frontend-tests',
+    name: 'crazyvtt/frontend-tests',
     files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
     rules: {
       // A test's probe component hands what a hook returned to the test by

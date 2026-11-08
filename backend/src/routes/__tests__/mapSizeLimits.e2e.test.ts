@@ -71,7 +71,7 @@ const importUvtt = (file: Buffer, gridSize?: string) => {
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `maplimits-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `maplimits-${stamp}@test.crazyvtt.local` });
   dmId = user.id;
   campaignId = (await createTestCampaign(dmId, { name: `Map limits ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

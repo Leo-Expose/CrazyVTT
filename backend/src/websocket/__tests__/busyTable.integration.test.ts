@@ -23,7 +23,7 @@
  *   and reconnects, joins eight times and holds eight sockets until the
  *   dropped ones time out.
  *
- * The MCP bridge (github.com/yanjingzhaisun/cozyvtt-mcp) opens one socket per
+ * The MCP bridge (github.com/yanjingzhaisun/crazyvtt-mcp) opens one socket per
  * campaign, joins once per connection with a backoff of at least a second
  * between attempts, sends one event per tool call with no pacing of its own,
  * and paces dice at one roll per 2.1 seconds. Its busiest moment is a model
@@ -146,7 +146,7 @@ beforeAll(async () => {
   const names = ['dm', 'p1', 'p2', 'p3', 'p4'];
   const created = await Promise.all(
     names.map((name) =>
-      prisma.user.create({ data: { email: `busy-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Busy ${name}` } })
+      prisma.user.create({ data: { email: `busy-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Busy ${name}` } })
     )
   );
   userIds.push(...created.map((u) => u.id));

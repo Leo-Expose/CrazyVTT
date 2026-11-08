@@ -1,7 +1,7 @@
 /**
  * What the import dialog says when an archive is refused.
  *
- * A web proxy in front of CozyVTT refuses a body over its size limit with 413
+ * A web proxy in front of CrazyVTT refuses a body over its size limit with 413
  * and a page of HTML, before the server sees it. The dialog found no message
  * in that and showed "Request failed with status code 413", which tells
  * nobody what to do.
@@ -26,7 +26,7 @@ function httpError(status: number, data: unknown) {
 
 function chooseArchive() {
   const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-  const file = new File(['PK'], 'campaign.cozyvtt', { type: 'application/zip' });
+  const file = new File(['PK'], 'campaign.crazyvtt', { type: 'application/zip' });
   fireEvent.change(input, { target: { files: [file] } });
 }
 
@@ -46,7 +46,7 @@ describe('CampaignImportDialog', () => {
     expect(await screen.findByText('Import Failed')).toBeTruthy();
     expect(
       screen.getByText(
-        'This archive is larger than the server accepts. Whoever runs the server can raise the size limit for campaign imports on the web proxy in front of CozyVTT; the deployment guide explains how.'
+        'This archive is larger than the server accepts. Whoever runs the server can raise the size limit for campaign imports on the web proxy in front of CrazyVTT; the deployment guide explains how.'
       )
     ).toBeTruthy();
     expect(screen.queryByText(/status code 413/)).toBeNull();
@@ -65,7 +65,7 @@ describe('CampaignImportDialog', () => {
 
   it('says the same when the import itself is refused with 413', async () => {
     previewCampaignImport.mockResolvedValue({
-      formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT v1.5.0', campaignName: 'Keep',
+      formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT v1.5.0', campaignName: 'Keep',
       gameSystem: 'DND_5E', mapCount: 1, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0, assetCount: 1,
       includesAudio: false, totalSizeBytes: 100,
     });
@@ -81,7 +81,7 @@ describe('CampaignImportDialog', () => {
 
 describe('CampaignImportDialog done screen', () => {
   const preview = {
-    formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT v1.4.0', campaignName: 'Keep',
+    formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT v1.4.0', campaignName: 'Keep',
     gameSystem: 'DND_5E', mapCount: 3, tokenCount: 12, creatureCount: 0, tokenTemplateCount: 0, assetCount: 1,
     includesAudio: false, totalSizeBytes: 100,
   };
@@ -187,7 +187,7 @@ describe('CampaignImportDialog as a dialog', () => {
  */
 describe('CampaignImportDialog while an import is running', () => {
   const preview = {
-    formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT v1.5.1', campaignName: 'Keep',
+    formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT v1.5.1', campaignName: 'Keep',
     gameSystem: 'DND_5E', mapCount: 3, tokenCount: 12, creatureCount: 0, tokenTemplateCount: 0, assetCount: 1,
     includesAudio: false, totalSizeBytes: 100,
   };
@@ -233,7 +233,7 @@ describe('CampaignImportDialog while an import is running', () => {
 // sent it again to import it.
 describe('CampaignImportDialog sends the archive once', () => {
   const manifest = {
-    formatVersion: 1, exportedAt: '2026-10-18T00:00:00.000Z', exportedFrom: 'CozyVTT v1.5.3', campaignName: 'The Sunken Keep',
+    formatVersion: 1, exportedAt: '2026-10-18T00:00:00.000Z', exportedFrom: 'CrazyVTT v1.5.3', campaignName: 'The Sunken Keep',
     gameSystem: 'DND_5E', mapCount: 3, tokenCount: 14, creatureCount: 2, tokenTemplateCount: 1, assetCount: 4,
     includesAudio: false, totalSizeBytes: 2048,
   };
@@ -243,7 +243,7 @@ describe('CampaignImportDialog sends the archive once', () => {
     render(<CampaignImportDialog isOpen onClose={() => undefined} />);
     const bytes = await zipFixture([{ name: 'manifest.json', data: JSON.stringify(manifest) }]);
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [new File([bytes as BlobPart], 'keep.cozyvtt', { type: 'application/zip' })] } });
+    fireEvent.change(input, { target: { files: [new File([bytes as BlobPart], 'keep.crazyvtt', { type: 'application/zip' })] } });
 
     expect(await screen.findByDisplayValue('The Sunken Keep')).toBeTruthy();
     expect(screen.getByText('Total tokens: 14 | Assets: 4')).toBeTruthy();

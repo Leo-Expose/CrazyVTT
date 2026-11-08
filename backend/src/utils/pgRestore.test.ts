@@ -75,13 +75,13 @@ describe('buildRestoreArgs', () => {
  */
 describe('pgConnection', () => {
   it('takes the password out of the address and passes it through the environment', () => {
-    const { dbname, env } = pgConnection('postgresql://cozyvtt:s3cret@database:5432/cozyvtt');
-    expect(dbname).toBe('postgresql://cozyvtt@database:5432/cozyvtt');
+    const { dbname, env } = pgConnection('postgresql://crazyvtt:s3cret@database:5432/crazyvtt');
+    expect(dbname).toBe('postgresql://crazyvtt@database:5432/crazyvtt');
     expect(env.PGPASSWORD).toBe('s3cret');
   });
 
   it('gives libpq the password as typed, not as the address encodes it', () => {
-    const { dbname, env } = pgConnection('postgresql://cozyvtt:p%40ss%2Fw%3Frd@database:5432/cozyvtt');
+    const { dbname, env } = pgConnection('postgresql://crazyvtt:p%40ss%2Fw%3Frd@database:5432/crazyvtt');
     expect(env.PGPASSWORD).toBe('p@ss/w?rd');
     expect(dbname).not.toContain('p%40ss');
   });
@@ -156,9 +156,9 @@ describe('buildDumpArgs and buildRestoreArgs', () => {
     ['buildDumpArgs', buildDumpArgs],
     ['buildRestoreArgs', buildRestoreArgs],
   ])('%s puts no password on the command line', (_name, build) => {
-    const args = build('postgresql://cozyvtt:s3cret@database:5432/cozyvtt', '/tmp/db.sql');
+    const args = build('postgresql://crazyvtt:s3cret@database:5432/crazyvtt', '/tmp/db.sql');
     expect(args.join(' ')).not.toContain('s3cret');
-    expect(args).toContain('postgresql://cozyvtt@database:5432/cozyvtt');
+    expect(args).toContain('postgresql://crazyvtt@database:5432/crazyvtt');
   });
 });
 
@@ -229,15 +229,15 @@ describe('restorePreamble and restoreTrailer', () => {
 describe('isOwnershipStatement', () => {
   it('names the OWNER TO lines pg_dump writes for every kind of object', () => {
     for (const line of [
-      'ALTER TYPE public."AssetScope" OWNER TO "cozyvttAdmin";',
-      'ALTER TABLE public."User" OWNER TO cozyvtt;',
-      'ALTER SEQUENCE public."Note_id_seq" OWNER TO cozyvtt;',
-      'ALTER SCHEMA public OWNER TO cozyvtt;',
-      'ALTER FUNCTION public.f() OWNER TO cozyvtt;',
+      'ALTER TYPE public."AssetScope" OWNER TO "crazyvttAdmin";',
+      'ALTER TABLE public."User" OWNER TO crazyvtt;',
+      'ALTER SEQUENCE public."Note_id_seq" OWNER TO crazyvtt;',
+      'ALTER SCHEMA public OWNER TO crazyvtt;',
+      'ALTER FUNCTION public.f() OWNER TO crazyvtt;',
       'ALTER FUNCTION public.f(a integer, b text) OWNER TO "old user";',
-      'ALTER MATERIALIZED VIEW public.v OWNER TO cozyvtt;',
-      'ALTER TEXT SEARCH CONFIGURATION public.c OWNER TO cozyvtt;',
-      'ALTER LARGE OBJECT 16401 OWNER TO cozyvtt;',
+      'ALTER MATERIALIZED VIEW public.v OWNER TO crazyvtt;',
+      'ALTER TEXT SEARCH CONFIGURATION public.c OWNER TO crazyvtt;',
+      'ALTER LARGE OBJECT 16401 OWNER TO crazyvtt;',
     ]) {
       expect(isOwnershipStatement(line)).toBe(true);
     }
@@ -262,7 +262,7 @@ describe('isOwnershipStatement', () => {
       'ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_pkey" PRIMARY KEY (id);',
       'ALTER TABLE ONLY public."Note" ALTER COLUMN id SET DEFAULT nextval(\'public."Note_id_seq"\'::regclass);',
       'ALTER TABLE ONLY public."Map" ADD CONSTRAINT "Map_campaignId_fkey" FOREIGN KEY ("campaignId") REFERENCES public."Campaign"(id);',
-      '-- ALTER TABLE public."User" OWNER TO cozyvtt;',
+      '-- ALTER TABLE public."User" OWNER TO crazyvtt;',
     ]) {
       expect(isOwnershipStatement(line)).toBe(false);
     }
@@ -339,16 +339,16 @@ describe('prepareDumpForRestore', () => {
     '',
     'DROP TABLE IF EXISTS public."Note";',
     "CREATE TYPE public.\"Mood\" AS ENUM ('calm', 'tense');",
-    'ALTER TYPE public."Mood" OWNER TO "cozyvttAdmin";',
+    'ALTER TYPE public."Mood" OWNER TO "crazyvttAdmin";',
     'CREATE TABLE public."Note" (id text NOT NULL, body text);',
-    'ALTER TABLE public."Note" OWNER TO "cozyvttAdmin";',
-    'ALTER SEQUENCE public."Note_id_seq" OWNER TO "cozyvttAdmin";',
+    'ALTER TABLE public."Note" OWNER TO "crazyvttAdmin";',
+    'ALTER SEQUENCE public."Note_id_seq" OWNER TO "crazyvttAdmin";',
     'GRANT ALL ON SCHEMA public TO PUBLIC;',
     'SET default_table_access_method = heap;',
     'COPY public."Note" (id, body) FROM stdin;',
     'a1\tSET transaction_timeout = 0;',
     'SET transaction_timeout = 0;\tbody that starts like the setting',
-    'ALTER TABLE public."Note" OWNER TO "cozyvttAdmin";\tbody that starts like an ownership statement',
+    'ALTER TABLE public."Note" OWNER TO "crazyvttAdmin";\tbody that starts like an ownership statement',
     'GRANT ALL ON SCHEMA public TO PUBLIC;\tbody that starts like a grant',
     '\\.',
     '',
@@ -497,7 +497,7 @@ describe('prepareDumpForRestore', () => {
     const out = await fs.readFile(dest, 'utf8');
     expect(out).toContain('a1\tSET transaction_timeout = 0;\n');
     expect(out).toContain('SET transaction_timeout = 0;\tbody that starts like the setting\n');
-    expect(out).toContain('ALTER TABLE public."Note" OWNER TO "cozyvttAdmin";\tbody that starts like an ownership statement\n');
+    expect(out).toContain('ALTER TABLE public."Note" OWNER TO "crazyvttAdmin";\tbody that starts like an ownership statement\n');
     expect(out).toContain('GRANT ALL ON SCHEMA public TO PUBLIC;\tbody that starts like a grant\n');
   });
 
@@ -648,7 +648,7 @@ describe('prepareDumpForRestore', () => {
 
       const { refused } = await prepareDumpForRestore(src, path.join(dir, 'restore.sql'), PUBLIC_DB);
 
-      expect(refused).toMatch(/not a CozyVTT backup/);
+      expect(refused).toMatch(/not a CrazyVTT backup/);
       expect(refused).toContain('User');
     });
 

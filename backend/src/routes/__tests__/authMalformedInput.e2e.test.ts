@@ -26,7 +26,7 @@ jest.mock('../../services/systemSettings', () => ({
   getSystemSettings: jest.fn().mockResolvedValue({
     id: 'test-settings',
     setupCompleted: true,
-    instanceName: 'CozyVTT Test',
+    instanceName: 'CrazyVTT Test',
     timezone: 'UTC',
     allowRegistration: true,
     requireAdminApproval: false,
@@ -47,8 +47,8 @@ afterAll(async () => {
 
 describe('login', () => {
   it.each([
-    ['an object', { equals: 'someone@test.cozyvtt.local' }],
-    ['a list', ['someone@test.cozyvtt.local']],
+    ['an object', { equals: 'someone@test.crazyvtt.local' }],
+    ['a list', ['someone@test.crazyvtt.local']],
     ['a number', 42],
   ])('refuses an email sent as %s with 400 and no internal text', async (_label, value) => {
     const res = await request(app).post('/api/auth/login').send({ email: value, password: 'whatever' });
@@ -86,7 +86,7 @@ describe('register', () => {
     try {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ email: 'brand-new@test.cozyvtt.local', password: 'AnotherGoodPass42!', displayName: 'New' });
+        .send({ email: 'brand-new@test.crazyvtt.local', password: 'AnotherGoodPass42!', displayName: 'New' });
       expect(res.status).toBe(500);
       expect(res.body).toEqual({ error: 'Internal Server Error', message: 'An unexpected error occurred' });
     } finally {
@@ -122,8 +122,8 @@ describe('register', () => {
 describe.each([
   ['a number', 42],
   ['true', true],
-  ['a list', ['someone@test.cozyvtt.local']],
-  ['an object', { equals: 'someone@test.cozyvtt.local' }],
+  ['a list', ['someone@test.crazyvtt.local']],
+  ['an object', { equals: 'someone@test.crazyvtt.local' }],
 ])('a field sent as %s', (_label, value) => {
   it('is refused by forgot-password with 400', async () => {
     const res = await request(app).post('/api/auth/forgot-password').send({ email: value });

@@ -45,7 +45,7 @@ const add = (mapId: string, body: Record<string, unknown> = {}) =>
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `tokenlimits-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `tokenlimits-${stamp}@test.crazyvtt.local` });
   dmId = user.id;
   campaignId = (await createTestCampaign(dmId, { name: `Token limits ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

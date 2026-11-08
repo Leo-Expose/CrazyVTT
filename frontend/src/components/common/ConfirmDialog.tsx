@@ -12,7 +12,8 @@ import { Button, Modal } from '@/components/ui';
 export type ConfirmVariant = 'danger' | 'warning' | 'info';
 
 interface ConfirmDialogProps {
-  isOpen: boolean;
+  isOpen?: boolean;
+  open?: boolean;
   title: string;
   message: string;
   /** Label for the confirm action button (default: "Confirm") */
@@ -21,6 +22,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   /** Visual style of the confirm button (default: "danger") */
   variant?: ConfirmVariant;
+  danger?: boolean;
   /** Show spinner and disable buttons while action is in progress */
   isLoading?: boolean;
   /**
@@ -65,16 +67,18 @@ export default function ConfirmDialog({
   children,
   onConfirm,
   onCancel,
+  open,
+  danger,
 }: ConfirmDialogProps) {
   const handleCancel = useCallback(() => {
     if (!isLoading) onCancel();
   }, [isLoading, onCancel]);
 
-  const { icon, iconBg, confirmClass } = VARIANT_CONFIG[variant];
+  const { icon, iconBg, confirmClass } = VARIANT_CONFIG[danger ? 'danger' : variant];
 
   return (
     <Modal
-      open={isOpen}
+      open={isOpen ?? open ?? false}
       onClose={handleCancel}
       title={title}
       size="sm"

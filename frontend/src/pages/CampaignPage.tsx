@@ -56,9 +56,19 @@ import CampaignSettingsModal from '@/components/campaign/CampaignSettingsModal';
 import CampaignDocumentsModal from '@/components/documents/CampaignDocumentsModal';
 import SessionSidebar from '@/components/campaign/SessionSidebar';
 import SessionToolbar, { type SessionToolKey } from '@/components/campaign/SessionToolbar';
+import ShopBuilder from '@/components/campaign/ShopBuilder';
+import ShopInterface from '@/components/campaign/ShopInterface';
+import ActionPanel from '@/components/campaign/ActionPanel';
+import { SpellTemplatePlacer } from '@/components/campaign/SpellTemplatePlacer';
+import { DMOverrideMenu } from '@/components/campaign/DMOverrideMenu';
+import { MovementModeSelector } from '@/components/campaign/map/MovementModeSelector';
+import { DMOverrideHistory } from '@/components/campaign/DMOverrideHistory';
+import { useDMOverride } from '@/hooks/useDMOverride';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ConnectionStatus from '@/components/ConnectionStatus';
-import { CampaignStatus } from '@/types';
+import { CampaignStatus, OverrideTargetType, MovementMode } from '@/types';
 import type { Token } from '@/types';
+import { DEFAULT_SPELL_TEMPLATES, type AoETemplateDefinition } from '@/utils/rules/spellAoE';
 import Button from '@/components/ui/Button';
 import Tooltip from '@/components/ui/Tooltip';
 import { useOnRejoin } from '@/hooks/useOnRejoin';
@@ -88,6 +98,7 @@ function CampaignPageContent() {
   const isOwner = isCampaignOwner(campaign, user?.id);
   const canOpenSettings = userRole === 'DM' || isOwner;
   const { socket, joinedEpoch, status } = useWebSocket();
+  const movementToken = useGameStore((state) => state.tokenOrder[0] ? state.tokens[state.tokenOrder[0]] : undefined);
 
   // Mirror combat/initiative state into the game store. Owned here rather than
   // by the initiative panel so both the tracker and the map's active-token
@@ -136,7 +147,17 @@ function CampaignPageContent() {
   const [isDocumentsOpen, setIsDocumentsOpen] = useState(false);
   const [isCreatureLibraryOpen, setIsCreatureLibraryOpen] = useState(false);
   const [isTokenTemplateLibraryOpen, setIsTokenTemplateLibraryOpen] = useState(false);
+  const [isShopsOpen, setIsShopsOpen] = useState(false);
+  const [isOverridesOpen, setIsOverridesOpen] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [shopForInterface, setShopForInterface] = useState<{ shopId: string; characterId: string } | null>(null);
+  const [isSpellPlacerOpen, setIsSpellPlacerOpen] = useState(false);
+  const [selectedSpellTemplate, setSelectedSpellTemplate] = useState<AoETemplateDefinition>(DEFAULT_SPELL_TEMPLATES.DND_5E[0]);
+  const [isOverrideMenuOpen, setIsOverrideMenuOpen] = useState(false);
+  const [isMovementModeOpen, setIsMovementModeOpen] = useState(false);
   const [quickEditToken, setQuickEditToken] = useState<Token | null>(null);
+
+  const { overrides, revertOverride, issueOverride } = useDMOverride(campaign?.id);
 
   // Resizable panel layout — persisted to localStorage so each user's
   // column sizes survive reloads.
@@ -188,6 +209,10 @@ function CampaignPageContent() {
     tokens: () => setIsTokenManagerOpen(true),
     creatures: () => setIsCreatureLibraryOpen(true),
     templates: () => setIsTokenTemplateLibraryOpen(true),
+    shops: () => setIsShopsOpen(true),
+    rulebooks: () => setIsDocumentsOpen(true),
+    spells: () => setIsSpellPlacerOpen((open) => !open),
+    overrides: () => setIsOverridesOpen(true),
     spirit: () => setIsSpiritLayerOpen(true),
     atmosphere: () => setIsAtmospherePanelOpen(true),
     settings: () => setIsSettingsOpen(true),
@@ -346,6 +371,9 @@ function CampaignPageContent() {
                   tokens: isTokenManagerOpen,
                   creatures: isCreatureLibraryOpen,
                   templates: isTokenTemplateLibraryOpen,
+                  shops: isShopsOpen,
+                  rulebooks: isDocumentsOpen,
+                  overrides: isOverridesOpen,
                   spirit: isSpiritLayerOpen,
                   atmosphere: isAtmospherePanelOpen,
                   settings: isSettingsOpen,
@@ -353,6 +381,36 @@ function CampaignPageContent() {
                 onOpen={(key) => sessionPanelOpeners[key]()}
                 spiritLayerEnabled={campaign?.spiritLayerEnabled}
               />
+              {campaign?.characters?.[0] && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Open character actions"
+                  onClick={() => setIsActionsOpen(true)}
+                >
+                  Actions
+                </Button>
+              )}
+              {movementToken && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Choose movement mode"
+                  onClick={() => setIsMovementModeOpen(true)}
+                >
+                  Movement
+                </Button>
+              )}
+              {movementToken && userRole === 'DM' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Open DM override menu"
+                  onClick={() => setIsOverrideMenuOpen(true)}
+                >
+                  Override
+                </Button>
+              )}
             </>
           )}
 
@@ -569,6 +627,105 @@ function CampaignPageContent() {
           onClose={() => setIsDocumentsOpen(false)}
           campaignId={campaign.id}
           isDM={userRole === 'DM'}
+        />
+      )}
+
+      {/* Shop Builder / Manager Modal */}
+      {isShopsOpen && campaign?.id && (
+        <ShopBuilder
+          campaignId={campaign.id}
+          onClose={() => setIsShopsOpen(false)}
+          onSave={(shop) => {
+            setIsShopsOpen(false);
+            const characterId = campaign.characters?.[0]?.id;
+            if (characterId) setShopForInterface({ shopId: shop.id, characterId });
+          }}
+        />
+      )}
+
+      {isActionsOpen && campaign?.characters?.[0] && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Character actions">
+          <div className="w-full max-w-lg h-[min(720px,90vh)] bg-surface rounded-xl border border-edge shadow-2xl overflow-hidden">
+            <ErrorBoundary>
+              <ActionPanel
+                characterId={campaign.characters[0].id}
+                onActionSelect={() => undefined}
+                onClose={() => setIsActionsOpen(false)}
+              />
+            </ErrorBoundary>
+          </div>
+        </div>
+      )}
+
+      {shopForInterface && campaign?.id && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Shop">
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-auto bg-surface rounded-xl border border-edge shadow-2xl">
+            <ErrorBoundary>
+              <ShopInterface
+                campaignId={campaign.id}
+                shopId={shopForInterface.shopId}
+                characterId={shopForInterface.characterId}
+                onClose={() => setShopForInterface(null)}
+              />
+            </ErrorBoundary>
+          </div>
+        </div>
+      )}
+
+      {isSpellPlacerOpen && (
+        <ErrorBoundary>
+          <SpellTemplatePlacer
+            gameSystem={campaign?.gameSystem ?? 'DND_5E'}
+            active={isSpellPlacerOpen}
+            selectedTemplate={selectedSpellTemplate}
+            onSelectTemplate={setSelectedSpellTemplate}
+            affectedTokens={[]}
+            onConfirmCast={() => setIsSpellPlacerOpen(false)}
+            onCancel={() => setIsSpellPlacerOpen(false)}
+          />
+        </ErrorBoundary>
+      )}
+
+      {isOverrideMenuOpen && movementToken && userRole === 'DM' && (
+        <ErrorBoundary>
+          <DMOverrideMenu
+            isOpen={isOverrideMenuOpen}
+            targetType={OverrideTargetType.MOVEMENT}
+            targetId={movementToken.id}
+            targetName={movementToken.name}
+            fieldPath="movement.remainingThisTurn"
+            currentValue={movementToken.movement?.remainingThisTurn ?? 0}
+            onApplyOverride={(data) => issueOverride(data.targetType, data.targetId, data.fieldPath, data.previousValue, data.newValue, data.reason, data.visibility)}
+            onClose={() => setIsOverrideMenuOpen(false)}
+          />
+        </ErrorBoundary>
+      )}
+
+      {isMovementModeOpen && movementToken && (
+        <ErrorBoundary>
+          <MovementModeSelector
+            token={movementToken}
+            currentMode={movementToken.movement?.movementMode ?? MovementMode.WALK}
+            isDM={userRole === 'DM'}
+            position={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
+            onModeChange={(mode) => {
+              if (movementToken.movement) {
+                useGameStore.getState().patchToken(movementToken.id, { movement: { ...movementToken.movement, movementMode: mode } });
+              }
+              socket?.emit('movement:mode_change', { campaignId: campaign?.id, tokenId: movementToken.id, movementMode: mode });
+            }}
+            onClose={() => setIsMovementModeOpen(false)}
+          />
+        </ErrorBoundary>
+      )}
+
+      {/* DM Override Audit Trail Modal */}
+      {isOverridesOpen && (
+        <DMOverrideHistory
+          isOpen={isOverridesOpen}
+          overrides={overrides}
+          onRevert={revertOverride}
+          onClose={() => setIsOverridesOpen(false)}
         />
       )}
 

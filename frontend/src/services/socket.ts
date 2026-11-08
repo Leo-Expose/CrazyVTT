@@ -749,6 +749,27 @@ class SocketClient {
   // Event Cleanup
   // ============================================
 
+  /** Send a feature event that does not have a dedicated typed helper yet. */
+  emit(event: string, data?: unknown, ack?: (...args: never[]) => void): void {
+    if (data === undefined && !ack) this.socket?.emit(event);
+    else if (ack) this.socket?.emit(event, data, ack);
+    else this.socket?.emit(event, data);
+  }
+
+  /** Emit a feature event and await its Socket.IO acknowledgement. */
+  emitWithAck<T = unknown>(event: string, data?: unknown, timeoutMs = 10_000): Promise<T> {
+    const activeSocket = this.socket;
+    if (!activeSocket?.connected) return Promise.reject(new Error('Not connected to server'));
+    return new Promise<T>((resolve, reject) => {
+      const done = (error: Error | null, answer?: T) => {
+        if (error) reject(error);
+        else resolve(answer as T);
+      };
+      if (data === undefined) activeSocket.timeout(timeoutMs).emit(event, done);
+      else activeSocket.timeout(timeoutMs).emit(event, data, done);
+    });
+  }
+
   on(event: string, callback: StoredCallback) {
     this.addListener(event, callback);
   }
@@ -779,4 +800,6 @@ class SocketClient {
 
 // Export singleton instance
 export const socketClient = new SocketClient();
+/** Compatibility alias used by feature modules. */
+export const socket = socketClient;
 export default socketClient;

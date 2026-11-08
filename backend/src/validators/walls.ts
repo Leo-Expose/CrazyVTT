@@ -112,3 +112,68 @@ export const ExplorationRevealSchema = z.object({
   /** Whose memory to write. Only a DM may name someone else (Player Preview). */
   userId: z.string().uuid().optional(),
 });
+
+// ── Fog Shape Operations ──────────────────────────────────────────────────────
+
+/** A point in fog grid coordinates (col, row) */
+const FogPointSchema = z.object({
+  col: z.number().int(),
+  row: z.number().int(),
+});
+
+/** Cone shape parameters */
+const ConeShapeParamsSchema = z.object({
+  origin: FogPointSchema,
+  direction: FogPointSchema,
+  angleDegrees: z.number().positive().max(360),
+  length: z.number().positive(),
+});
+
+/** Radius/Circle shape parameters */
+const RadiusShapeParamsSchema = z.object({
+  center: FogPointSchema,
+  radius: z.number().positive(),
+});
+
+/** Line shape parameters */
+const LineShapeParamsSchema = z.object({
+  start: FogPointSchema,
+  end: FogPointSchema,
+  width: z.number().positive(),
+});
+
+/** Cube/Square shape parameters */
+const CubeShapeParamsSchema = z.object({
+  origin: FogPointSchema,
+  size: z.number().positive(),
+  rotationDegrees: z.number().min(0).max(360).optional(),
+});
+
+/** Sphere shape parameters (projected as circle) */
+const SphereShapeParamsSchema = z.object({
+  center: FogPointSchema,
+  radius: z.number().positive(),
+});
+
+/** Custom polygon shape parameters */
+const CustomShapeParamsSchema = z.object({
+  points: z.array(FogPointSchema).min(3),
+});
+
+/** Fog shape operation schema */
+export const FogShapeSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('cone'), params: ConeShapeParamsSchema }),
+  z.object({ type: z.literal('radius'), params: RadiusShapeParamsSchema }),
+  z.object({ type: z.literal('line'), params: LineShapeParamsSchema }),
+  z.object({ type: z.literal('cube'), params: CubeShapeParamsSchema }),
+  z.object({ type: z.literal('sphere'), params: SphereShapeParamsSchema }),
+  z.object({ type: z.literal('custom'), params: CustomShapeParamsSchema }),
+]);
+
+/** Fog shape reveal request */
+export const FogShapeRevealSchema = z.object({
+  mapId: z.string().uuid(),
+  shape: FogShapeSchema,
+  /** Operation to perform: reveal or hide */
+  operation: z.enum(['reveal', 'hide']).default('reveal'),
+});

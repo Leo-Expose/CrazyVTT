@@ -29,7 +29,7 @@ let campaignId: string;
 let agent: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
-  const u = await createTestUser({ email: `filters-${Date.now()}@test.cozyvtt.local` });
+  const u = await createTestUser({ email: `filters-${Date.now()}@test.crazyvtt.local` });
   userId = u.id;
   campaignId = (await createTestCampaign(userId, { name: `Filters ${Date.now()}` })).id;
   await prisma.campaignMembership.create({ data: { userId, campaignId, role: 'DM', characterIds: [] } });

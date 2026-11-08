@@ -18,7 +18,7 @@ import path from 'path';
 import request from 'supertest';
 
 // A throwaway uploads directory, set before anything reads UPLOAD_DIR.
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-download-name-test-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-download-name-test-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { createTestApp } from '../../__tests__/helpers/test-app';

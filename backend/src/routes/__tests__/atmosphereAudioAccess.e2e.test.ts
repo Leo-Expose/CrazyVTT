@@ -30,7 +30,7 @@ import {
 } from '../../__tests__/helpers/db';
 
 const app = createTestApp();
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-atmo-audio-'));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-atmo-audio-'));
 
 let dmId: string;
 let playerId: string;
@@ -74,9 +74,9 @@ const fetchTrack = (agent: ReturnType<typeof request.agent>, id: string) => agen
 beforeAll(async () => {
   const stamp = Date.now();
   const [d, p, s] = await Promise.all([
-    createTestUser({ email: `atmo-dm-${stamp}@test.cozyvtt.local`, displayName: 'Atmo DM' }),
-    createTestUser({ email: `atmo-player-${stamp}@test.cozyvtt.local`, displayName: 'Atmo Player' }),
-    createTestUser({ email: `atmo-stranger-${stamp}@test.cozyvtt.local`, displayName: 'Atmo Stranger' }),
+    createTestUser({ email: `atmo-dm-${stamp}@test.crazyvtt.local`, displayName: 'Atmo DM' }),
+    createTestUser({ email: `atmo-player-${stamp}@test.crazyvtt.local`, displayName: 'Atmo Player' }),
+    createTestUser({ email: `atmo-stranger-${stamp}@test.crazyvtt.local`, displayName: 'Atmo Stranger' }),
   ]);
   dmId = d.id; playerId = p.id; strangerId = s.id;
   campaignId = (await createTestCampaign(dmId, { name: `Atmo ${stamp}` })).id;

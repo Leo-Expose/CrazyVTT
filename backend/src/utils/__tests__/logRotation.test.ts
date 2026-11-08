@@ -28,7 +28,7 @@ describe('the production log files', () => {
   beforeAll(() => {
     // The files are opened relative to the working directory as the logger
     // loads, so it loads in a scratch directory.
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-logs-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-logs-'));
     process.chdir(dir);
     process.env.NODE_ENV = 'production';
     jest.isolateModules(() => {
@@ -66,7 +66,7 @@ describe('the production log files', () => {
 describe('rotation with the options the backend uses', () => {
   let dir: string;
   beforeEach(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-rotate-'));
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-rotate-'));
   });
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 

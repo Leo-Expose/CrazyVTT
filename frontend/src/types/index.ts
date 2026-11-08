@@ -1,6 +1,6 @@
 import type { CharacterHpInfo } from '@/utils/characterHp';
 // ============================================
-// CozyVTT Frontend Type Definitions
+// CrazyVTT Frontend Type Definitions
 // Mirrors backend API models (Prisma schema)
 // ============================================
 
@@ -47,6 +47,30 @@ export enum AssetType {
   OTHER = 'OTHER',
 }
 
+export enum RulebookStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  PARTIAL = 'PARTIAL',
+}
+
+export type ChunkType = 'SPELL' | 'ITEM' | 'CLASS' | 'SUBCLASS' | 'FEAT' | 'MONSTER' | 'RACE' | 'BACKGROUND' | 'RULE' | 'TABLE' | 'NARRATIVE';
+export const ChunkType = {
+  SPELL: 'SPELL', ITEM: 'ITEM', CLASS: 'CLASS', SUBCLASS: 'SUBCLASS', FEAT: 'FEAT',
+  MONSTER: 'MONSTER', RACE: 'RACE', BACKGROUND: 'BACKGROUND', RULE: 'RULE', TABLE: 'TABLE', NARRATIVE: 'NARRATIVE',
+} as const satisfies Record<string, ChunkType>;
+
+export enum LicenseType {
+  SRD_5E = 'SRD_5E',
+  SRD_5_1 = 'SRD_5_1',
+  SRD_5_5 = 'SRD_5_5',
+  COPYRIGHT_WOTC = 'COPYRIGHT_WOTC',
+  CC_BY_4 = 'CC_BY_4',
+  DM_GUILD = 'DM_GUILD',
+  UNKNOWN = 'UNKNOWN',
+}
+
 export enum AssetScope {
   GLOBAL = 'GLOBAL',
   USER = 'USER',
@@ -78,7 +102,214 @@ export enum TokenDisposition {
   HOSTILE  = 'hostile',
 }
 
+export type MovementMode = 'walk' | 'fly' | 'swim' | 'climb' | 'burrow' | 'teleport';
+export const MovementMode = {
+  WALK: 'walk', FLY: 'fly', SWIM: 'swim', CLIMB: 'climb', BURROW: 'burrow', TELEPORT: 'teleport',
+} as const satisfies Record<string, MovementMode>;
+
+export type TerrainType = 'normal' | 'difficult' | 'hazardous' | 'impassable';
+export const TerrainType = {
+  NORMAL: 'normal', DIFFICULT: 'difficult', HAZARDOUS: 'hazardous', IMPASSABLE: 'impassable',
+} as const satisfies Record<string, TerrainType>;
+
+export interface TokenMovementData {
+  speed: number;                    // Base speed in feet
+  flySpeed?: number;
+  swimSpeed?: number;
+  climbSpeed?: number;
+  burrowSpeed?: number;
+  movementMode: MovementMode;       // WALK | FLY | SWIM | CLIMB | BURROW | TELEPORT
+  remainingThisTurn: number;        // Feet left this turn
+  usedThisTurn: number;             // Feet used this turn
+  difficultTerrainMultiplier: number; // 1, 2, etc.
+  threatenedSquares: number[];      // Grid indices for AoO
+  reach: number;                    // Feet
+}
+
+export interface ReachableSquare {
+  x: number;
+  y: number;
+  cost: number;                     // Movement cost to reach this square
+  path: { x: number; y: number }[]; // Path from start to this square
+  isDifficult: boolean;
+  isHazardous: boolean;
+  hazardDamage?: { type: string; amount: string }; // e.g., { type: 'fire', amount: '1d6' }
+}
+
 export type TokenDisplayMode = 'pog' | 'top-down' | 'full-art';
+
+// ============================================
+// Map Tiles & Layers (Phase 3)
+// ============================================
+
+export type TileCategory = 'FLOOR' | 'WALL' | 'CORNER' | 'DOOR' | 'FURNITURE' | 'PROP' | 'STAIRS' | 'SPECIAL';
+export const TileCategory = {
+  FLOOR: 'FLOOR', WALL: 'WALL', CORNER: 'CORNER', DOOR: 'DOOR', FURNITURE: 'FURNITURE',
+  PROP: 'PROP', STAIRS: 'STAIRS', SPECIAL: 'SPECIAL',
+} as const satisfies Record<string, TileCategory>;
+
+export enum LayerType {
+  TERRAIN = 'TERRAIN',
+  STRUCTURE = 'STRUCTURE',
+  FURNITURE = 'FURNITURE',
+  WALLS = 'WALLS',
+  LIGHTING = 'LIGHTING',
+  FOG = 'FOG',
+  TOKENS = 'TOKENS',
+  ANNOTATIONS = 'ANNOTATIONS',
+}
+
+export interface MapTile {
+  id: string;
+  campaignId: string;
+  name: string;
+  category: TileCategory;
+  assetId: string;
+  asset?: {
+    id: string;
+    filePath: string;
+    thumbnailPath: string | null;
+    originalName: string;
+    mimeType: string;
+  };
+  width: number;
+  height: number;
+  connections?: {
+    north: boolean;
+    south: boolean;
+    east: boolean;
+    west: boolean;
+    autoTile: boolean;
+  };
+  isDefault: boolean;
+  createdById: string | null;
+  createdBy?: {
+    id: string;
+    displayName: string;
+  } | null;
+  createdAt: string;
+}
+
+export interface MapLayer {
+  id: string;
+  mapId: string;
+  name: string;
+  type: LayerType;
+  order: number;
+  visible: boolean;
+  locked: boolean;
+  data: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Layer data structures per type
+export interface TerrainLayerData {
+  tiles: Array<{
+    tileId?: string;
+    x: number;
+    y: number;
+    type?: TerrainType;
+    hazardDamage?: { type: string; amount: string };
+    rotation?: 0 | 90 | 180 | 270;
+    flipH?: boolean;
+    flipV?: boolean;
+    variant?: string;
+  }>;
+}
+
+export interface StructureLayerData {
+  tiles: Array<{
+    tileId: string;
+    x: number;
+    y: number;
+    rotation?: 0 | 90 | 180 | 270;
+    flipH?: boolean;
+    flipV?: boolean;
+    variant?: string;
+  }>;
+}
+
+export interface FurnitureLayerData {
+  tiles: Array<{
+    tileId: string;
+    x: number;
+    y: number;
+    rotation?: 0 | 90 | 180 | 270;
+    flipH?: boolean;
+    flipV?: boolean;
+    variant?: string;
+    scale?: number;
+  }>;
+}
+
+export interface WallsLayerData {
+  segments: Array<{
+    id: string;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    type: string;
+  }>;
+}
+
+export interface LightingLayerData {
+  lights: Array<{
+    id: string;
+    x: number;
+    y: number;
+    brightRadius: number;
+    dimRadius: number;
+    color: string;
+    enabled: boolean;
+  }>;
+}
+
+export interface FogLayerData {
+  boxes: Array<{
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
+}
+
+export interface AnnotationsLayerData {
+  drawings: Array<{
+    id: string;
+    type: 'freehand' | 'rect' | 'circle' | 'text' | 'arrow';
+    points: Array<{ x: number; y: number }>;
+    color: string;
+    strokeWidth: number;
+    text?: string;
+  }>;
+}
+
+export interface TokenVariant {
+  id: string;
+  name: string;
+  rotation: 0 | 90 | 180 | 270;
+  flipH: boolean;
+  flipV: boolean;
+}
+
+export interface WangConnections {
+  north: boolean;
+  south: boolean;
+  east: boolean;
+  west: boolean;
+  autoTile: boolean;
+}
+
+export interface TileDefinition {
+  id: string;
+  name: string;
+  category: string;
+  connections: WangConnections;
+  variants?: Record<number, string>;
+}
 
 /** NPC stat block — game-system-agnostic container for combat stats. */
 /**
@@ -560,6 +791,10 @@ export interface Campaign {
   spiritLayerStyle: string;
   chatCooldownEnabled: boolean;
   chatCooldownSeconds: number;
+  /** When true, players share their explored areas with the party (union of all explored cells). */
+  fogShareExploredWithParty?: boolean;
+  /** Character IDs excluded from party vision merge (e.g., familiars, scouts). */
+  fogShareExcludedCharacterIds?: string[];
   createdAt: string;
   updatedAt: string;
   lastPlayedAt: string | null;
@@ -756,6 +991,94 @@ export interface LeftCampaignDetail {
   macros: DiceMacro[];
 }
 
+// ============================================
+// Rulebook Types
+// ============================================
+
+export interface Rulebook {
+  id: string;
+  campaignId: string;
+  title: string;
+  sourceId: string;
+  edition: string;
+  filePath: string;
+  thumbnailPath: string | null;
+  status: RulebookStatus;
+  totalPages: number | null;
+  processedPages: number;
+  uploadedById: string;
+  uploadedBy: { id: string; displayName: string };
+  createdAt: string;
+  updatedAt: string;
+  chunks?: RulebookChunk[];
+  activations?: RulebookActivation[];
+  _count?: { chunks: number; activations: number };
+}
+
+export interface RulebookChunk {
+  id: string;
+  rulebookId: string;
+  pageStart: number;
+  pageEnd: number;
+  contentType: ChunkType;
+  rawText: string;
+  structured: unknown | null;
+  confidence: number;
+  createdAt: string;
+}
+
+export interface RulebookActivation {
+  id: string;
+  campaignId: string;
+  rulebookId: string;
+  contentType: ChunkType | null;
+  sourceIds: string[];
+  activatedById: string;
+  activatedBy: { id: string; displayName: string };
+  activatedAt: string;
+  rulebook?: Rulebook;
+}
+
+export interface ExtractedContent {
+  id: string;
+  contentType: ChunkType;
+  sourceId: string;
+  name: string;
+  data: unknown;
+  rawText: string;
+  pageRef: string;
+  license: LicenseType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RulebookProcessingStatus {
+  rulebookId: string;
+  status: RulebookStatus;
+  processedPages: number;
+  totalPages: number;
+  currentStep: string;
+  error?: string;
+}
+
+export interface RulebookUploadMetadata {
+  title: string;
+  sourceId: string;
+  edition: string;
+  campaignId: string;
+}
+
+export interface CreateRulebookActivationInput {
+  rulebookId: string;
+  contentType?: ChunkType;
+  sourceIds?: string[];
+}
+
+export interface UpdateRulebookActivationInput {
+  contentType?: ChunkType;
+  sourceIds?: string[];
+}
+
 /**
  * A past session as the history list returns it.
  *
@@ -893,6 +1216,8 @@ export interface Token {
    * sent it with its identity masked (utils/tokenMask.ts); only the DM may set it.
    */
   obscured?: boolean;
+  // Movement data (Phase 6)
+  movement?: TokenMovementData;
 }
 
 export interface Position {
@@ -1268,6 +1593,8 @@ export interface CreateTokenRequest {
   creatureTemplateId?: string | null;
   /** DM only: hide what the token is from players who do not control it. */
   obscured?: boolean;
+  // Movement data (Phase 6)
+  movement?: TokenMovementData;
 }
 
 export interface UpdateTokenRequest {
@@ -1295,6 +1622,8 @@ export interface UpdateTokenRequest {
   creatureTemplateId?: string | null;
   /** DM only: hide what the token is from players who do not control it. */
   obscured?: boolean;
+  // Movement data (Phase 6)
+  movement?: Partial<TokenMovementData>;
 }
 
 // ============================================
@@ -1325,6 +1654,107 @@ export interface TokenMoveEndEvent {
   mapId: string; // Required - server validates map belongs to authenticated campaign
   x: number;
   y: number;
+}
+
+// Movement System Events (Phase 6)
+export interface MovementReachableRequest {
+  tokenId: string;
+  mapId: string;
+  speed?: number; // Override speed
+  movementMode?: MovementMode;
+  ignoreTerrain?: boolean; // DM override
+}
+
+export interface MovementReachableResponse {
+  tokenId: string;
+  reachable: ReachableSquare[];
+  speedUsed: number;
+  movementMode: MovementMode;
+}
+
+export interface MovementCommitRequest {
+  tokenId: string;
+  mapId: string;
+  path: { x: number; y: number }[]; // Path taken
+  endPosition: { x: number; y: number };
+  speedUsed: number;
+  movementMode: MovementMode;
+  opportunityAttacks?: OpportunityAttackTrigger[];
+}
+
+export interface OpportunityAttackTrigger {
+  enemyTokenId: string;
+  enemyName: string;
+  enemyReach: number;
+  attackBonus: number;
+  squareLeft: { x: number; y: number }; // Square that provoked
+}
+
+export interface MovementCommitResponse {
+  success: boolean;
+  opportunityAttacks?: OpportunityAttackTrigger[];
+  message?: string;
+}
+
+export interface ReactionPromptEvent {
+  promptId: string;
+  targetTokenId: string; // Token being moved
+  attackerTokenId: string;
+  attackerName: string;
+  attackBonus: number;
+  reach: number;
+  squareLeft: { x: number; y: number };
+  expiresAt: string; // ISO timestamp
+}
+
+export interface ReactionResponse {
+  promptId: string;
+  action: 'take' | 'decline';
+  attackRoll?: { expression: string; result: number }; // If taking AoO
+}
+
+export interface MovementCancelledEvent {
+  tokenId: string;
+  mapId: string;
+  startPosition: { x: number; y: number };
+}
+
+export interface MovementModeChangeEvent {
+  tokenId: string;
+  mapId: string;
+  movementMode: MovementMode;
+}
+
+export interface DMOverrideMovementEvent {
+  tokenId: string;
+  mapId: string;
+  type: 'teleport' | 'grant_extra' | 'ignore_terrain' | 'force_move' | 'reset';
+  value?: number; // For grant_extra
+  position?: { x: number; y: number }; // For teleport/force_move
+  ignoreTerrain?: boolean;
+}
+
+export interface MovementHistoryEntry {
+  id: string;
+  tokenId: string;
+  tokenName: string;
+  mapId: string;
+  startPosition: { x: number; y: number };
+  endPosition: { x: number; y: number };
+  path: { x: number; y: number }[];
+  distance: number;
+  movementMode: MovementMode;
+  opportunityAttacks: Array<{
+    enemyTokenId: string;
+    enemyName: string;
+    hit: boolean;
+    damage?: number;
+    stoppedMovement: boolean;
+  }>;
+  dmOverrides: string[];
+  movedById: string;
+  movedByName: string;
+  createdAt: string;
 }
 
 export interface TokenMovedEvent {
@@ -1657,7 +2087,480 @@ export interface UserPreferences {
 }
 
 // ============================================
+// Character Draft Types (Collaborative Editing)
+// ============================================
+
+export enum ChangeType {
+  PLAYER_EDIT = 'PLAYER_EDIT',
+  DM_SUGGESTION = 'DM_SUGGESTION',
+  DM_OVERRIDE = 'DM_OVERRIDE',
+  DM_LOCK = 'DM_LOCK',
+  DM_UNLOCK = 'DM_UNLOCK',
+  CONFLICT_RESOLVED = 'CONFLICT_RESOLVED',
+  SYSTEM_CORRECTION = 'SYSTEM_CORRECTION',
+}
+
+export enum ConflictType {
+  INVALID_VALUE = 'INVALID_VALUE',
+  MISSING_PREREQUISITE = 'MISSING_PREREQUISITE',
+  EXCEEDS_LIMIT = 'EXCEEDS_LIMIT',
+  DUPLICATE = 'DUPLICATE',
+  INCOMPATIBLE_CHOICES = 'INCOMPATIBLE_CHOICES',
+  RULE_VIOLATION = 'RULE_VIOLATION',
+}
+
+export enum ConflictSeverity {
+  INFO = 'INFO',
+  WARNING = 'WARNING',
+  ERROR = 'ERROR',
+  BLOCKING = 'BLOCKING',
+}
+
+export interface CharacterLock {
+  id: string;
+  characterId: string;
+  fieldPath: string;
+  lockedById: string;
+  lockedBy: { id: string; displayName: string };
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface CharacterConflict {
+  id: string;
+  characterId: string;
+  fieldPath: string;
+  conflictType: ConflictType;
+  description: string;
+  severity: ConflictSeverity;
+  detectedAt: string;
+  resolvedAt: string | null;
+  resolvedById: string | null;
+  resolvedBy: { id: string; displayName: string } | null;
+  resolution: string | null;
+}
+
+export interface CharacterChange {
+  id: string;
+  characterId: string;
+  fieldPath: string;
+  oldValue: unknown;
+  newValue: unknown;
+  changeType: ChangeType;
+  authorId: string;
+  author: { id: string; displayName: string };
+  resolvedById: string | null;
+  resolvedBy: { id: string; displayName: string } | null;
+  resolvedAt: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface CharacterDraftState {
+  draft: { data: Record<string, unknown>; version: number };
+  locks: CharacterLock[];
+  conflicts: CharacterConflict[];
+  version: number;
+}
+
+// ============================================
 // Game System Types
 // ============================================
 
+// ============================================
+// Action Resolution Types (Phase 4)
+// ============================================
+
+export enum ActionType {
+  ATTACK_MELEE = 'ATTACK_MELEE',
+  ATTACK_RANGED = 'ATTACK_RANGED',
+  SPELL_ATTACK = 'SPELL_ATTACK',
+  SPELL_SAVE = 'SPELL_SAVE',
+  SPELL_AOE = 'SPELL_AOE',
+  FEATURE = 'FEATURE',
+  ITEM_USE = 'ITEM_USE',
+  REACTION = 'REACTION',
+  MOVEMENT = 'MOVEMENT',
+  OTHER = 'OTHER',
+}
+
+export enum ActionCost {
+  ACTION = 'ACTION',
+  BONUS_ACTION = 'BONUS_ACTION',
+  REACTION = 'REACTION',
+  FREE = 'FREE',
+  MOVEMENT = 'MOVEMENT',
+  LEGENDARY = 'LEGENDARY',
+  MYTHIC = 'MYTHIC',
+}
+
+export enum ActionSource {
+  CLASS = 'CLASS',
+  SUBCLASS = 'SUBCLASS',
+  FEAT = 'FEAT',
+  ITEM = 'ITEM',
+  RACE = 'RACE',
+  BACKGROUND = 'BACKGROUND',
+  SPELL = 'SPELL',
+  RACIAL = 'RACIAL',
+  CLASS_FEATURE = 'CLASS_FEATURE',
+  MAGIC_ITEM = 'MAGIC_ITEM',
+  OTHER = 'OTHER',
+}
+
+export enum ResolutionStatus {
+  PREVIEW = 'PREVIEW',
+  ROLLING = 'ROLLING',
+  DM_REVIEW = 'DM_REVIEW',
+  APPLIED = 'APPLIED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface CharacterAction {
+  id: string;
+  characterId: string;
+  name: string;
+  type: ActionType;
+  cost: ActionCost;
+  data: Record<string, unknown>;
+  source: ActionSource;
+  sourceRef: string | null;
+  recharge: {
+    type: 'SHORT_REST' | 'LONG_REST' | 'TURN_START' | 'CUSTOM';
+    value: number;
+  } | null;
+  used: boolean;
+  sortOrder: number;
+}
+
+export interface AttackPreview {
+  attackRoll: {
+    expression: string;
+    breakdown: string;
+    vsAC?: number;
+    advantage?: boolean;
+    disadvantage?: boolean;
+  };
+  damageRoll?: {
+    expression: string;
+    breakdown: string;
+    damageType?: string;
+  };
+  saveDC?: {
+    ability: string;
+    dc: number;
+    halfOnSuccess: boolean;
+  };
+  area?: {
+    shape: string;
+    size: number;
+    units: 'feet' | 'squares';
+  };
+  range?: {
+    normal: number;
+    long?: number;
+    units: 'feet';
+  };
+  resourceCost?: {
+    type: 'spell_slot' | 'charge' | 'use' | 'superiority_dice' | 'ki' | 'channel_divinity';
+    amount: number;
+    details: string;
+  }[];
+  conditions?: {
+    name: string;
+    duration: string;
+    saveEnds: boolean;
+    saveDC?: number;
+  }[];
+  description: string;
+  warnings?: string[];
+}
+
+export interface ActionResolution {
+  id: string;
+  campaignId: string;
+  initiatorId: string;
+  targetIds: string[];
+  actionId: string | null;
+  actionType: ActionType;
+  actionData: Record<string, unknown>;
+  attackRolls: Array<{
+    expression: string;
+    result: number;
+    breakdown: DiceRollBreakdown;
+    vsAC: number;
+  }> | null;
+  saveRolls: Array<{
+    targetId: string;
+    expression: string;
+    result: number;
+    breakdown: DiceRollBreakdown;
+    vsDC: number;
+    success: boolean;
+  }> | null;
+  damageRolls: Array<{
+    targetId: string;
+    expression: string;
+    result: number;
+    breakdown: DiceRollBreakdown;
+    type: string;
+    applied: boolean;
+  }> | null;
+  conditions: Array<{
+    targetId: string;
+    name: string;
+    duration: string;
+    saveEnds: boolean;
+    saveDC?: number;
+  }> | null;
+  resources: Array<{
+    type: string;
+    amount: number;
+    details: string;
+  }> | null;
+  status: ResolutionStatus;
+  dmOverride: boolean;
+  dmNotes: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedById: string | null;
+  resolvedBy?: { id: string; displayName: string };
+}
+
+export interface ApplyResult {
+  success: boolean;
+  appliedDamage: AppliedDamage[];
+  appliedConditions: AppliedCondition[];
+  consumedResources: ConsumedResource[];
+  deathSavesTriggered: DeathSaveTrigger[];
+  messages: string[];
+}
+
+export interface AppliedDamage {
+  targetId: string;
+  targetName: string;
+  damage: number;
+  damageType: string;
+  previousHP: number;
+  newHP: number;
+  tempHP: number;
+  killed: boolean;
+  unconscious: boolean;
+}
+
+export interface AppliedCondition {
+  targetId: string;
+  targetName: string;
+  condition: string;
+  duration: string;
+  saveEnds: boolean;
+  saveDC?: number;
+  added: boolean;
+}
+
+export interface ConsumedResource {
+  characterId: string;
+  type: 'spell_slot' | 'charge' | 'use' | 'hit_dice' | 'superiority_dice' | 'ki' | 'channel_divinity';
+  details: string;
+  amount: number;
+}
+
+export interface DeathSaveTrigger {
+  targetId: string;
+  targetName: string;
+  reason: 'damage_at_0hp' | 'critical_hit_at_0hp' | 'massive_damage';
+  autoFailures: number;
+}
+
+// ============================================
+// Spell AoE Template Types (Phase 10)
+// ============================================
+
+export enum AoEShape {
+  CIRCLE = 'CIRCLE',
+  CONE = 'CONE',
+  LINE = 'LINE',
+  CUBE = 'CUBE',
+  SPHERE = 'SPHERE',
+  CYLINDER = 'CYLINDER',
+  HEMISPHERE = 'HEMISPHERE',
+  CUSTOM = 'CUSTOM',
+}
+
+export type TemplateOrigin = 'intersection' | 'token_center' | 'self';
+
+export interface AoETemplateSize {
+  radius?: number;      // Circle, Sphere, Cylinder, Hemisphere (feet)
+  length?: number;      // Cone, Line (feet)
+  width?: number;       // Line, Wall (feet)
+  height?: number;      // Cylinder (feet)
+  side?: number;        // Cube (feet)
+  points?: Array<{ x: number; y: number }>; // Custom polygon
+}
+
+export interface AoETemplate {
+  id: string;
+  campaignId?: string | null;
+  name: string;
+  shape: AoEShape;
+  size: AoETemplateSize;
+  origin: TemplateOrigin;
+  gridSnap: boolean;
+  color: string;
+  isDefault: boolean;
+  createdById?: string | null;
+  createdAt?: string;
+}
+
+export interface SpellAoEData {
+  spellId: string;
+  spellName: string;
+  level: number;
+  school?: string;
+  template: AoETemplate;
+  damage?: { dice: string; type: string };
+  save?: { ability: string; dc: number; halfOnSave: boolean };
+  conditions?: string[];
+  concentration: boolean;
+  duration: string;
+}
+
+export interface TargetSpellEvaluation {
+  tokenId: string;
+  tokenName: string;
+  tokenX: number;
+  tokenY: number;
+  tokenSize: number;
+  coverageRatio: number; // 0 to 1
+  isAffected: boolean;
+  saveRoll?: number;
+  savePassed?: boolean;
+  calculatedDamage: number;
+  appliedConditions: string[];
+}
+
+export interface SpellCastResolutionData {
+  castId: string;
+  spellId?: string;
+  spellName: string;
+  casterTokenId?: string;
+  casterName?: string;
+  template: AoETemplate;
+  placement: {
+    originX: number;
+    originY: number;
+    targetX?: number;
+    targetY?: number;
+    angle?: number; // radians
+  };
+  targets: TargetSpellEvaluation[];
+  damageRoll?: string;
+  baseDamage?: number;
+  status: 'PENDING_REVIEW' | 'APPLIED' | 'CANCELLED';
+}
+
+// ============================================
+// Universal DM Override Types (Phase 11)
+// ============================================
+
+export enum OverrideTargetType {
+  ROLL = 'ROLL',
+  ROLL_BREAKDOWN = 'ROLL_BREAKDOWN',
+  HP = 'HP',
+  DAMAGE = 'DAMAGE',
+  TEMP_HP = 'TEMP_HP',
+  DEATH_SAVES = 'DEATH_SAVES',
+  CONDITIONS = 'CONDITIONS',
+  POSITION = 'POSITION',
+  MOVEMENT = 'MOVEMENT',
+  REACHABLE_AREA = 'REACHABLE_AREA',
+  INITIATIVE = 'INITIATIVE',
+  TURN_ORDER = 'TURN_ORDER',
+  REACTION = 'REACTION',
+  ACTION_RESOLUTION = 'ACTION_RESOLUTION',
+  SPELL_SLOTS = 'SPELL_SLOTS',
+  CHARGES = 'CHARGES',
+  HIT_DICE = 'HIT_DICE',
+  SUPERIORITY_DICE = 'SUPERIORITY_DICE',
+  KI_POINTS = 'KI_POINTS',
+  CHANNEL_DIVINITY = 'CHANNEL_DIVINITY',
+  FOG = 'FOG',
+  LIGHT = 'LIGHT',
+  WALLS = 'WALLS',
+  DOORS = 'DOORS',
+  TERRAIN = 'TERRAIN',
+  NARRATIVE = 'NARRATIVE',
+  CHAT = 'CHAT',
+}
+
+export enum OverrideVisibility {
+  DM_ONLY = 'DM_ONLY',
+  DM_AND_PLAYERS = 'DM_AND_PLAYERS',
+  TABLE = 'TABLE',
+}
+
+export interface DMOverride {
+  id: string;
+  campaignId: string;
+  targetType: OverrideTargetType;
+  targetId: string;
+  fieldPath: string;
+  previousValue: unknown;
+  newValue: unknown;
+  reason: string;
+  visibility: OverrideVisibility;
+  overriddenById: string;
+  overriddenAt: string;
+  revertedAt?: string | null;
+  revertedById?: string | null;
+  revertReason?: string | null;
+  overriddenBy?: { id: string; displayName: string };
+  revertedBy?: { id: string; displayName: string };
+}
+
 export * from './game-systems';
+
+// ============================================
+// Dual-Mode Dice Types (Phase 12)
+// ============================================
+
+export enum DiceMode {
+  TRUE_RANDOM = 'TRUE_RANDOM',
+  WEIGHTED_DECK = 'WEIGHTED_DECK',
+}
+
+export enum RerollReason {
+  ADVANTAGE = 'ADVANTAGE',
+  DISADVANTAGE = 'DISADVANTAGE',
+  HALFLING_LUCK = 'HALFLING_LUCK',
+  ELVEN_ACCURACY = 'ELVEN_ACCURACY',
+  GREAT_WEAPON_FIGHTING = 'GREAT_WEAPON_FIGHTING',
+  BLESS = 'BLESS',
+  BANE = 'BANE',
+  PORTENT = 'PORTENT',
+  DM_FORCED = 'DM_FORCED',
+  PLAYER_CHOICE = 'PLAYER_CHOICE',
+  REROLL_FEATURE = 'REROLL_FEATURE',
+  OTHER = 'OTHER',
+}
+
+/** A single possible outcome in a weighted deck. */
+export interface DeckOutcome {
+  /** Individual die values for this combination */
+  rolls: number[];
+  /** Post-keep/drop total */
+  total: number;
+}
+
+/** Metadata attached to a roll stored with Phase 12 information. */
+export interface DiceRollMetadata {
+  mode: DiceMode;
+  /** True if this roll is a re-roll (advantage, halfling luck, etc.) */
+  isReroll: boolean;
+  /** The reason this was re-rolled */
+  rerollReason?: RerollReason | null;
+  /** Which draw in the current deck cycle (1-based, WEIGHTED_DECK only) */
+  deckPosition?: number | null;
+  /** Total deck size for the expression (WEIGHTED_DECK only) */
+  deckSize?: number | null;
+}

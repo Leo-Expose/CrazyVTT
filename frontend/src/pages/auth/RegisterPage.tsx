@@ -162,7 +162,7 @@ export default function RegisterPage() {
             Create Account
           </h1>
           <p className="mt-2 text-sm text-warm-gray">
-            Join CozyVTT and start your adventure
+            Join CrazyVTT and start your adventure
           </p>
         </div>
 

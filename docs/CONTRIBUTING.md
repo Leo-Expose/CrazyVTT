@@ -1,6 +1,6 @@
-# Contributing to CozyVTT
+# Contributing to CrazyVTT
 
-Thank you for your interest! CozyVTT is built with a very specific, "comfy" vision in mind. As the sole maintainer balancing this with limited hobby time, I have to be protective of the codebase and the project's direction.
+Thank you for your interest! CrazyVTT is built with a very specific, "comfy" vision in mind. As the sole maintainer balancing this with limited hobby time, I have to be protective of the codebase and the project's direction.
 
 **I am not accepting unsolicited ("cold") Pull Requests at this time.**
 
@@ -13,7 +13,7 @@ Thank you for your interest! CozyVTT is built with a very specific, "comfy" visi
 Found a bug or have a feature request? Opening an issue is the best place to start. Let's discuss the "why" and "how" there first before any code is written.
 
 When reporting a bug, please include:
-- CozyVTT version (or git commit hash)
+- CrazyVTT version (or git commit hash)
 - Browser and OS
 - Steps to reproduce
 - Expected vs actual behavior
@@ -24,14 +24,14 @@ A security problem does not go in an issue, since issues are public: follow [SEC
 
 ### 🤝 Become a Collaborator
 
-If you're a developer who wants to help build the official version of CozyVTT, I'd love to meet you. I prefer to get to know my collaborators so we can stay aligned on the project's aesthetic and architecture.
+If you're a developer who wants to help build the official version of CrazyVTT, I'd love to meet you. I prefer to get to know my collaborators so we can stay aligned on the project's aesthetic and architecture.
 
-1. Reach out via the [Contact Form](https://cozyvtt.com/Tend-the-Fire/)
+1. Reach out via the [Contact Form](https://crazyvtt.com/Tend-the-Fire/)
 2. We'll chat, maybe jump on a call, and see if we're a good fit for working together
 
 ### 🍴 Fork It
 
-Since CozyVTT is licensed under the **AGPLv3**, you are always free — and encouraged — to fork the repository, experiment with your own ideas, and host your own modified versions for your friends and community.
+Since CrazyVTT is licensed under the **AGPLv3**, you are always free — and encouraged — to fork the repository, experiment with your own ideas, and host your own modified versions for your friends and community.
 
 ---
 
@@ -66,7 +66,7 @@ If you become a collaborator, here's what the codebase expects:
 
 ### Styling and themes
 
-CozyVTT ships 16 themes, including four dark ones, plus user-defined custom colors. Two rules keep
+CrazyVTT ships 16 themes, including four dark ones, plus user-defined custom colors. Two rules keep
 every screen working across all of them. The first is enforced by a test, so breaking it fails the
 build; nothing checks the second, so it falls to you and the review:
 
@@ -99,4 +99,4 @@ Adding a new tabletop game system is one of the most valuable contributions. Fol
 
 ## A Note on the AGPLv3 License
 
-By contributing to this project, you agree that your contributions will be licensed under the **GNU Affero General Public License v3.0**. This ensures that CozyVTT — and any improvements made to it — remains open and accessible to the community forever.
+By contributing to this project, you agree that your contributions will be licensed under the **GNU Affero General Public License v3.0**. This ensures that CrazyVTT — and any improvements made to it — remains open and accessible to the community forever.

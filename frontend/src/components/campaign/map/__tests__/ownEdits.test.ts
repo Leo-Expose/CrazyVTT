@@ -36,7 +36,7 @@ describe('createOwnEdits', () => {
 
 describe('createOwnEdits on a page served over plain HTTP', () => {
   // crypto.randomUUID exists only on HTTPS or localhost. A player who opens
-  // CozyVTT by its address on a home network, over plain HTTP, has none, and
+  // CrazyVTT by its address on a home network, over plain HTTP, has none, and
   // every tagged wall edit, a door toggle included, failed before it was sent.
   const original = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID');
   afterEach(() => {

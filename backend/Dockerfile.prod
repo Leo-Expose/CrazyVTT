@@ -50,9 +50,11 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY scripts/start.sh /usr/local/bin/start.sh
 RUN sed -i 's/\r$//' /usr/local/bin/start.sh && chmod +x /usr/local/bin/start.sh
 
-# Create directories; ownership will be set at container startup by start.sh
-# (bind mounts override Dockerfile chown, so we fix it at runtime via su-exec)
-RUN mkdir -p /app/uploads /app/logs /app/backups && chown -R appuser:appgroup /app
+# Only runtime data directories need write ownership. Compiled output and
+# dependencies are read-only to the app user; copying/chowning the full
+# dependency tree adds minutes to builds without changing runtime access.
+RUN mkdir -p /app/uploads /app/logs /app/backups && \
+    chown -R appuser:appgroup /app/uploads /app/logs /app/backups
 
 # The Prisma tools check for a newer version each time they run and keep the
 # answer in the home folder, which is read-only in docker-compose.yml.

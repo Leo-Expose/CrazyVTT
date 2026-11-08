@@ -34,7 +34,7 @@ const asset = (campaignId: string, name: string) =>
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `del-assets-${stamp}@test.cozyvtt.local`, displayName: 'Owner' });
+  const user = await createTestUser({ email: `del-assets-${stamp}@test.crazyvtt.local`, displayName: 'Owner' });
   ownerId = user.id;
   owner = request.agent(app);
   expect((await owner.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD })).status).toBe(200);

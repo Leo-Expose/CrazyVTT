@@ -1,6 +1,6 @@
 /**
  * What the shipped deployment files offer and promise, checked against what
- * CozyVTT actually supports.
+ * CrazyVTT actually supports.
  *
  * One address. The page, the API and the live connection are served from the
  * same address. The example env files used to offer VITE_API_URL and
@@ -19,7 +19,7 @@
  * in development mode whatever NODE_ENV the copied .env.example sets.
  *
  * The images. nginx:alpine named whatever nginx was newest on the day of the
- * pull, so two installs of one CozyVTT version could run different nginx
+ * pull, so two installs of one CrazyVTT version could run different nginx
  * releases under the same configuration. Both nginx images are pinned to one
  * stable line, the same in each. `npm ci --only=production` is a deprecated
  * spelling of `--omit=dev`.
@@ -223,7 +223,7 @@ function backendExecLines(rel: string): string[] {
   return read(rel)
     .split('\n')
     .filter((line) => /docker(?: compose)? exec\b/.test(line))
-    .filter((line) => /docker compose exec(?: -[A-Za-z]+(?: \S+)?)* backend\b|docker exec(?: -\S+)* cozyvtt-backend\b/.test(line));
+    .filter((line) => /docker compose exec(?: -[A-Za-z]+(?: \S+)?)* backend\b|docker exec(?: -\S+)* crazyvtt-backend\b/.test(line));
 }
 
 // The backend's memory ceiling was fixed at 512 MB in the compose file, so a
@@ -346,9 +346,9 @@ describe('the containers', () => {
     });
 
     it.each([
-      ['names a port', 'postgresql://cozyvtt:secret@database:5433/cozyvtt', '5433'],
-      ['names none', 'postgresql://cozyvtt:secret@database/cozyvtt', '5432'],
-      ['names none and has options', 'postgresql://cozyvtt:secret@database/cozyvtt?schema=public', '5432'],
+      ['names a port', 'postgresql://crazyvtt:secret@database:5433/crazyvtt', '5433'],
+      ['names none', 'postgresql://crazyvtt:secret@database/crazyvtt', '5432'],
+      ['names none and has options', 'postgresql://crazyvtt:secret@database/crazyvtt?schema=public', '5432'],
     ])('waits for the database on the right port when the address %s', (_label, url, port) => {
       // Only the lines that read the address, so nothing else in the script runs.
       const start = script.indexOf('# Parse DATABASE_URL');
@@ -370,7 +370,7 @@ describe('the containers', () => {
       // On the backend_tmp volume they would survive an upgrade, and each is a
       // copy of every credential on the instance.
       const removal = /\brm -rf ([^;|&\n]*)/.exec(appuserPhase)?.[1] ?? '';
-      expect(removal.split(/\s+/)).toEqual(expect.arrayContaining(['/tmp/cozyvtt-db-*', '/tmp/cozyvtt-restore-*']));
+      expect(removal.split(/\s+/)).toEqual(expect.arrayContaining(['/tmp/crazyvtt-db-*', '/tmp/crazyvtt-restore-*']));
       expect(appuserPhase.indexOf('rm -rf')).toBeLessThan(appuserPhase.lastIndexOf('exec "$@"'));
       expect(appuserPhase.indexOf('rm -rf')).toBeGreaterThan(0);
     });

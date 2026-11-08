@@ -20,7 +20,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-fidelity-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-fidelity-'));
 const UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
@@ -111,7 +111,7 @@ describe('a campaign exported and imported again', () => {
       },
     });
 
-    const file = path.join(SCRATCH, 'limits.cozyvtt');
+    const file = path.join(SCRATCH, 'limits.crazyvtt');
     const prepared = await prepareCampaignExport(source.id, { userId, isAdmin: false });
     await prepared.writeTo(fs.createWriteStream(file));
 
@@ -146,12 +146,12 @@ const map = (fields: Record<string, unknown> = {}) => ({
 
 /** An archive of these maps, and optionally assets, written to disk as the import route saves one. */
 async function archive(maps: object[], assets: Record<string, { entry?: FixtureEntry; info: object }> = {}): Promise<string> {
-  const file = path.join(SCRATCH, `${randomUUID()}.cozyvtt`);
+  const file = path.join(SCRATCH, `${randomUUID()}.crazyvtt`);
   const entries: FixtureEntry[] = [
     {
       name: 'manifest.json',
       data: JSON.stringify({
-        formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT v1.4.0', campaignName: 'Older',
+        formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT v1.4.0', campaignName: 'Older',
         gameSystem: 'DND_5E', mapCount: maps.length, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0,
         assetCount: Object.keys(assets).length, includesAudio: false, totalSizeBytes: 0,
       }),
@@ -290,7 +290,7 @@ describe('a map the app could not hold', () => {
   });
 
   it('is listed when its file is missing from the archive', async () => {
-    const manifest = path.join(SCRATCH, `${randomUUID()}.cozyvtt`);
+    const manifest = path.join(SCRATCH, `${randomUUID()}.crazyvtt`);
     // An archive claiming a second map it does not carry.
     await writeZip(manifest, [
       { name: 'manifest.json', data: JSON.stringify({ formatVersion: 1, exportedAt: 'x', exportedFrom: 'x', campaignName: 'x', gameSystem: 'NONE', mapCount: 2, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0, assetCount: 0, includesAudio: false, totalSizeBytes: 0 }) },
@@ -420,7 +420,7 @@ describe('the order of an imported campaign\'s maps and pictures', () => {
     // Editing the first map moves its row to the end of the table.
     await prisma.map.update({ where: { id: maps[0].id }, data: { name: 'Act I' } });
 
-    const file = path.join(SCRATCH, 'order.cozyvtt');
+    const file = path.join(SCRATCH, 'order.crazyvtt');
     await (await prepareCampaignExport(source.id, { userId, isAdmin: false })).writeTo(fs.createWriteStream(file));
     const result = await importCampaign(file, userId);
 

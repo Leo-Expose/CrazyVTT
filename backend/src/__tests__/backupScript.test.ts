@@ -21,7 +21,7 @@ describeOnPosix('backup.sh', () => {
   let backups: string;
 
   beforeEach(async () => {
-    root = await fs.mkdtemp(path.join(os.tmpdir(), 'cozyvtt-backup-script-'));
+    root = await fs.mkdtemp(path.join(os.tmpdir(), 'crazyvtt-backup-script-'));
     bin = path.join(root, 'bin');
     backups = path.join(root, 'backups');
     await fs.mkdir(bin);
@@ -39,7 +39,7 @@ describeOnPosix('backup.sh', () => {
       encoding: 'utf8',
       env: {
         PATH: `${bin}:${process.env.PATH ?? ''}`,
-        DATABASE_URL: 'postgresql://cozyvtt:secret@localhost:5432/cozyvtt',
+        DATABASE_URL: 'postgresql://crazyvtt:secret@localhost:5432/crazyvtt',
         BACKUP_DIR: backups,
       },
     });
@@ -49,7 +49,7 @@ describeOnPosix('backup.sh', () => {
   it('makes a backups folder that already existed, and the dumps already in it, private', async () => {
     await fs.mkdir(backups);
     await fs.chmod(backups, 0o755);
-    const older = path.join(backups, 'cozyvtt_20260901_030000.sql.gz');
+    const older = path.join(backups, 'crazyvtt_20260901_030000.sql.gz');
     await fs.writeFile(older, 'an older dump');
     await fs.chmod(older, 0o644);
 
@@ -60,7 +60,7 @@ describeOnPosix('backup.sh', () => {
     expect(await modeOf(backups)).toBe(0o700);
     expect(await modeOf(older)).toBe(0o600);
     const written = (await fs.readdir(backups)).filter((f) => f !== path.basename(older));
-    expect(written).toEqual([expect.stringMatching(/^cozyvtt_\d{8}_\d{6}\.sql\.gz$/)]);
+    expect(written).toEqual([expect.stringMatching(/^crazyvtt_\d{8}_\d{6}\.sql\.gz$/)]);
     expect(await modeOf(path.join(backups, written[0]))).toBe(0o600);
   });
 
@@ -88,7 +88,7 @@ describeOnPosix('backup.sh', () => {
       encoding: 'utf8',
       env: {
         PATH: `${bin}:${process.env.PATH ?? ''}`,
-        DATABASE_URL: 'postgresql://cozy%2Badmin:p%40ss%25w0rd@db.internal/cozyvtt?schema=public',
+        DATABASE_URL: 'postgresql://cozy%2Badmin:p%40ss%25w0rd@db.internal/crazyvtt?schema=public',
         BACKUP_DIR: backups,
       },
     });
@@ -96,7 +96,7 @@ describeOnPosix('backup.sh', () => {
     expect(result.status).toBe(0);
     const [password, ...args] = (await fs.readFile(seen, 'utf8')).trimEnd().split('\n');
     expect(password).toBe('p@ss%w0rd');
-    expect(args).toEqual(expect.arrayContaining(['-h', 'db.internal', '-p', '5432', '-U', 'cozy+admin', '-d', 'cozyvtt']));
+    expect(args).toEqual(expect.arrayContaining(['-h', 'db.internal', '-p', '5432', '-U', 'cozy+admin', '-d', 'crazyvtt']));
   });
 
   // The backend reads a password holding a `%` that encodes nothing as it is
@@ -108,7 +108,7 @@ describeOnPosix('backup.sh', () => {
     const result = spawnSync('bash', [SCRIPT], {
       cwd: root,
       encoding: 'utf8',
-      env: { PATH: `${bin}:${process.env.PATH ?? ''}`, DATABASE_URL: `postgresql://cozyvtt:${written}@db.internal/cozyvtt`, BACKUP_DIR: backups },
+      env: { PATH: `${bin}:${process.env.PATH ?? ''}`, DATABASE_URL: `postgresql://crazyvtt:${written}@db.internal/crazyvtt`, BACKUP_DIR: backups },
     });
 
     expect(result.status).toBe(0);
@@ -116,7 +116,7 @@ describeOnPosix('backup.sh', () => {
   });
 
   // The script dumps the public schema. On an install whose DATABASE_URL names
-  // another, that dump holds none of CozyVTT's data and everything else in
+  // another, that dump holds none of CrazyVTT's data and everything else in
   // the database, and the script reported success.
   it.each([
     ['?schema=cozy', 'cozy'],
@@ -130,7 +130,7 @@ describeOnPosix('backup.sh', () => {
       encoding: 'utf8',
       env: {
         PATH: `${bin}:${process.env.PATH ?? ''}`,
-        DATABASE_URL: `postgresql://cozyvtt:secret@localhost:5432/cozyvtt${query}`,
+        DATABASE_URL: `postgresql://crazyvtt:secret@localhost:5432/crazyvtt${query}`,
         BACKUP_DIR: backups,
       },
     });

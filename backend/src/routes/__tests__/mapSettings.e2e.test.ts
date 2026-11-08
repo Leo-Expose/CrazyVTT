@@ -39,8 +39,8 @@ let agent: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const dm = await createTestUser({ email: `ms-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
-  const player = await createTestUser({ email: `ms-player-${stamp}@test.cozyvtt.local`, displayName: 'Player' });
+  const dm = await createTestUser({ email: `ms-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
+  const player = await createTestUser({ email: `ms-player-${stamp}@test.crazyvtt.local`, displayName: 'Player' });
   dmId = dm.id;
   playerId = player.id;
   const campaign = await createTestCampaign(dmId, { name: `Map settings ${stamp}` });

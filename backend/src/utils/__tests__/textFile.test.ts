@@ -20,7 +20,7 @@ import { isPlainTextFile } from '../textFile';
 let dir: string;
 
 beforeAll(async () => {
-  dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cozyvtt-textfile-'));
+  dir = await fs.mkdtemp(path.join(os.tmpdir(), 'crazyvtt-textfile-'));
 });
 
 afterAll(async () => {

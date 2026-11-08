@@ -11,7 +11,7 @@ export default function ServerUnreachablePanel({ onRetry }: { onRetry: () => voi
       <div role="alert" className="glass-panel max-w-md w-full p-8 text-center space-y-4">
         <h1 className="text-2xl font-bold text-brand-ink font-heading">Can't reach the server</h1>
         <p className="text-stone-gray">
-          CozyVTT is not answering at the moment, perhaps because it is restarting. This page tries again by
+          CrazyVTT is not answering at the moment, perhaps because it is restarting. This page tries again by
           itself, or you can try now.
         </p>
         <Button onClick={onRetry} className="w-full">

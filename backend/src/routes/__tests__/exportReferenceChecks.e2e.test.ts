@@ -20,7 +20,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-export-refs-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-export-refs-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { randomUUID } from 'crypto';

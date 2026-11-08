@@ -2,8 +2,8 @@
  * Files are served when the uploads or backups folder sits inside a folder
  * whose name starts with a dot.
  *
- * A self-hoster outside Docker may well keep CozyVTT under a hidden folder,
- * such as `~/.local/share/cozyvtt`. The library Express sends files with
+ * A self-hoster outside Docker may well keep CrazyVTT under a hidden folder,
+ * such as `~/.local/share/crazyvtt`. The library Express sends files with
  * refuses any path with a hidden folder in it unless told otherwise, so
  * every map, token, document, download and backup answered 404 there. The
  * paths are built by the server from stored rows and checked names, never
@@ -17,7 +17,7 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 
-const HIDDEN = fs.mkdtempSync(path.join(os.tmpdir(), '.cozyvtt-hidden-'));
+const HIDDEN = fs.mkdtempSync(path.join(os.tmpdir(), '.crazyvtt-hidden-'));
 const UPLOAD_DIR = path.join(HIDDEN, 'uploads');
 const BACKUP_DIR = path.join(HIDDEN, 'backups');
 process.env.UPLOAD_DIR = UPLOAD_DIR;

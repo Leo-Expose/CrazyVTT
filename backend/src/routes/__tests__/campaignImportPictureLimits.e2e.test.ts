@@ -13,7 +13,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-picture-limits-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-picture-limits-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 import request from 'supertest';
@@ -64,12 +64,12 @@ let counter = 0;
 async function importOne(type: 'MAP' | 'TOKEN', originalName: string, mimeType: string, bytes: Buffer) {
   counter += 1;
   const id = `44444444-4444-4444-8444-${String(counter).padStart(12, '0')}`;
-  const file = path.join(SCRATCH, `one-${counter}.cozyvtt`);
+  const file = path.join(SCRATCH, `one-${counter}.crazyvtt`);
   await writeZip(file, [
     {
       name: 'manifest.json',
       data: JSON.stringify({
-        formatVersion: 1, exportedAt: '2026-10-20T00:00:00.000Z', exportedFrom: 'CozyVTT test', campaignName: 'Picture limits',
+        formatVersion: 1, exportedAt: '2026-10-20T00:00:00.000Z', exportedFrom: 'CrazyVTT test', campaignName: 'Picture limits',
         gameSystem: 'DND_5E', mapCount: 0, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0, assetCount: 1,
         includesAudio: false, totalSizeBytes: bytes.length,
       }),

@@ -72,8 +72,8 @@ const stored = async () => {
 
 beforeAll(async () => {
   const stamp = randomUUID().slice(0, 8);
-  const dmUser = await createTestUser({ email: `vibesave-table-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
-  const playerUser = await createTestUser({ email: `vibesave-table-player-${stamp}@test.cozyvtt.local`, displayName: 'Player' });
+  const dmUser = await createTestUser({ email: `vibesave-table-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
+  const playerUser = await createTestUser({ email: `vibesave-table-player-${stamp}@test.crazyvtt.local`, displayName: 'Player' });
   dmId = dmUser.id;
   playerId = playerUser.id;
   campaignId = (await createTestCampaign(dmId, { name: `Vibe save reaches the table ${stamp}` })).id;

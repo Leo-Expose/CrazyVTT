@@ -12,6 +12,7 @@ import type { AuthenticatedSocket } from './auth';
 import type { SocketAck } from './ack';
 import { getSpiritVisibilityBatch, filterMapData, type MapData } from '../utils/spirit-layer';
 import { campaignSockets, stillInCampaign } from './utils';
+export { campaignSockets, stillInCampaign } from './utils';
 import { prisma } from '../config/database';
 import { canReadMap } from '../services/permissions';
 import logger from '../utils/logger';
@@ -54,6 +55,20 @@ export interface Token {
   creatureTemplateId?: string | null;
   /** Identity hidden from players who do not control it; see utils/tokenMask.ts. DM-only on write. */
   obscured?: boolean;
+  // Movement data (Phase 6)
+  movement?: {
+    speed: number;
+    flySpeed?: number;
+    swimSpeed?: number;
+    climbSpeed?: number;
+    burrowSpeed?: number;
+    movementMode: 'walk' | 'fly' | 'swim' | 'climb' | 'burrow' | 'teleport';
+    remainingThisTurn: number;
+    usedThisTurn: number;
+    difficultTerrainMultiplier: number;
+    threatenedSquares: number[];
+    reach: number;
+  };
 }
 
 /** One window of a flood ceiling: at most `limit` events in any `windowMs`. */
@@ -229,6 +244,36 @@ export const SOCKET_CEILINGS = {
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,
   'token.move.end': tokenMoves,
+  // Movement system (Phase 6)
+  'movement:reachable': { windows: [{ limit: 10, windowMs: SECOND }], refusal: 'Too many reachable area requests. Wait a moment.' },
+  'movement:start': tokenMoves,
+  'movement:commit': tokenMoves,
+  'movement:mode_change': { windows: [{ limit: 20, windowMs: SECOND }], refusal: 'Too many movement mode changes.' },
+  'movement:dm_override': { windows: [{ limit: 30, windowMs: SECOND }], refusal: 'Too many DM movement overrides.' },
+  'movement:reaction': { windows: [{ limit: 10, windowMs: SECOND }], refusal: 'Too many reaction responses.' },
+  'movement:dash': tokenMoves,
+  'movement:disengage': tokenMoves,
+  'movement:bonus_action': tokenMoves,
+  'action:getRegistry': tokenMoves,
+  'action:preview': tokenMoves,
+  'action:startResolution': tokenMoves,
+  'action:roll': tokenMoves,
+  'action:dmReview': dmEvent('action reviews'),
+  'action:resetUsed': dmEvent('action resets'),
+  'character:draft:join': tokenMoves,
+  'character:draft:patch': tokenMoves,
+  'character:draft:lock': dmEvent('draft locks'),
+  'character:draft:unlock': dmEvent('draft unlocks'),
+  'character:draft:suggest': dmEvent('draft suggestions'),
+  'character:draft:override': dmEvent('draft overrides'),
+  'character:draft:resolve': tokenMoves,
+  'character:draft:history': tokenMoves,
+  'layer:update': dmEvent('layer updates'),
+  'layer:reorder': dmEvent('layer reorders'),
+  'layer:data:update': dmEvent('layer data updates'),
+  'tile:place': dmEvent('tile placements'),
+  'tile:remove': dmEvent('tile removals'),
+  'tile:rectangle': dmEvent('tile rectangles'),
   // A page joins once per socket, and again after each reconnect; a browser
   // restoring its tabs joins with all of them at once.
   authenticate: {
@@ -448,6 +493,90 @@ export function revealedCellIndices(fog: FogState): number[] {
     if (v) acc.push(i);
     return acc;
   }, []);
+}
+
+/**
+ * Compute and broadcast the party vision merge (union of all party members' explored cells).
+ * This is called when the "Share Explored Areas with Party" setting is enabled.
+ */
+export async function broadcastPartyVisionMerge(
+  io: Server,
+  campaignId: string,
+  mapId: string
+): Promise<void> {
+  try {
+    // Get the campaign with the fogShareExploredWithParty setting
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { fogShareExploredWithParty: true, fogShareExcludedCharacterIds: true },
+    });
+    if (!campaign || !campaign.fogShareExploredWithParty) return;
+
+    // Get all party members (players with characters on this map)
+    const memberships = await prisma.campaignMembership.findMany({
+      where: { campaignId },
+      select: { userId: true, role: true, characterIds: true },
+    });
+
+    // Build set of excluded user IDs from excluded character IDs
+    const excludedUserIds = new Set<string>();
+    for (const m of memberships) {
+      for (const charId of m.characterIds) {
+        if (campaign.fogShareExcludedCharacterIds.includes(charId)) {
+          excludedUserIds.add(m.userId);
+          break;
+        }
+      }
+    }
+
+    // Get all map explorations for non-excluded party members
+    const explorations = await prisma.mapExploration.findMany({
+      where: {
+        mapId,
+        userId: { notIn: Array.from(excludedUserIds) },
+      },
+      select: { userId: true, explored: true },
+    });
+
+    if (explorations.length === 0) return;
+
+    // Get map dimensions for fog state
+    const map = await prisma.map.findUnique({
+      where: { id: mapId },
+      select: { width: true, height: true, gridSize: true },
+    });
+    if (!map) return;
+
+    // Build union of all explored cells
+    const fog: FogState = {
+      fogCols: map.width,
+      fogRows: map.height,
+      cellPx: map.gridSize,
+      revealed: new Array(map.width * map.height).fill(false),
+    };
+
+    for (const exp of explorations) {
+      const expFog = exp.explored as unknown as FogState;
+      if (expFog && expFog.revealed && expFog.revealed.length === fog.revealed.length) {
+        for (let i = 0; i < fog.revealed.length; i++) {
+          if (expFog.revealed[i]) fog.revealed[i] = true;
+        }
+      }
+    }
+
+    // Broadcast to all party members (players only, DM sees everything anyway)
+    const sockets = await campaignSockets(io, campaignId);
+    const unionCells = revealedCellIndices(fog);
+
+    for (const s of sockets) {
+      const member = s as unknown as AuthenticatedSocket;
+      if (member.role === 'PLAYER') {
+        s.emit('exploration:party_merge', { mapId, cells: unionCells });
+      }
+    }
+  } catch (error) {
+    logger.error('broadcastPartyVisionMerge failed', { err: error });
+  }
 }
 
 /** Context handed to every per-domain handler registrar. */

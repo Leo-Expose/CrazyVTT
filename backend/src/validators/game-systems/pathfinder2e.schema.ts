@@ -250,15 +250,49 @@ const strikeSchema = z.object({
 });
 
 /**
- * Currency
+ * Currency container (for tracking currency per container)
  */
-const currencySchema = z.object({
+const currencyContainerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
   cp: z.number().int().min(0),
   sp: z.number().int().min(0),
   gp: z.number().int().min(0),
   pp: z.number().int().min(0),
 });
 
+/**
+ * Currency with container tracking
+ */
+const currencySchema = z.object({
+  cp: z.number().int().min(0).default(0),
+  sp: z.number().int().min(0).default(0),
+  gp: z.number().int().min(0).default(0),
+  pp: z.number().int().min(0).default(0),
+  // Per container currency tracking
+  containers: z.array(currencyContainerSchema).optional(),
+});
+
+/**
+ * Charges for magical items
+ */
+const chargesSchema = z.object({
+  max: z.number().int().min(0),
+  current: z.number().int().min(0),
+  recharge: z.string().optional(),
+});
+
+/**
+ * Value with currency type
+ */
+const itemValueSchema = z.object({
+  amount: z.number().min(0),
+  currency: z.enum(['CP', 'SP', 'GP', 'PP']).optional(),
+});
+
+/**
+ * Attunement info (PF2e uses "invested" instead of attunement)
+ */
 /**
  * Inventory item
  * Most fields optional for quick item addition
@@ -272,8 +306,22 @@ const inventoryItemSchema = z.object({
   requiresAttunement: z.boolean().optional(),
   attuned: z.boolean().optional(),
   invested: z.boolean().optional(),
-  value: z.number().min(0).optional(),
   notes: longText.optional(),
+  // Container fields
+  containerId: z.string().optional(),
+  location: z.enum(['EQUIPPED', 'CARRIED', 'STOWED', 'CONTAINER']).optional(),
+  capacity: z.number().min(0).optional(),
+  capacityUnit: z.enum(['LBS', 'BULK']).optional(),
+  // Attunement/Invested
+  attunementNotes: z.string().optional(),
+  investedNotes: z.string().optional(),
+  // Magic
+  magical: z.boolean().optional(),
+  charges: chargesSchema.optional(),
+  // Value
+  value: itemValueSchema.optional(),
+  // Legacy value field for backward compatibility
+  valueLegacy: z.number().min(0).optional(),
 });
 
 /**

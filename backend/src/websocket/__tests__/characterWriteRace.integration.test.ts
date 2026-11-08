@@ -72,7 +72,7 @@ beforeAll(async () => {
   const [dm, player] = await Promise.all(
     ['dm', 'player'].map((name) =>
       prisma.user.create({
-        data: { email: `race-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Race ${name}` },
+        data: { email: `race-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Race ${name}` },
       })
     )
   );

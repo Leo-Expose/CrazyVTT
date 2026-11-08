@@ -21,6 +21,12 @@ import { registerFogHandlers } from './handlers/fog';
 import { registerExplorationHandlers } from './handlers/exploration';
 import { registerLightHandlers } from './handlers/lights';
 import { registerPingHandlers } from './handlers/pings';
+import { registerCharacterDraftHandlers } from './handlers/characterDraft';
+import { registerLayerHandlers } from './handlers/layers';
+import { registerActionHandlers } from './handlers/actions';
+import { registerMovementHandlers } from './handlers/movement';
+import { registerSpellHandlers } from './handlers/spells';
+import { registerOverrideHandlers } from './handlers/overrides';
 
 /**
  * WebSocket Event Handlers — orchestrator.
@@ -262,6 +268,12 @@ export function registerEventHandlers(io: Server): void {
     registerExplorationHandlers(io, socket);
     registerLightHandlers(io, socket);
     registerPingHandlers(io, socket);
+    registerCharacterDraftHandlers(io, socket);
+    registerLayerHandlers(io, socket);
+    registerActionHandlers(io, socket);
+    registerMovementHandlers(io, socket);
+    registerSpellHandlers(io, socket);
+    registerOverrideHandlers(io, socket);
 
     // ============================================
     // DISCONNECT EVENT

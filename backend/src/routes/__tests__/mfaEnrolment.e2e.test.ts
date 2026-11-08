@@ -42,7 +42,7 @@ const created: string[] = [];
 const destroyed = destroyUserLoginSessions as jest.MockedFunction<typeof destroyUserLoginSessions>;
 
 async function signedIn(label: string) {
-  const user = await createTestUser({ email: `mfa-enrol-${label}-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `mfa-enrol-${label}-${stamp}@test.crazyvtt.local` });
   created.push(user.id);
   const agent = request.agent(app);
   expect((await agent.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD })).status).toBe(200);

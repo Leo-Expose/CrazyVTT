@@ -72,6 +72,303 @@ enum GameSystem {
   CALL_OF_CTHULHU_7E
 }
 
+enum RulebookStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum ChunkType {
+  SPELL
+  ITEM
+  CLASS
+  SUBCLASS
+  FEAT
+  MONSTER
+  RACE
+  BACKGROUND
+  RULE
+  TABLE
+  NARRATIVE
+}
+
+enum LicenseType {
+  SRD_5E
+  SRD_5_1
+  SRD_5_5
+  COPYRIGHT_WOTC
+  CC_BY_4
+  DM_GUILD
+  UNKNOWN
+}
+
+enum ChangeType {
+  PLAYER_EDIT
+  DM_SUGGESTION
+  DM_OVERRIDE
+  DM_LOCK
+  DM_UNLOCK
+  CONFLICT_RESOLVED
+  SYSTEM_CORRECTION
+}
+
+enum ConflictType {
+  INVALID_VALUE
+  MISSING_PREREQUISITE
+  EXCEEDS_LIMIT
+  DUPLICATE
+  INCOMPATIBLE_CHOICES
+  RULE_VIOLATION
+}
+
+enum ConflictSeverity {
+  INFO
+  WARNING
+  ERROR
+  BLOCKING
+}
+
+enum TileCategory {
+  FLOOR
+  WALL
+  CORNER
+  DOOR
+  FURNITURE
+  PROP
+  STAIRS
+  SPECIAL
+}
+
+enum LayerType {
+  TERRAIN
+  STRUCTURE
+  FURNITURE
+  WALLS
+  LIGHTING
+  FOG
+  TOKENS
+  ANNOTATIONS
+}
+
+enum ActionType {
+  ATTACK_MELEE
+  ATTACK_RANGED
+  SPELL_ATTACK
+  SPELL_SAVE
+  SPELL_AOE
+  FEATURE
+  ITEM_USE
+  REACTION
+  MOVEMENT
+  OTHER
+}
+
+enum ActionCost {
+  ACTION
+  BONUS_ACTION
+  REACTION
+  FREE
+  MOVEMENT
+  LEGENDARY
+  MYTHIC
+}
+
+enum ActionSource {
+  CLASS
+  SUBCLASS
+  FEAT
+  ITEM
+  RACE
+  BACKGROUND
+  SPELL
+  RACIAL
+  CLASS_FEATURE
+  MAGIC_ITEM
+  OTHER
+}
+
+enum ResolutionStatus {
+  PREVIEW
+  ROLLING
+  DM_REVIEW
+  APPLIED
+  CANCELLED
+}
+
+model MapTile {
+  id          String       @id @default(uuid())
+  campaignId  String
+  campaign    Campaign     @relation("MapTiles", fields: [campaignId], references: [id], onDelete: Cascade)
+  name        String
+  category    TileCategory
+  assetId     String // References Asset
+  asset       Asset        @relation("MapTileAsset", fields: [assetId], references: [id], onDelete: Cascade)
+  width       Int // In grid squares
+  height      Int // In grid squares
+  connections Json? // Wang tile connection rules: {north, south, east, west, autoTile}
+  isDefault   Boolean      @default(false)
+  createdById String?
+  createdBy   User?        @relation("MapTileCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+
+  @@index([campaignId, category])
+}
+
+model MapLayer {
+  id        String    @id @default(uuid())
+  mapId     String
+  map       Map       @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  name      String
+  type      LayerType
+  order     Int
+  visible   Boolean   @default(true)
+  locked    Boolean   @default(false)
+  data      Json // Layer-specific: tiles[], vectors[], annotations[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([mapId, name])
+  @@index([mapId])
+}
+
+model CharacterDraft {
+  id             String    @id @default(uuid())
+  characterId    String    @unique
+  character      Character @relation("CharacterDraft", fields: [characterId], references: [id], onDelete: Cascade)
+  data           Json // Working copy of sheet data
+  version        Int       @default(1)
+  lastEditedById String
+  lastEditedBy   User      @relation("CharacterDraftLastEditedBy", fields: [lastEditedById], references: [id])
+  updatedAt      DateTime  @updatedAt
+}
+
+model CharacterChange {
+  id           String     @id @default(uuid())
+  characterId  String
+  character    Character  @relation("CharacterChanges", fields: [characterId], references: [id], onDelete: Cascade)
+  fieldPath    String // Dot notation: "stats.strength.score", "feats[2].name"
+  oldValue     Json?
+  newValue     Json?
+  changeType   ChangeType
+  authorId     String
+  author       User       @relation("CharacterChangeAuthor", fields: [authorId], references: [id])
+  resolvedById String?
+  resolvedBy   User?      @relation("CharacterChangeResolvedBy", fields: [resolvedById], references: [id])
+  resolvedAt   DateTime?
+  note         String?    @db.Text
+  createdAt    DateTime   @default(now())
+
+  @@index([characterId, createdAt])
+  @@index([authorId])
+}
+
+model CharacterLock {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation("CharacterLocks", fields: [characterId], references: [id], onDelete: Cascade)
+  fieldPath   String
+  lockedById  String
+  lockedBy    User      @relation("CharacterLockLockedBy", fields: [lockedById], references: [id])
+  reason      String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  @@unique([characterId, fieldPath])
+  @@index([characterId])
+}
+
+model CharacterConflict {
+  id           String           @id @default(uuid())
+  characterId  String
+  character    Character        @relation("CharacterConflicts", fields: [characterId], references: [id], onDelete: Cascade)
+  fieldPath    String
+  conflictType ConflictType
+  description  String
+  severity     ConflictSeverity
+  detectedAt   DateTime         @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?            @relation("CharacterConflictResolvedBy", fields: [resolvedById], references: [id])
+  resolution   String?          @db.Text
+
+  @@index([characterId, resolvedAt])
+}
+
+model Rulebook {
+  id             String         @id @default(uuid())
+  campaignId     String
+  campaign       Campaign       @relation("Rulebooks", fields: [campaignId], references: [id], onDelete: Cascade)
+  title          String
+  sourceId       String
+  edition        String
+  filePath       String
+  thumbnailPath  String?
+  status         RulebookStatus @default(PENDING)
+  totalPages     Int?
+  processedPages Int            @default(0)
+  uploadedById   String
+  uploadedBy     User           @relation("RulebookUploadedBy", fields: [uploadedById], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  chunks      RulebookChunk[]
+  activations RulebookActivation[]
+
+  @@index([campaignId])
+  @@index([sourceId])
+}
+
+model RulebookChunk {
+  id          String    @id @default(uuid())
+  rulebookId  String
+  rulebook    Rulebook  @relation(fields: [rulebookId], references: [id], onDelete: Cascade)
+  pageStart   Int
+  pageEnd     Int
+  contentType ChunkType
+  rawText     String    @db.Text
+  structured  Json?
+  confidence  Float     @default(0.0)
+  embedding   Json? // pgvector stored as JSON array
+  createdAt   DateTime  @default(now())
+
+  @@index([rulebookId])
+  @@index([contentType])
+}
+
+model RulebookActivation {
+  id            String     @id @default(uuid())
+  campaignId    String
+  campaign      Campaign   @relation("RulebookActivations", fields: [campaignId], references: [id], onDelete: Cascade)
+  rulebookId    String
+  rulebook      Rulebook   @relation(fields: [rulebookId], references: [id], onDelete: Cascade)
+  contentType   ChunkType?
+  sourceIds     String[]
+  activatedById String
+  activatedBy   User       @relation("RulebookActivationActivatedBy", fields: [activatedById], references: [id])
+  activatedAt   DateTime   @default(now())
+
+  @@unique([campaignId, rulebookId, contentType])
+  @@index([campaignId])
+}
+
+model ExtractedContent {
+  id          String      @id @default(uuid())
+  contentType ChunkType
+  sourceId    String
+  name        String
+  data        Json
+  rawText     String      @db.Text
+  pageRef     String
+  license     LicenseType @default(COPYRIGHT_WOTC)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([contentType, sourceId, name])
+  @@index([contentType])
+  @@index([sourceId])
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -112,7 +409,7 @@ model User {
 
   // Preferences
   rememberMe  Boolean @default(false)
-  preferences Json?   // UserPreferences shape — see backend/src/validators/userPreferences.ts
+  preferences Json? // UserPreferences shape — see backend/src/validators/userPreferences.ts
 
   // Metadata
   createdAt   DateTime  @default(now())
@@ -120,22 +417,42 @@ model User {
   lastLoginAt DateTime?
 
   // Relations
-  ownedCampaigns      Campaign[]             @relation("CampaignOwner")
-  campaignMemberships CampaignMembership[]
-  campaignInvitations CampaignInvitation[]
-  characters          Character[]
-  messages            Message[]
-  diceRolls           DiceRoll[]
-  uploadedAssets      Asset[]
-  passwordResetTokens PasswordResetToken[]
-  creatureFavorites   CreatureFavorite[]
-  tokenTemplates      TokenTemplate[]
-  characterTemplates  CharacterTemplate[]    @relation("CharacterTemplateAuthor")
-  creatureTemplates   CreatureTemplate[]     @relation("CreatureTemplateAuthor")
-  personalNotes       PersonalNote[]
-  diceMacros          DiceMacro[]
-  mapExplorations     MapExploration[]
-  documentLinks       CampaignDocument[]
+  ownedCampaigns             Campaign[]            @relation("CampaignOwner")
+  campaignMemberships        CampaignMembership[]
+  campaignInvitations        CampaignInvitation[]
+  characters                 Character[]
+  messages                   Message[]
+  diceRolls                  DiceRoll[]
+  uploadedAssets             Asset[]
+  passwordResetTokens        PasswordResetToken[]
+  creatureFavorites          CreatureFavorite[]
+  tokenTemplates             TokenTemplate[]
+  characterTemplates         CharacterTemplate[]   @relation("CharacterTemplateAuthor")
+  creatureTemplates          CreatureTemplate[]    @relation("CreatureTemplateAuthor")
+  personalNotes              PersonalNote[]
+  diceMacros                 DiceMacro[]
+  mapExplorations            MapExploration[]
+  documentLinks              CampaignDocument[]
+  characterDrafts            CharacterDraft[]      @relation("CharacterDraftLastEditedBy")
+  characterChanges           CharacterChange[]     @relation("CharacterChangeAuthor")
+  characterChangeResolutions CharacterChange[]     @relation("CharacterChangeResolvedBy")
+  characterLocks             CharacterLock[]       @relation("CharacterLockLockedBy")
+  characterConflicts         CharacterConflict[]   @relation("CharacterConflictResolvedBy")
+  uploadedRulebooks          Rulebook[]            @relation("RulebookUploadedBy")
+  activatedRulebooks         RulebookActivation[]  @relation("RulebookActivationActivatedBy")
+  createdMapTiles            MapTile[]             @relation("MapTileCreatedBy")
+  resolvedActions            ActionResolution[]    @relation("ActionResolutionResolvedBy")
+  lootDistributions          LootDistribution[]    @relation("LootDistributionCreator")
+  completedLootDistributions LootDistribution[]    @relation("LootDistributionCompleter")
+  lootAssignments            LootAssignment[]      @relation("LootAssignmentAuthor")
+  confirmedLootAssignments   LootAssignment[]      @relation("LootAssignmentConfirmer")
+  currencyTransactions       CurrencyTransaction[] @relation("CurrencyTransactionAuthor")
+  createdShops               Shop[]                @relation("ShopCreatedBy")
+  shopVisits                 ShopVisit[]
+  shopTransactions           ShopTransaction[]
+  createdSpellTemplates      SpellTemplate[]       @relation("SpellTemplateCreatedBy")
+  issuedOverrides            DMOverride[]          @relation("DMOverrideIssuedBy")
+  revertedOverrides          DMOverride[]          @relation("DMOverrideRevertedBy")
 
   @@index([email])
 }
@@ -200,7 +517,7 @@ model Campaign {
   currentMap   Map?    @relation("CurrentMap", fields: [currentMapId], references: [id])
 
   // Vibe Tracker Settings
-  vibeSettings Json    // {periods: ["dawn", "day", "dusk", "night"], hues: {...}}
+  vibeSettings Json // {periods: ["dawn", "day", "dusk", "night"], hues: {...}}
   currentVibe  String? // Current time period
 
   // Spirit Layer Settings
@@ -211,7 +528,20 @@ model Campaign {
   chatCooldownEnabled Boolean @default(false)
   chatCooldownSeconds Int     @default(5)
 
+  // Fog of War Settings
+  /**
+   * /**
+   * /**
+   * /** When true, players share their explored areas with the party (union of all explored cells).
+   */
+  fogShareExploredWithParty    Boolean  @default(false)
+  /**
+   * Characters excluded from party vision merge (e.g., familiars, scouts).
+   */
+  fogShareExcludedCharacterIds String[] @default([])
+
   // Dice Settings
+  diceMode             DiceMode  @default(TRUE_RANDOM)
   // When the DM clears roll history, this records when — rolls older than it
   // are hidden from the panel. A watermark rather than a delete, because every
   // roll including secret ones is kept deliberately for audit (see the
@@ -225,20 +555,29 @@ model Campaign {
   lastPlayedAt DateTime?
 
   // Relations
-  memberships        CampaignMembership[]
-  invitations        CampaignInvitation[]
-  maps               Map[]                @relation("CampaignMaps")
-  characters         Character[]
-  messages           Message[]
-  diceRolls          DiceRoll[]
-  assets             Asset[]
-  sessions           Session[]
-  creatureTemplates  CreatureTemplate[]
-  creatureFavorites  CreatureFavorite[]
-  tokenTemplates     TokenTemplate[]
-  personalNotes      PersonalNote[]
-  diceMacros         DiceMacro[]
-  documentLinks      CampaignDocument[]
+  memberships         CampaignMembership[]
+  invitations         CampaignInvitation[]
+  maps                Map[]                @relation("CampaignMaps")
+  characters          Character[]
+  messages            Message[]
+  diceRolls           DiceRoll[]
+  assets              Asset[]
+  sessions            Session[]
+  creatureTemplates   CreatureTemplate[]
+  creatureFavorites   CreatureFavorite[]
+  tokenTemplates      TokenTemplate[]
+  personalNotes       PersonalNote[]
+  diceMacros          DiceMacro[]
+  documentLinks       CampaignDocument[]
+  mapTiles            MapTile[]            @relation("MapTiles")
+  rulebooks           Rulebook[]           @relation("Rulebooks")
+  rulebookActivations RulebookActivation[] @relation("RulebookActivations")
+  actionResolutions   ActionResolution[]   @relation("ActionResolutions")
+  lootDistributions   LootDistribution[]   @relation("CampaignLootDistributions")
+  shops               Shop[]
+  spellTemplates      SpellTemplate[]      @relation("CampaignSpellTemplates")
+  dmOverrides         DMOverride[]         @relation("CampaignDMOverrides")
+  diceDecks           DiceDeck[]           @relation("CampaignDiceDecks")
 
   @@index([ownerId])
   @@index([status])
@@ -374,8 +713,6 @@ model CampaignDocument {
   @@index([assetId])
 }
 
-
-
 model Session {
   id            String   @id @default(uuid())
   campaignId    String
@@ -421,6 +758,18 @@ model Character {
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relations
+  draft                CharacterDraft?       @relation("CharacterDraft")
+  changes              CharacterChange[]     @relation("CharacterChanges")
+  locks                CharacterLock[]       @relation("CharacterLocks")
+  conflicts            CharacterConflict[]   @relation("CharacterConflicts")
+  actions              CharacterAction[]     @relation("CharacterActions")
+  containers           InventoryContainer[]  @relation("CharacterContainers")
+  currencyContainers   CurrencyContainer[]   @relation("CharacterCurrencyContainers")
+  currencyTransactions CurrencyTransaction[] @relation("CharacterCurrencyTransactions")
+  lootAssignments      LootAssignment[]      @relation("CharacterLootAssignments")
+  attunementSlots      AttunementSlot[]      @relation("CharacterAttunementSlots")
 
   @@index([userId])
   @@index([campaignId])
@@ -479,12 +828,12 @@ model Map {
   campaign   Campaign @relation("CampaignMaps", fields: [campaignId], references: [id], onDelete: Cascade)
 
   // Map Data
-  name     String
-  imageUrl String
-  width    Int // In grid units
-  height   Int // In grid units
+  name          String
+  imageUrl      String
+  width         Int // In grid units
+  height        Int // In grid units
   gridSize      Int    @default(50) // Pixels per grid square
-  feetPerSquare Int    @default(5)  // Feet represented by one grid square
+  feetPerSquare Int    @default(5) // Feet represented by one grid square
   diagonalRule  String @default("flat") // "flat" (D&D 5e) or "alternating" (PF2e 5/10)
 
   // Layers
@@ -496,21 +845,23 @@ model Map {
   annotations Json // Array of annotations (drawings, markers)
 
   // Walls & Fog of War
-  wallSegments    Json    @default("[]") // Array of WallSegment objects
-  fogData         Json?                  // FogState object (null = not initialized)
-  lightingEnabled Boolean @default(false) // Enable dynamic lighting/raycasting
-  fogEnabled      Boolean @default(true)  // Manual fog of war on this map; off = players see the whole map
+  wallSegments       Json    @default("[]") // Array of WallSegment objects
+  fogData            Json? // FogState object (null = not initialized)
+  lightingEnabled    Boolean @default(false) // Enable dynamic lighting/raycasting
+  fogEnabled         Boolean @default(true) // Manual fog of war on this map; off = players see the whole map
   globalIllumination Boolean @default(true) // Everything in line of sight is lit; off = lights and darkvision decide
   explorationEnabled Boolean @default(true) // Players' explored areas are remembered (greyed in) on this map
-  lights          Json    @default("[]") // Array of LightSource objects
+  lights             Json    @default("[]") // Array of LightSource objects
 
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  activeCampaigns Campaign[] @relation("CurrentMap")
+  activeCampaigns Campaign[]       @relation("CurrentMap")
   explorations    MapExploration[]
+  layers          MapLayer[]
+  shops           Shop[]           @relation("MapShops")
 
   @@index([campaignId])
 }
@@ -526,7 +877,7 @@ model MapExploration {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  explored  Json     // FogState: { fogCols, fogRows, cellPx, revealed: boolean[] }
+  explored  Json // FogState: { fogCols, fogRows, cellPx, revealed: boolean[] }
   updatedAt DateTime @updatedAt
 
   @@unique([mapId, userId])
@@ -556,7 +907,7 @@ model Asset {
   filename     String
   originalName String
   mimeType     String
-  fileSize     Int    // In bytes
+  fileSize     Int // In bytes
   filePath     String // Relative path in storage
 
   // Metadata
@@ -573,6 +924,7 @@ model Asset {
   /// DOCUMENT assets; the link is what grants a campaign's members the right
   /// to read a document that is otherwise private to its uploader.
   campaignLinks CampaignDocument[]
+  mapTiles      MapTile[]          @relation("MapTileAsset")
 
   @@index([campaignId])
   @@index([type])
@@ -626,13 +978,27 @@ model DiceRoll {
   characterName String?
   purpose       String? // e.g., "Attack roll", "Perception check"
 
+  // Mode & Metadata (Phase 12)
+  mode           DiceMode      @default(TRUE_RANDOM)
+  isReroll       Boolean       @default(false)
+  originalRollId String?
+  originalRoll   DiceRoll?     @relation("RerollChain", fields: [originalRollId], references: [id], onDelete: SetNull)
+  rerolls        DiceRoll[]    @relation("RerollChain")
+  rerollReason   RerollReason?
+  rerollNumber   Int           @default(0)
+  deckPosition   Int?
+  deckSize       Int?
+  deckSeed       String?
+
   // Visibility
-  secret Boolean @default(false) // Secret rolls visible only to roller and DM
+  secret    Boolean  @default(false) // Secret rolls visible only to roller and DM
+  visibleTo String[] @default([])
 
   // Metadata
   rolledAt DateTime @default(now())
 
   @@index([campaignId, rolledAt])
+  @@index([originalRollId])
 }
 
 // ============================================
@@ -643,31 +1009,31 @@ model CreatureTemplate {
   id String @id @default(uuid())
 
   // Classification
-  name         String
-  gameSystem   GameSystem?
-  source       String      @default("custom") // "srd", "custom", or a homebrew source name
-  challengeRating String?  // e.g. "1/4", "5", "20"
+  name            String
+  gameSystem      GameSystem?
+  source          String      @default("custom") // "srd", "custom", or a homebrew source name
+  challengeRating String? // e.g. "1/4", "5", "20"
 
   // Creature info
-  creatureType String?     // e.g. "Medium humanoid (goblinoid)"
-  alignment    String?     // e.g. "neutral evil"
-  imageUrl     String?     // Optional token image
+  creatureType String? // e.g. "Medium humanoid (goblinoid)"
+  alignment    String? // e.g. "neutral evil"
+  imageUrl     String? // Optional token image
 
   // Full stat block (JSON — matches NpcStatBlock interface)
-  statBlock    Json
+  statBlock Json
 
   // Token placement defaults
-  size         Json        @default("{\"width\":1,\"height\":1}") // Size object
-  disposition  String      @default("hostile")                     // friendly/neutral/hostile
-  displayMode  String      @default("pog")                         // pog/top-down/full-art
+  size        Json   @default("{\"width\":1,\"height\":1}") // Size object
+  disposition String @default("hostile") // friendly/neutral/hostile
+  displayMode String @default("pog") // pog/top-down/full-art
 
   // Who made it: null for the seeded SRD creatures, and for any whose
   // author's account has been deleted, which keeps the creature. `source`
   // says whether it is SRD or homebrew.
-  createdById  String?
-  createdBy    User?      @relation("CreatureTemplateAuthor", fields: [createdById], references: [id], onDelete: SetNull)
-  campaignId   String?    // null = available globally, set = campaign-specific
-  campaign     Campaign?  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdById String?
+  createdBy   User?     @relation("CreatureTemplateAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  campaignId  String? // null = available globally, set = campaign-specific
+  campaign    Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   // Metadata
   createdAt DateTime @default(now())
@@ -693,9 +1059,9 @@ model CreatureFavorite {
   creatureId String
   createdAt  DateTime @default(now())
 
-  campaign Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  creature CreatureTemplate  @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  campaign Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creature CreatureTemplate @relation(fields: [creatureId], references: [id], onDelete: Cascade)
 
   @@unique([campaignId, userId, creatureId])
   @@index([campaignId, userId])
@@ -733,8 +1099,253 @@ model TokenTemplate {
   @@index([name])
 }
 
+model CharacterAction {
+  id          String       @id @default(uuid())
+  characterId String
+  character   Character    @relation("CharacterActions", fields: [characterId], references: [id], onDelete: Cascade)
+  name        String
+  type        ActionType
+  cost        ActionCost
+  data        Json // Action-specific: attack bonus, damage, save DC, area, etc.
+  source      ActionSource
+  sourceRef   String? // e.g., "feat:great-weapon-master", "spell:fireball"
+  recharge    Json? // {type: "SHORT_REST" | "LONG_REST" | "TURN_START" | "CUSTOM", value: ...}
+  used        Boolean      @default(false)
+  sortOrder   Int          @default(0)
+
+  @@index([characterId])
+}
+
+model ActionResolution {
+  id           String           @id @default(uuid())
+  campaignId   String
+  campaign     Campaign         @relation("ActionResolutions", fields: [campaignId], references: [id], onDelete: Cascade)
+  initiatorId  String // Character or Token ID
+  targetIds    String[] // Token IDs
+  actionId     String? // CharacterAction ID if from sheet
+  actionType   ActionType
+  actionData   Json // Snapshot of action at resolution time
+  attackRolls  Json? // [{expression, result, breakdown, vsAC}]
+  saveRolls    Json? // [{targetId, expression, result, breakdown, vsDC, success}]
+  damageRolls  Json? // [{targetId, expression, result, breakdown, type, applied}]
+  conditions   Json? // Applied conditions per target
+  resources    Json? // Consumed: spell slots, charges, uses
+  status       ResolutionStatus
+  dmOverride   Boolean          @default(false)
+  dmNotes      String?          @db.Text
+  createdAt    DateTime         @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?            @relation("ActionResolutionResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([campaignId, createdAt])
+  @@index([initiatorId])
+}
+
 // ============================================
-// SYSTEM LOGS
+// INVENTORY & CURRENCY MANAGEMENT (Phase 5)
+// ============================================
+
+enum ContainerType {
+  BACKPACK
+  POUCH
+  CHEST
+  CART
+  BAG_OF_HOLDING
+  PORTABLE_HOLE
+  HANDY_HAVERSACK
+  QUIVER
+  SCABBARD
+  SHEATH
+  BELT_POUCH
+  SATCHel
+  CUSTOM
+}
+
+enum CurrencyType {
+  CP
+  SP
+  EP
+  GP
+  PP
+  NUYEN
+  CASH
+}
+
+model InventoryContainer {
+  id                      String               @id @default(uuid())
+  characterId             String
+  character               Character            @relation("CharacterContainers", fields: [characterId], references: [id], onDelete: Cascade)
+  name                    String
+  type                    ContainerType        @default(CUSTOM)
+  // Parent container (for nesting)
+  parentId                String?
+  parent                  InventoryContainer?  @relation("ContainerNesting", fields: [parentId], references: [id], onDelete: SetNull)
+  children                InventoryContainer[] @relation("ContainerNesting")
+  // Currency containers in this inventory container
+  currencyContainers      CurrencyContainer[]  @relation("CurrencyInContainer")
+  // Capacity
+  capacity                Float // Weight capacity (lbs, bulk, or kg)
+  capacityUnit            String               @default("LBS") // LBS, BULK, KG
+  // Base weight of empty container
+  baseWeight              Float                @default(0)
+  // Special container properties
+  isMagical               Boolean              @default(false)
+  magicType               String? // "bag_of_holding", "portable_hole", "handy_haversack"
+  // For Bag of Holding: which extradimensional space
+  extradimensionalSpaceId String?
+  // Description/notes
+  notes                   String?              @db.Text
+  // Sort order
+  sortOrder               Int                  @default(0)
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  @@index([characterId])
+  @@index([parentId])
+}
+
+model CurrencyContainer {
+  id               String                @id @default(uuid())
+  characterId      String
+  character        Character             @relation("CharacterCurrencyContainers", fields: [characterId], references: [id], onDelete: Cascade)
+  containerId      String? // Link to InventoryContainer if currency is in a physical container
+  container        InventoryContainer?   @relation("CurrencyInContainer", fields: [containerId], references: [id], onDelete: SetNull)
+  name             String // "Belt Pouch", "Backpack", "Main Purse"
+  // D&D 5e / Pathfinder currencies
+  cp               Int                   @default(0)
+  sp               Int                   @default(0)
+  ep               Int                   @default(0)
+  gp               Int                   @default(0)
+  pp               Int                   @default(0)
+  // Shadowrun
+  nuyen            Int                   @default(0)
+  // Call of Cthulhu
+  cash             Float                 @default(0)
+  // Custom currency (JSON for extensibility)
+  custom           Json?
+  isDefault        Boolean               @default(false) // Main currency pool
+  sortOrder        Int                   @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  // Transactions from this container
+  fromTransactions CurrencyTransaction[] @relation("TransactionFromContainer")
+  // Transactions to this container
+  toTransactions   CurrencyTransaction[] @relation("TransactionToContainer")
+
+  @@index([characterId])
+  @@index([containerId])
+}
+
+model CurrencyTransaction {
+  id              String             @id @default(uuid())
+  characterId     String
+  character       Character          @relation("CharacterCurrencyTransactions", fields: [characterId], references: [id], onDelete: Cascade)
+  fromContainerId String?
+  fromContainer   CurrencyContainer? @relation("TransactionFromContainer", fields: [fromContainerId], references: [id], onDelete: SetNull)
+  toContainerId   String?
+  toContainer     CurrencyContainer? @relation("TransactionToContainer", fields: [toContainerId], references: [id], onDelete: SetNull)
+  type            TransactionType // ADD, REMOVE, TRANSFER, CONVERT, SPLIT, MERGE, PAY, RECEIVE
+  // Amounts (positive values)
+  cp              Int                @default(0)
+  sp              Int                @default(0)
+  ep              Int                @default(0)
+  gp              Int                @default(0)
+  pp              Int                @default(0)
+  nuyen           Int                @default(0)
+  cash            Float              @default(0)
+  custom          Json?
+  // Reason/description
+  description     String             @db.Text
+  // Reference to source (shop, loot, trade, etc.)
+  sourceType      String? // "SHOP", "LOOT", "TRADE", "MANUAL", "CONVERSION"
+  sourceId        String?
+  createdById     String
+  createdBy       User               @relation("CurrencyTransactionAuthor", fields: [createdById], references: [id])
+  createdAt       DateTime           @default(now())
+
+  @@index([characterId, createdAt])
+  @@index([fromContainerId])
+  @@index([toContainerId])
+}
+
+enum TransactionType {
+  ADD
+  REMOVE
+  TRANSFER
+  CONVERT
+  SPLIT
+  MERGE
+  PAY
+  RECEIVE
+}
+
+model LootDistribution {
+  id            String           @id @default(uuid())
+  campaignId    String
+  campaign      Campaign         @relation("CampaignLootDistributions", fields: [campaignId], references: [id], onDelete: Cascade)
+  name          String // "Goblin Cave Loot", "Dragon Hoard"
+  sourceType    String // "CREATURE", "MANUAL", "TABLE", "SHOP"
+  sourceId      String? // CreatureTemplate ID, Shop ID, etc.
+  status        LootStatus       @default(PENDING)
+  items         Json // Array of loot items with value, weight, attunement
+  currency      Json // Total currency {cp, sp, ep, gp, pp, nuyen, cash}
+  createdById   String
+  createdBy     User             @relation("LootDistributionCreator", fields: [createdById], references: [id])
+  createdAt     DateTime         @default(now())
+  completedAt   DateTime?
+  completedById String?
+  completedBy   User?            @relation("LootDistributionCompleter", fields: [completedById], references: [id])
+  // Assignments
+  assignments   LootAssignment[]
+
+  @@index([campaignId, status])
+}
+
+enum LootStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model LootAssignment {
+  id               String           @id @default(uuid())
+  distributionId   String
+  distribution     LootDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  characterId      String
+  character        Character        @relation("CharacterLootAssignments", fields: [characterId], references: [id], onDelete: Cascade)
+  assignedItems    Json // Items assigned to this character
+  assignedCurrency Json // Currency assigned to this character
+  assignedById     String
+  assignedBy       User             @relation("LootAssignmentAuthor", fields: [assignedById], references: [id])
+  confirmedAt      DateTime?
+  confirmedById    String?
+  confirmedBy      User?            @relation("LootAssignmentConfirmer", fields: [confirmedById], references: [id])
+  createdAt        DateTime         @default(now())
+
+  @@index([distributionId])
+  @@index([characterId])
+}
+
+model AttunementSlot {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation("CharacterAttunementSlots", fields: [characterId], references: [id], onDelete: Cascade)
+  itemId      String // Inventory item ID (from Character.data.inventory)
+  itemName    String
+  attunedAt   DateTime  @default(now())
+  notes       String?   @db.Text
+  // For tracking slot usage (max 3 for D&D 5e)
+  slotNumber  Int
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([characterId, slotNumber])
+  @@index([characterId])
+}
+
 // ============================================
 
 model SystemLog {
@@ -763,11 +1374,11 @@ model SystemSettings {
   setupCompleted Boolean @default(false)
 
   // Instance Configuration
-  instanceName String  @default("CozyVTT")
-  timezone     String  @default("UTC")
+  instanceName String @default("CozyVTT")
+  timezone     String @default("UTC")
 
   // User Registration Settings
-  allowRegistration Boolean @default(false)
+  allowRegistration    Boolean @default(false)
   requireAdminApproval Boolean @default(true)
 
   // Appearance
@@ -784,4 +1395,242 @@ model SystemSettings {
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// SHOP SYSTEM (Phase 7)
+// ============================================
+
+enum ShopType {
+  GENERAL
+  MAGIC
+  BLACKSMITH
+  ALCHEMIST
+  TEMPLE
+  BLACK_MARKET
+  CUSTOM
+}
+
+enum ShopItemType {
+  RULEBOOK_SPELL
+  RULEBOOK_ITEM
+  RULEBOOK_MONSTER_PART
+  CUSTOM_ITEM
+  CHARACTER_TEMPLATE
+  TOKEN_TEMPLATE
+  LOOT_TABLE
+}
+
+enum ShopTransactionType {
+  BUY
+  SELL
+}
+
+model Shop {
+  id           String   @id @default(uuid())
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?  @db.Text
+  type         ShopType
+  // Location
+  mapId        String?
+  map          Map?     @relation("MapShops", fields: [mapId], references: [id], onDelete: SetNull)
+  tokenId      String? // If shop is an NPC token on map
+  // Pricing
+  buyModifier  Float    @default(1.0) // Player buys at base × this
+  sellModifier Float    @default(0.5) // Player sells at base × this
+  currency     Json // Accepted currencies + exchange rates
+  // Stock
+  restockRule  Json? // {interval: "DAWN" | "WEEKLY" | "MONTHLY", chance: 0.5, maxRestock: 3}
+  isActive     Boolean  @default(true)
+  createdById  String
+  createdBy    User     @relation("ShopCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        ShopItem[]
+  visits       ShopVisit[]
+  transactions ShopTransaction[]
+
+  @@index([campaignId])
+  @@index([mapId])
+  @@index([tokenId])
+}
+
+model ShopItem {
+  id            String       @id @default(uuid())
+  shopId        String
+  shop          Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  // Item reference
+  itemType      ShopItemType // RULEBOOK, CUSTOM, TEMPLATE, LOOT
+  itemRef       String // ID from rulebook, custom item, or template
+  itemName      String // Denormalized for display
+  itemData      Json // Full item data snapshot
+  // Stock
+  stock         Int          @default(1) // -1 = unlimited
+  maxStock      Int          @default(-1)
+  currentStock  Int          @default(1)
+  // Pricing override
+  priceOverride Json? // {cp?, sp?, ep?, gp?, pp?} - overrides base price
+  // Display
+  category      String? // "Weapons", "Potions", "Scrolls"
+  sortOrder     Int          @default(0)
+  isVisible     Boolean      @default(true)
+  notes         String?      @db.Text // DM-only notes
+
+  @@index([shopId, category])
+  @@index([shopId, isVisible])
+}
+
+model ShopVisit {
+  id        String   @id @default(uuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitedAt DateTime @default(now())
+  purchases Json // [{itemId, qty, pricePaid}]
+  sales     Json // [{itemId, qty, priceReceived}]
+
+  @@index([shopId, userId])
+  @@index([userId, visitedAt])
+}
+
+model ShopTransaction {
+  id        String              @id @default(uuid())
+  shopId    String
+  shop      Shop                @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ShopTransactionType // BUY, SELL
+  items     Json // [{itemId, itemName, qty, unitPrice, totalPrice}]
+  currency  Json // {cp, sp, ep, gp, pp} paid/received
+  createdAt DateTime            @default(now())
+
+  @@index([shopId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model SpellTemplate {
+  id          String    @id @default(uuid())
+  campaignId  String?
+  campaign    Campaign? @relation("CampaignSpellTemplates", fields: [campaignId], references: [id], onDelete: Cascade)
+  name        String
+  shape       AoEShape
+  size        Json // {radius?, length?, width?, height?, side?}
+  origin      String    @default("intersection") // "intersection" | "token_center" | "self"
+  gridSnap    Boolean   @default(true)
+  color       String    @default("#3b82f6")
+  isDefault   Boolean   @default(false)
+  createdById String?
+  createdBy   User?     @relation("SpellTemplateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([campaignId])
+}
+
+enum AoEShape {
+  CIRCLE
+  CONE
+  LINE
+  CUBE
+  SPHERE
+  CYLINDER
+  HEMISPHERE
+  CUSTOM
+}
+
+model DMOverride {
+  id             String             @id @default(uuid())
+  campaignId     String
+  campaign       Campaign           @relation("CampaignDMOverrides", fields: [campaignId], references: [id], onDelete: Cascade)
+  targetType     OverrideTargetType
+  targetId       String
+  fieldPath      String
+  previousValue  Json
+  newValue       Json
+  reason         String             @db.Text
+  visibility     OverrideVisibility
+  overriddenById String
+  overriddenBy   User               @relation("DMOverrideIssuedBy", fields: [overriddenById], references: [id])
+  overriddenAt   DateTime           @default(now())
+  revertedAt     DateTime?
+  revertedById   String?
+  revertedBy     User?              @relation("DMOverrideRevertedBy", fields: [revertedById], references: [id])
+  revertReason   String?            @db.Text
+
+  @@index([campaignId, overriddenAt])
+  @@index([targetType, targetId])
+}
+
+enum OverrideTargetType {
+  ROLL
+  ROLL_BREAKDOWN
+  HP
+  DAMAGE
+  TEMP_HP
+  DEATH_SAVES
+  CONDITIONS
+  POSITION
+  MOVEMENT
+  REACHABLE_AREA
+  INITIATIVE
+  TURN_ORDER
+  REACTION
+  ACTION_RESOLUTION
+  SPELL_SLOTS
+  CHARGES
+  HIT_DICE
+  SUPERIORITY_DICE
+  KI_POINTS
+  CHANNEL_DIVINITY
+  FOG
+  LIGHT
+  WALLS
+  DOORS
+  TERRAIN
+  NARRATIVE
+  CHAT
+}
+
+enum OverrideVisibility {
+  DM_ONLY
+  DM_AND_PLAYERS
+  TABLE
+}
+
+model DiceDeck {
+  id         String   @id @default(uuid())
+  campaignId String
+  campaign   Campaign @relation("CampaignDiceDecks", fields: [campaignId], references: [id], onDelete: Cascade)
+  expression String // Normalized: "2d6", "1d20", "4d6kh3"
+  deck       Json // DeckOutcome[]
+  position   Int      @default(0)
+  seed       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([campaignId, expression])
+  @@index([campaignId])
+}
+
+enum DiceMode {
+  TRUE_RANDOM
+  WEIGHTED_DECK
+}
+
+enum RerollReason {
+  ADVANTAGE
+  DISADVANTAGE
+  HALFLING_LUCK
+  ELVEN_ACCURACY
+  GREAT_WEAPON_FIGHTING
+  BLESS
+  BANE
+  PORTENT
+  DM_FORCED
+  PLAYER_CHOICE
+  REROLL_FEATURE
+  OTHER
 }

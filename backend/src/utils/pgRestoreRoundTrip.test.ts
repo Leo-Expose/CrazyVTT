@@ -80,13 +80,13 @@ describeWithTools('a backup of an install whose DATABASE_URL names a schema', ()
     await client.query(`INSERT INTO "${NEIGHBOUR}".kept VALUES ('before the backup')`);
     await client.query(
       `INSERT INTO "${SCHEMA}"."User" (id, email, "displayName", "passwordHash", "updatedAt")
-       VALUES ('in-the-backup', 'backup@test.cozyvtt.local', 'In the backup', 'x', NOW())`
+       VALUES ('in-the-backup', 'backup@test.crazyvtt.local', 'In the backup', 'x', NOW())`
     );
     await client.query(
       `INSERT INTO "${SCHEMA}".session (sid, sess, expire) VALUES ('signed-in-then', '{"userId":"in-the-backup"}', NOW() + interval '1 hour')`
     );
 
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'cozyvtt-round-trip-'));
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'crazyvtt-round-trip-'));
     // The tools may run as another user (a container); the folder is a test's own.
     await fs.chmod(dir, 0o777);
   });
@@ -119,7 +119,7 @@ describeWithTools('a backup of an install whose DATABASE_URL names a schema', ()
     await client.query(`DELETE FROM "${SCHEMA}"."User"`);
     await client.query(
       `INSERT INTO "${SCHEMA}"."User" (id, email, "displayName", "passwordHash", "updatedAt")
-       VALUES ('after-the-backup', 'later@test.cozyvtt.local', 'Later', 'x', NOW())`
+       VALUES ('after-the-backup', 'later@test.crazyvtt.local', 'Later', 'x', NOW())`
     );
     await client.query(`INSERT INTO public."${SENTINEL}" VALUES ('after the backup')`);
     await client.query(`INSERT INTO "${NEIGHBOUR}".kept VALUES ('after the backup')`);

@@ -13,7 +13,7 @@
 services:
   database:
     image: postgres:15-alpine
-    container_name: cozyvtt-database
+    container_name: crazyvtt-database
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
@@ -33,7 +33,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cozyvtt-backend
+    container_name: crazyvtt-backend
     restart: unless-stopped
     depends_on:
       database:
@@ -83,7 +83,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: cozyvtt-frontend
+    container_name: crazyvtt-frontend
+    # Match the host user's usual Linux UID/GID so Vite can write its temporary
+    # config bundle beside the bind-mounted source without changing ownership.
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     restart: unless-stopped
     depends_on:
       - backend

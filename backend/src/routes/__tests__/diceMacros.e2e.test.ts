@@ -49,7 +49,7 @@ describe('/api/campaigns/:campaignId/macros', () => {
   beforeAll(async () => {
     const stamp = Date.now();
     for (const who of ['dm', 'player', 'outsider']) {
-      emails[who] = `macros-${who}-${stamp}@test.cozyvtt.local`;
+      emails[who] = `macros-${who}-${stamp}@test.crazyvtt.local`;
     }
 
     const [dm, player, outsider] = await Promise.all([

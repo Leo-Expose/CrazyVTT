@@ -49,7 +49,7 @@ afterEach(() => {
 describe('downloadCampaignExport', () => {
   it('asks for the export with the session cookie and the audio choice', async () => {
     fetchMock.mockResolvedValue(archiveResponse());
-    await api.downloadCampaignExport('c1', { includeAudio: true }, 'Keep-export.cozyvtt');
+    await api.downloadCampaignExport('c1', { includeAudio: true }, 'Keep-export.crazyvtt');
     expect(fetchMock).toHaveBeenCalledWith('/api/campaigns/c1/export?includeAudio=true', { credentials: 'include' });
   });
 
@@ -60,9 +60,9 @@ describe('downloadCampaignExport', () => {
     const picker = vi.fn().mockResolvedValue({ createWritable: async () => writable });
     (window as PickerWindow).showSaveFilePicker = picker;
 
-    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.cozyvtt')).toBe('saved');
+    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.crazyvtt')).toBe('saved');
 
-    expect(picker).toHaveBeenCalledWith(expect.objectContaining({ suggestedName: 'Keep-export.cozyvtt' }));
+    expect(picker).toHaveBeenCalledWith(expect.objectContaining({ suggestedName: 'Keep-export.crazyvtt' }));
     expect(written).toHaveLength(2);
     expect(new Uint8Array(written.flatMap((c) => [...c]))).toEqual(ARCHIVE);
     expect(createObjectURL).not.toHaveBeenCalled();
@@ -72,7 +72,7 @@ describe('downloadCampaignExport', () => {
     fetchMock.mockResolvedValue(archiveResponse());
     (window as PickerWindow).showSaveFilePicker = vi.fn().mockRejectedValue(new DOMException('The user aborted a request.', 'AbortError'));
 
-    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.cozyvtt')).toBe('cancelled');
+    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.crazyvtt')).toBe('cancelled');
     expect(createObjectURL).not.toHaveBeenCalled();
   });
 
@@ -80,7 +80,7 @@ describe('downloadCampaignExport', () => {
     fetchMock.mockResolvedValue(archiveResponse());
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
-    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.cozyvtt')).toBe('saved');
+    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.crazyvtt')).toBe('saved');
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(click).toHaveBeenCalledTimes(1);
@@ -91,7 +91,7 @@ describe('downloadCampaignExport', () => {
     (window as PickerWindow).showSaveFilePicker = vi.fn().mockRejectedValue(new DOMException('Must be handling a user gesture.', 'SecurityError'));
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
-    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.cozyvtt')).toBe('saved');
+    expect(await api.downloadCampaignExport('c1', { includeAudio: false }, 'Keep-export.crazyvtt')).toBe('saved');
     expect(createObjectURL).toHaveBeenCalledTimes(1);
   });
 
@@ -101,7 +101,7 @@ describe('downloadCampaignExport', () => {
     const picker = vi.fn();
     (window as PickerWindow).showSaveFilePicker = picker;
 
-    const err = await api.downloadCampaignExport('c1', { includeAudio: false }, 'x.cozyvtt').catch((e: unknown) => e);
+    const err = await api.downloadCampaignExport('c1', { includeAudio: false }, 'x.crazyvtt').catch((e: unknown) => e);
 
     expect(apiErrorStatus(err)).toBe(422);
     expect(apiErrorMessage(err)).toBe("This campaign's files add up to 734 MB.");

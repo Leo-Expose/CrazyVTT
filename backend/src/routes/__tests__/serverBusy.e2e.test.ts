@@ -31,7 +31,7 @@ let me: ReturnType<typeof request.agent>;
 let admin: ReturnType<typeof request.agent>;
 let mfaPending: ReturnType<typeof request.agent>;
 
-const unique = (label: string) => `busy-${label}-${randomUUID().slice(0, 8)}@test.cozyvtt.local`;
+const unique = (label: string) => `busy-${label}-${randomUUID().slice(0, 8)}@test.crazyvtt.local`;
 
 async function signedIn(email: string) {
   const agent = request.agent(app);

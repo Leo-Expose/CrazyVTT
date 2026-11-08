@@ -42,7 +42,7 @@ function startAndStop(signal: NodeJS.Signals): Promise<Ended> {
     let sentAt = 0;
     const onData = (chunk: Buffer) => {
       output += chunk.toString();
-      if (!sentAt && output.includes('CozyVTT Backend running on port')) {
+      if (!sentAt && output.includes('CrazyVTT Backend running on port')) {
         sentAt = Date.now();
         child.kill(signal);
       }
@@ -74,7 +74,7 @@ it.each(['SIGTERM', 'SIGINT'] as const)('%s closes everything and exits 0 within
 it('writes a promise rejection nothing handled to its log, and exits 1', async () => {
   // Loaded before the server; the rejection happens once the server's own
   // code has run, as a forgotten promise in a route would.
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-unhandled-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-unhandled-'));
   const preload = path.join(dir, 'reject.js');
   fs.writeFileSync(preload, "setTimeout(() => { void Promise.reject(new Error('rejected and never handled, in a test')); }, 0);\n");
   try {

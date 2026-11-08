@@ -17,7 +17,7 @@ import { createWsTestServer, waitForEvent, WsTestServer } from '../../__tests__/
 jest.setTimeout(20000);
 
 const runId = randomUUID().slice(0, 8);
-const email = (name: string) => `obscuredmover-${name}-${runId}@test.cozyvtt.local`;
+const email = (name: string) => `obscuredmover-${name}-${runId}@test.crazyvtt.local`;
 
 let server: WsTestServer;
 let dmId: string;

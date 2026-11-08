@@ -25,7 +25,7 @@ import { captureLogs } from '../../__tests__/helpers/logCapture';
 
 jest.setTimeout(30000);
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-audio-stream-'));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-audio-stream-'));
 const server = http.createServer(createTestApp());
 
 /** 1,000 bytes, each the low byte of its own position, so any slice can be checked. */

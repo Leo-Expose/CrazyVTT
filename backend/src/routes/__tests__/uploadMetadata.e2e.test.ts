@@ -15,7 +15,7 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-upload-meta-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-upload-meta-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { createTestApp } from '../../__tests__/helpers/test-app';

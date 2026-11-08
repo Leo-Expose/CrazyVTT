@@ -64,8 +64,8 @@ const save = (audio: string | null) =>
 beforeAll(async () => {
   const stamp = Date.now();
   const [d, o] = await Promise.all([
-    createTestUser({ email: `vibesave-dm-${stamp}@test.cozyvtt.local`, displayName: 'VibeSave DM' }),
-    createTestUser({ email: `vibesave-outsider-${stamp}@test.cozyvtt.local`, displayName: 'VibeSave Outsider' }),
+    createTestUser({ email: `vibesave-dm-${stamp}@test.crazyvtt.local`, displayName: 'VibeSave DM' }),
+    createTestUser({ email: `vibesave-outsider-${stamp}@test.crazyvtt.local`, displayName: 'VibeSave Outsider' }),
   ]);
   dmId = d.id;
   outsiderId = o.id;
@@ -82,7 +82,7 @@ beforeAll(async () => {
   otherCampaignTrackId = await asset(outsiderId, 'AUDIO', 'CAMPAIGN', otherCampaignId, 'their-theme');
   pictureId = await asset(dmId, 'TOKEN', 'USER', null, 'a-picture');
 
-  dm = await login(`vibesave-dm-${stamp}@test.cozyvtt.local`);
+  dm = await login(`vibesave-dm-${stamp}@test.crazyvtt.local`);
 });
 
 afterAll(async () => {

@@ -31,7 +31,7 @@ const entry = (tokenId: string, initiative: number): CombatantEntry => ({
 type Sent = { active: boolean; currentTokenId: string | null; combatants: Array<{ tokenId: string }> };
 
 beforeAll(async () => {
-  dmId = (await prisma.user.create({ data: { email: `initremove-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'DM' } })).id;
+  dmId = (await prisma.user.create({ data: { email: `initremove-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'DM' } })).id;
   campaignId = (await prisma.campaign.create({ data: { name: `Remove ${runId}`, ownerId: dmId, vibeSettings: {} } })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });
   mapId = (await prisma.map.create({

@@ -16,7 +16,7 @@ import os from 'os';
 import path from 'path';
 import type { AddressInfo } from 'net';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-archive-limits-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-archive-limits-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 import request from 'supertest';
@@ -29,7 +29,7 @@ const app = createTestApp();
 const LIMIT = 20;
 
 const manifest = JSON.stringify({
-  formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT test', campaignName: 'Limits',
+  formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT test', campaignName: 'Limits',
   gameSystem: 'DND_5E', mapCount: 0, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0, assetCount: 0,
   includesAudio: false, totalSizeBytes: 0,
 });
@@ -53,7 +53,7 @@ beforeAll(async () => {
   server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', () => resolve()));
   port = (server.address() as AddressInfo).port;
-  archive = path.join(SCRATCH, 'small.cozyvtt');
+  archive = path.join(SCRATCH, 'small.crazyvtt');
   await writeZip(archive, [
     { name: 'manifest.json', data: manifest },
     { name: 'campaign.json', data: '{"name":"Limits"}' },
@@ -81,7 +81,7 @@ function send(cookie: string, method: 'GET' | 'POST', route: string): Promise<{ 
   const payload =
     method === 'POST'
       ? Buffer.concat([
-          Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="small.cozyvtt"\r\nContent-Type: application/zip\r\n\r\n`),
+          Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="small.crazyvtt"\r\nContent-Type: application/zip\r\n\r\n`),
           fs.readFileSync(archive),
           Buffer.from(`\r\n--${boundary}--\r\n`),
         ])
@@ -187,7 +187,7 @@ describe('one archive at a time', () => {
       headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': 5_000_000, Cookie: cookie },
     });
     req.on('error', () => undefined);
-    req.write(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="slow.cozyvtt"\r\nContent-Type: application/zip\r\n\r\n${'x'.repeat(1000)}`);
+    req.write(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="slow.crazyvtt"\r\nContent-Type: application/zip\r\n\r\n${'x'.repeat(1000)}`);
     return req;
   }
 

@@ -33,12 +33,12 @@ interface CampaignImportDialogProps {
 type ImportStep = 'upload' | 'preview' | 'importing' | 'done' | 'error';
 
 /**
- * A web proxy in front of CozyVTT refuses a body over its own size limit
+ * A web proxy in front of CrazyVTT refuses a body over its own size limit
  * with 413 and a page of HTML, before the server has seen it, so there is no
  * message of the server's to show.
  */
 const TOO_LARGE_FOR_SERVER =
-  'This archive is larger than the server accepts. Whoever runs the server can raise the size limit for campaign imports on the web proxy in front of CozyVTT; the deployment guide explains how.';
+  'This archive is larger than the server accepts. Whoever runs the server can raise the size limit for campaign imports on the web proxy in front of CrazyVTT; the deployment guide explains how.';
 
 /** Each kind of thing an import can leave out, as the done screen names it. */
 const SKIPPED_KIND: Record<CampaignImportSkipped['kind'], string> = {

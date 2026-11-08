@@ -30,8 +30,8 @@ let dm: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const d = await createTestUser({ email: `invite-dm-${stamp}@test.cozyvtt.local` });
-  const p = await createTestUser({ email: `invite-player-${stamp}@test.cozyvtt.local` });
+  const d = await createTestUser({ email: `invite-dm-${stamp}@test.crazyvtt.local` });
+  const p = await createTestUser({ email: `invite-player-${stamp}@test.crazyvtt.local` });
   dmId = d.id;
   playerId = p.id;
   campaignId = (await createTestCampaign(dmId, { name: `Invites ${stamp}` })).id;

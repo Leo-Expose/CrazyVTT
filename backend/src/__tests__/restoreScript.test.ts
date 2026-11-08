@@ -18,7 +18,7 @@ const SCRIPT = path.resolve(__dirname, '../../scripts/restore.sh');
 
 const describeOnPosix = process.platform === 'win32' ? describe.skip : describe;
 
-/** The shortest dump the script accepts as a CozyVTT backup. */
+/** The shortest dump the script accepts as a CrazyVTT backup. */
 const DUMP = [
   '-- PostgreSQL database dump',
   'CREATE TABLE public."User" (',
@@ -40,10 +40,10 @@ describeOnPosix('restore.sh', () => {
   let loaded: string;
 
   beforeEach(async () => {
-    root = await fs.mkdtemp(path.join(os.tmpdir(), 'cozyvtt-restore-script-'));
+    root = await fs.mkdtemp(path.join(os.tmpdir(), 'crazyvtt-restore-script-'));
     bin = path.join(root, 'bin');
     await fs.mkdir(bin);
-    backup = path.join(root, 'cozyvtt_20260927_120000.sql.gz');
+    backup = path.join(root, 'crazyvtt_20260927_120000.sql.gz');
     await fs.writeFile(backup, gzipSync(DUMP));
     // Keeps what it was asked to load, so a test can see whether it ran.
     loaded = path.join(root, 'loaded.sql');
@@ -60,7 +60,7 @@ describeOnPosix('restore.sh', () => {
       encoding: 'utf8',
       env: {
         PATH: `${bin}:${process.env.PATH ?? ''}`,
-        DATABASE_URL: 'postgresql://cozyvtt:secret@localhost:5432/cozyvtt',
+        DATABASE_URL: 'postgresql://crazyvtt:secret@localhost:5432/crazyvtt',
         RESTORE_ASSUME_YES: 'yes',
         TMPDIR: root,
       },
@@ -96,7 +96,7 @@ describeOnPosix('restore.sh', () => {
       encoding: 'utf8',
       env: {
         PATH: `${bin}:${process.env.PATH ?? ''}`,
-        DATABASE_URL: 'postgresql://cozy%2Badmin:p%40ss%25w0rd@db.internal/cozyvtt?schema=public',
+        DATABASE_URL: 'postgresql://cozy%2Badmin:p%40ss%25w0rd@db.internal/crazyvtt?schema=public',
         RESTORE_ASSUME_YES: 'yes',
         TMPDIR: root,
       },
@@ -105,11 +105,11 @@ describeOnPosix('restore.sh', () => {
     expect(result.status).toBe(0);
     const [password, ...args] = (await fs.readFile(seen, 'utf8')).trimEnd().split('\n');
     expect(password).toBe('p@ss%w0rd');
-    expect(args).toEqual(expect.arrayContaining(['-h', 'db.internal', '-p', '5432', '-U', 'cozy+admin', '-d', 'cozyvtt']));
+    expect(args).toEqual(expect.arrayContaining(['-h', 'db.internal', '-p', '5432', '-U', 'cozy+admin', '-d', 'crazyvtt']));
   });
 
   // The script replaces the public schema. On an install whose DATABASE_URL
-  // names another, that is not CozyVTT's data: it would drop whatever else
+  // names another, that is not CrazyVTT's data: it would drop whatever else
   // the database holds there and load the backup beside the instance's own.
   it('refuses an address that names another schema, and loads nothing', async () => {
     const result = spawnSync('bash', [SCRIPT, backup], {
@@ -117,7 +117,7 @@ describeOnPosix('restore.sh', () => {
       encoding: 'utf8',
       env: {
         PATH: `${bin}:${process.env.PATH ?? ''}`,
-        DATABASE_URL: 'postgresql://cozyvtt:secret@localhost:5432/cozyvtt?connection_limit=5&schema=cozy',
+        DATABASE_URL: 'postgresql://crazyvtt:secret@localhost:5432/crazyvtt?connection_limit=5&schema=cozy',
         RESTORE_ASSUME_YES: 'yes',
         TMPDIR: root,
       },
@@ -145,7 +145,7 @@ describeOnPosix('restore.sh', () => {
   // The script and the dashboard's restore each drop the same lines.
   it('drops exactly the ownership lines the dashboard restore drops', async () => {
     const lines = [
-      'ALTER TABLE public."Note" OWNER TO "cozyvttAdmin";',
+      'ALTER TABLE public."Note" OWNER TO "crazyvttAdmin";',
       'ALTER SEQUENCE public.note_seq OWNER TO cozy;',
       'ALTER FUNCTION public.f() OWNER TO cozy;',
       'ALTER TABLE ONLY public."Note" ADD CONSTRAINT "Note_pkey" PRIMARY KEY (id);',

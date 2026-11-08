@@ -1,7 +1,7 @@
 /**
  * The instance name an admin sets reaches the browser.
  *
- * The browser tab showed CozyVTT whatever the name was, because nothing the
+ * The browser tab showed CrazyVTT whatever the name was, because nothing the
  * page could read carried it. GET /api/auth/appearance, which every page
  * reads before anyone signs in, now includes it.
  *

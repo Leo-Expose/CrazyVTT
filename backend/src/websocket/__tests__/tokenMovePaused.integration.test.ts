@@ -18,7 +18,7 @@ import { readTokens } from '../../utils/prisma-json';
 jest.setTimeout(20000);
 
 const runId = randomUUID().slice(0, 8);
-const email = (name: string) => `paused-${name}-${runId}@test.cozyvtt.local`;
+const email = (name: string) => `paused-${name}-${runId}@test.crazyvtt.local`;
 
 let server: WsTestServer;
 let dmId: string;

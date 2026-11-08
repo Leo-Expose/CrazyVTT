@@ -59,9 +59,9 @@ beforeAll(async () => {
   // None of these are platform admins: an admin may read everything by design,
   // which would hide exactly the bug under test.
   const [d, p, o] = await Promise.all([
-    createTestUser({ email: `track-dm-${stamp}@test.cozyvtt.local`, displayName: 'Track DM' }),
-    createTestUser({ email: `track-player-${stamp}@test.cozyvtt.local`, displayName: 'Track Player' }),
-    createTestUser({ email: `track-outsider-${stamp}@test.cozyvtt.local`, displayName: 'Track Outsider' }),
+    createTestUser({ email: `track-dm-${stamp}@test.crazyvtt.local`, displayName: 'Track DM' }),
+    createTestUser({ email: `track-player-${stamp}@test.crazyvtt.local`, displayName: 'Track Player' }),
+    createTestUser({ email: `track-outsider-${stamp}@test.crazyvtt.local`, displayName: 'Track Outsider' }),
   ]);
   dmId = d.id; playerId = p.id; outsiderId = o.id;
 

@@ -41,7 +41,7 @@ const smtp = email.isSmtpConfigured as jest.MockedFunction<typeof email.isSmtpCo
 // the test has to be able to fail rather than not compile.
 const notice = (email as unknown as { sendEmailChangedNotice: jest.Mock }).sendEmailChangedNotice;
 
-const address = (label: string) => `emailchange-${label}-${stamp}@test.cozyvtt.local`;
+const address = (label: string) => `emailchange-${label}-${stamp}@test.crazyvtt.local`;
 
 async function signedIn(label: string, role: 'USER' | 'ADMIN' = 'USER') {
   const user = await createTestUser({ email: address(label), displayName: `Owner ${label}`, role });

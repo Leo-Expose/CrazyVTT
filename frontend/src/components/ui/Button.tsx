@@ -14,7 +14,7 @@ import { forwardRef } from 'react';
 import { Loader2, type LucideIcon } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -40,6 +40,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     'bg-transparent text-ink px-4 py-2 rounded-cozy font-medium ' +
     'hover:bg-surface transition-colors duration-200 ' +
     'focus:outline-hidden focus:ring-2 focus:ring-brand focus:ring-offset-2',
+  outline: 'bg-transparent text-ink border border-border hover:bg-ink-muted/10',
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {

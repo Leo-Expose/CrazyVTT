@@ -341,7 +341,7 @@ describe('parseUVTT', () => {
     });
   });
 
-  describe('lights written by CozyVTT', () => {
+  describe('lights written by CrazyVTT', () => {
     it('reads back a bright radius and a switched-off light', () => {
       const buffer = Buffer.from(
         JSON.stringify({

@@ -1,4 +1,4 @@
-# CozyVTT Player Guide
+# CrazyVTT Player Guide
 
 Welcome, adventurer! This guide will get you from "I got an invitation link" to "I'm rolling dice with my friends" as quickly and painlessly as possible.
 
@@ -37,7 +37,7 @@ The link is valid for **7 days**. If it expires, ask your administrator to send 
 
 **If you receive a temporary password instead:**
 
-1. Go to the CozyVTT URL
+1. Go to the CrazyVTT URL
 2. Sign in with your email and the temporary password
 3. You'll be asked immediately to choose your own password — this is required, and until you do, the temporary one won't get you anywhere else in the app
 
@@ -53,7 +53,7 @@ Either way you end up with a password only you know. Pick something you'll actua
 
 Your DM invites you by typing part of your display name into a search and picking your account from the people who match. Two people can have the same display name, and your profile picture is how your DM tells you apart. Here's what happens next:
 
-1. **Log in** to CozyVTT
+1. **Log in** to CrazyVTT
 2. On your **Dashboard**, a **Pending Invitations** section appears below the Your Characters, Asset Library, Documents and Character Templates cards. An invitation sent while the dashboard is open shows up when you come back to the tab, or within a minute
 3. Each invitation shows the campaign name and, after **DM:**, who runs the campaign
 4. Click **View Invitation →** to open it. Tick the characters you want to bring, if you have any created already, then click **Accept Invitation**. Only characters of the campaign's game system are offered, and only ones not already in a campaign: a D&D 5e campaign takes D&D 5e characters, and a campaign set to Flexible takes Flexible characters
@@ -168,9 +168,9 @@ You can keep documents of your own too, from **Documents** on your dashboard: up
 
 ### Connection Status
 
-When you first load the campaign page, CozyVTT connects to the live session. Look for the **connection indicator** in the header — it turns green when you're successfully connected. If you see a loading spinner, just wait a moment.
+When you first load the campaign page, CrazyVTT connects to the live session. Look for the **connection indicator** in the header — it turns green when you're successfully connected. If you see a loading spinner, just wait a moment.
 
-If you lose connection (WiFi hiccup, a server restart), CozyVTT keeps trying to reconnect by itself for as long as it takes: every few seconds at first, then every 30 seconds, and at once when you come back to the tab. The indicator shows **Connecting...** while it tries. When it shows **Disconnected** or **Connection Error** in red, the **Retry** button beside it tries straight away.
+If you lose connection (WiFi hiccup, a server restart), CrazyVTT keeps trying to reconnect by itself for as long as it takes: every few seconds at first, then every 30 seconds, and at once when you come back to the tab. The indicator shows **Connecting...** while it tries. When it shows **Disconnected** or **Connection Error** in red, the **Retry** button beside it tries straight away.
 
 ### If your DM hands you the game
 
@@ -250,7 +250,7 @@ Your list of saved rolls is **yours alone** — not even your DM can see it, onl
 the name of one you roll — and saved rolls stay
 with the campaign you made them in, so one table's homebrew doesn't clutter
 another game. You can rename, edit or delete them from the same **Saved** button,
-and you can keep up to 50 per campaign. If an expression can't be rolled, CozyVTT
+and you can keep up to 50 per campaign. If an expression can't be rolled, CrazyVTT
 says so when you save it rather than letting you find out later with a button
 that never works.
 
@@ -319,6 +319,22 @@ If a session shows no notes, your DM simply didn't write any that night.
 Hover any token and a card appears in the bottom-left with a large view of its picture, its **HP**, any **conditions** it has, and its **Initiative** if it is in the current fight. It stays useful while you are holding a token: the card follows the square under your cursor, so you can see who is already standing where you are about to land.
 
 You will only ever see what you are meant to. Another player's hit points come from their character sheet, which you can already read. A creature's are the DM's to reveal, and appear only once they turn its HP bar on. A grey token with a question mark is something you can see but cannot make out: the DM has obscured it, and your browser is not sent its name, picture, conditions, hit points or who controls it until they reveal it. And a token standing in unrevealed fog tells you nothing at all — no name, no picture, nothing.
+
+### Reading Enemy Health
+
+Instead of displaying exact HP values, enemy health is shown qualitatively to reflect what your character would visibly observe in the moment:
+
+- **Token Border Rings**: Tokens on the map display an outer colored ring indicating physical state:
+  - 🟢 **Healthy** (100%–75%): No visible wounds or significant wear.
+  - 🟡 **Wounded** (75%–50%): Minor cuts, bruises, or visible exhaustion.
+  - 🟠 **Bloodied** (50%–25%): Substantial bleeding or obvious injury.
+  - 🔴 **Critical** (25%–1%): Severe wounds, barely standing.
+  - ⚪ **Unconscious** (0 HP, stable): Incapacitated.
+  - 💔 **Dying** (0 HP, dying): In mortal peril.
+  - 💀 **Dead**: Deceased.
+- **Hover Information**: Pointing at an enemy token describes their status (e.g., *"Looks bloodied"* or *"Looks critical"*).
+- **Initiative Tracker**: The initiative tracker displays this qualitative descriptor under the creature's name rather than raw numbers.
+- **Your Own Characters**: You always see exact hit points for tokens and characters you own or control.
 
 ### Why parts of the map are dark
 
@@ -426,13 +442,13 @@ It rolls **one** die, not the whole pool — spending is one die at a time, and 
 
 **A hit die that isn't a plain die.** If your game uses something else — a homebrew class whose hit die is `2d6`, or one with a flat bonus like `1d10+1` — type that in the die box and it rolls exactly as written, with your Constitution added on top. Anything the dice roller understands works here.
 
-**Add the hit points yourself.** CozyVTT rolls the die and keeps count of what you have left, but it doesn't change your HP for you — use the **+** button on your roster card for the amount you rolled. (If your Constitution modifier is negative and the total comes out below zero, you regain nothing rather than losing hit points.)
+**Add the hit points yourself.** CrazyVTT rolls the die and keeps count of what you have left, but it doesn't change your HP for you — use the **+** button on your roster card for the amount you rolled. (If your Constitution modifier is negative and the total comes out below zero, you regain nothing rather than losing hit points.)
 
 Once the pool is empty the number stops being clickable. Your DM can also spend one on your behalf if you're not at the table, and it comes off your sheet the same way.
 
 **Getting them back.** A short rest is when you *spend* hit dice — it doesn't give any back. A **long rest** does: you regain all your lost hit points, plus spent hit dice up to **half your total, rounded down, and always at least one**. So a level 5 fighter with `5d10` gets two back, not five, and a level 1 character gets their single die back.
 
-CozyVTT doesn't apply that for you yet. After a long rest, click **Edit** on your sheet and set the remaining number for each pool yourself — **Max** is there so you can see what you're counting back up towards.
+CrazyVTT doesn't apply that for you yet. After a long rest, click **Edit** on your sheet and set the remaining number for each pool yourself — **Max** is there so you can see what you're counting back up towards.
 
 ### Weapons that do more than one thing
 
@@ -610,15 +626,33 @@ The campaign card on the dashboard calls a **Live** campaign **Active**.
 
 **I can't move my token.** Check that the session isn't Paused or Inactive, and that the token is yours to move (your DM sets that in **Edit Token**).
 
-**CozyVTT won't open on my tablet or old computer.** It needs Chrome or Edge 111, Firefox 128 or Safari 16.4 (iPadOS 16.4 on an iPad), or newer: Chrome, Edge and Safari from 2023, Firefox from 2024. An older browser may not load the app, or may draw parts of it wrongly, so update the browser or use another device.
+**CrazyVTT won't open on my tablet or old computer.** It needs Chrome or Edge 111, Firefox 128 or Safari 16.4 (iPadOS 16.4 on an iPad), or newer: Chrome, Edge and Safari from 2023, Firefox from 2024. An older browser may not load the app, or may draw parts of it wrongly, so update the browser or use another device.
 
-**I lost connection.** CozyVTT reconnects by itself; **Retry** beside the connection indicator in the header tries at once. Your session state is saved on the server.
+**I lost connection.** CrazyVTT reconnects by itself; **Retry** beside the connection indicator in the header tries at once. Your session state is saved on the server.
 
 **Someone edited my character.** Only you and your campaign's DM can edit your characters. If you have concerns, speak with your platform administrator.
 
 **I need to switch characters.** From the Characters page, unassign your current character from the campaign and assign the new one. Let your DM know so they can update the token.
 
 **I forgot my password.** Use the **Forgot password?** link on the sign-in page if your instance sends email. Otherwise contact your platform administrator — they can reset it and give you a temporary login.
+
+---
+
+### Understanding Roll Metadata (Dual-Mode Dice)
+
+Your DM may configure the campaign to use the **Weighted Bell Curve** dice mode. When active, you'll see small badges on each roll in the Dice Panel:
+
+| Badge | Meaning |
+|-------|---------|
+| 🎲 | True Random — standard independent roll |
+| 🃏 Draw 7/36 | Weighted Deck — 7th draw out of a 36-entry cycle |
+| 🔄 Adv | Re-rolled with Advantage |
+| 🔄 Halfling Luck | Re-rolled because of Halfling Luck |
+
+**What is Weighted Deck mode?**
+In this mode all possible outcomes are pre-shuffled into a deck and drawn in order. If you're rolling 1d20, you'll see every number from 1 to 20 exactly once per cycle of 20 rolls (in a random order). This eliminates long "unlucky streaks" while keeping the same mathematical distribution over time.
+
+You cannot change the dice mode — that is a DM setting.
 
 ---
 

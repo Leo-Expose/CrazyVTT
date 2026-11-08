@@ -26,7 +26,7 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-serve-ct-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-serve-ct-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { createTestApp } from '../../__tests__/helpers/test-app';
@@ -52,7 +52,7 @@ let agent: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
   const u = await createTestUser({
-    email: `serve-ct-${Date.now()}@test.cozyvtt.local`,
+    email: `serve-ct-${Date.now()}@test.crazyvtt.local`,
     displayName: 'Serve CT',
   });
   userId = u.id;

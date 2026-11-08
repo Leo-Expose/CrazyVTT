@@ -18,7 +18,7 @@ import os from 'os';
 import path from 'path';
 import type { AddressInfo } from 'net';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-export-stream-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-export-stream-'));
 const UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
@@ -127,7 +127,7 @@ describe('a campaign export', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toBe('application/zip');
-    expect(res.headers['content-disposition']).toBe('attachment; filename="Big_Maps-export.cozyvtt"');
+    expect(res.headers['content-disposition']).toBe('attachment; filename="Big_Maps-export.crazyvtt"');
     expect(finishedAtFirstChunk).toBe(false);
     expect(finished()).toBe(true);
     // And it is a whole archive, picture included.

@@ -19,7 +19,7 @@ import { isAllowedMimeType } from '../../utils/fileUtils';
 let dir: string;
 
 beforeAll(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-file-type-'));
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-file-type-'));
 });
 
 afterAll(() => {

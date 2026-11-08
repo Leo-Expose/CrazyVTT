@@ -1,6 +1,6 @@
-# CozyVTT — API Reference
+# CrazyVTT — API Reference
 
-This document covers the CozyVTT REST API and WebSocket event protocol.
+This document covers the CrazyVTT REST API and WebSocket event protocol.
 
 The backend also ships a full **OpenAPI 3.0 specification** at `backend/docs/API_DOCUMENTATION.yaml`. Load it into [Swagger UI](https://swagger.io/tools/swagger-ui/) or [Redoc](https://redocly.github.io/redoc/) for interactive documentation with request/response schemas.
 
@@ -22,19 +22,22 @@ The backend also ships a full **OpenAPI 3.0 specification** at `backend/docs/API
 12. [User & Admin Endpoints](#user--admin-endpoints)
 13. [Config Endpoint](#config-endpoint)
 14. [Setup Endpoints](#setup-endpoints)
-15. [WebSocket Events](#websocket-events)
-16. [Error Responses](#error-responses)
-17. [Rate Limits](#rate-limits)
+15. [Rulebook Endpoints](#rulebook-endpoints)
+16. [Shop Endpoints](#shop-endpoints)
+17. [Inventory & Currency Endpoints](#inventory--currency-endpoints)
+18. [WebSocket Events](#websocket-events)
+19. [Error Responses](#error-responses)
+20. [Rate Limits](#rate-limits)
 
 ---
 
 ## Authentication
 
-CozyVTT uses **session-based authentication**. The session cookie is set on login and must be included in every subsequent request (browsers do this automatically with `credentials: 'include'`).
+CrazyVTT uses **session-based authentication**. The session cookie is set on login and must be included in every subsequent request (browsers do this automatically with `credentials: 'include'`).
 
 ### Session Cookie
 
-- **Cookie name:** `cozyvtt.sid`, always. It is signed with `SESSION_SECRET`, which does not change the name
+- **Cookie name:** `crazyvtt.sid`, always. It is signed with `SESSION_SECRET`, which does not change the name
 - **Flags:** `httpOnly` and `sameSite: lax`. `Secure` is added only when the request reached the server over HTTPS, directly or through a proxy that sends `X-Forwarded-Proto: https`, so an install served over plain HTTP sends the cookie without it. The bundled nginx passes that header on only from a proxy listed in `NGINX_TRUSTED_PROXIES` in `.env`
 - **Duration:** the session ends after `SESSION_MAX_AGE` (default 1 hour) with no request, and every request starts that count again. With "remember me" the window is `REMEMBER_ME_MAX_AGE` (default 30 days). Every session also ends `REMEMBER_ME_MAX_AGE` after it was made, however active, with 401 "Your sign-in has reached its 30-day limit. Sign in again." and `code: "SIGN_IN_EXPIRED"`; an account keeps at most 20 live sessions, and each sign-in ends those beyond 20 that are due to end soonest
 
@@ -288,7 +291,7 @@ Returns the instance's appearance settings, with its name, which the browser tab
 **Response:**
 ```json
 {
-  "instanceName": "CozyVTT",
+  "instanceName": "CrazyVTT",
   "themeId": "cozy-default",
   "customThemeColors": null,
   "fontId": "default",
@@ -655,7 +658,7 @@ Copy a token template to another campaign. Requires DM role in both the source a
 
 ### `GET /api/campaigns/:campaignId/export`
 
-Export a campaign as a `.cozyvtt` ZIP archive. Requires DM role. Each user may export 20 campaigns an hour, and run one archive operation (export, import or preview) at a time; a request past either answers `429` with a `message` saying so.
+Export a campaign as a `.crazyvtt` ZIP archive. Requires DM role. Each user may export 20 campaigns an hour, and run one archive operation (export, import or preview) at a time; a request past either answers `429` with a `message` saying so.
 
 **Query params:**
 - `includeAudio` — `true` to include audio assets (default: `false`): the tracks of the campaign's atmosphere periods and its ambient track. An import plays the imported copies.
@@ -667,7 +670,7 @@ Export a campaign as a `.cozyvtt` ZIP archive. Requires DM role. Each user may e
 
 ### `POST /api/campaigns/import/preview`
 
-Upload a `.cozyvtt` archive and return its manifest preview without creating anything. The app's import window reads the manifest in the browser and uses this route only for an archive it cannot read there. Requires authentication. Each user may preview 20 archives an hour, one archive operation at a time; past either answers `429`.
+Upload a `.crazyvtt` archive and return its manifest preview without creating anything. The app's import window reads the manifest in the browser and uses this route only for an archive it cannot read there. Requires authentication. Each user may preview 20 archives an hour, one archive operation at a time; past either answers `429`.
 
 **Request:** `multipart/form-data` with field `file` containing the archive, at most 500 MB; a larger one answers `413`. The bundled nginx gives this route and the import 512 MB, apart from `NGINX_MAX_BODY_SIZE`, and five minutes to answer.
 
@@ -677,7 +680,7 @@ Upload a `.cozyvtt` archive and return its manifest preview without creating any
   "preview": {
     "formatVersion": 1,
     "exportedAt": "2026-04-18T12:00:00.000Z",
-    "exportedFrom": "CozyVTT v1.5.4",
+    "exportedFrom": "CrazyVTT v1.5.4",
     "campaignName": "The Lost Mines",
     "gameSystem": "DND_5E",
     "mapCount": 5,
@@ -695,10 +698,10 @@ Upload a `.cozyvtt` archive and return its manifest preview without creating any
 
 ### `POST /api/campaigns/import`
 
-Import a `.cozyvtt` archive and create a new campaign. Requires authentication; any signed-in user may import, and becomes the new campaign's DM. Each user may import 20 campaigns an hour, one archive operation at a time; past either answers `429`.
+Import a `.crazyvtt` archive and create a new campaign. Requires authentication; any signed-in user may import, and becomes the new campaign's DM. Each user may import 20 campaigns an hour, one archive operation at a time; past either answers `429`.
 
 **Request:** `multipart/form-data` with fields:
-- `file` — the `.cozyvtt` archive (required)
+- `file` — the `.crazyvtt` archive (required)
 - `campaignName` — override the campaign name (optional, string)
 - `importTokens` — `false` to skip token import (optional, default `true`)
 
@@ -1645,7 +1648,7 @@ it was is written to the backup list first, and the response names it as `safety
 
 One restore runs at a time: a second sent while the first takes its upload or writes that
 backup answers `409`. A refused file answers `400` (not named `.zip`, not a ZIP archive,
-more than 100,000 entries, not a complete CozyVTT backup, a backup of a schema other than
+more than 100,000 entries, not a complete CrazyVTT backup, a backup of a schema other than
 the one `DATABASE_URL` names, or an upload that could not be read, such as one cut off) or `413` (over 4 GB, or
 unpacking to more than 10 GiB), with the reason. While the database is being replaced,
 live connections are closed and every other API request, a second restore included,
@@ -1697,6 +1700,69 @@ Run the wizard: create the first administrator, apply the instance settings and 
 
 ---
 
+## Rulebook Endpoints
+
+### `POST /api/rulebooks/upload`
+Upload a PDF rulebook for automated indexing, section chunking, and spell/item extraction.
+- **Access:** Platform Admin or Campaign DM
+- **Payload:** `multipart/form-data` with `file`, `title`, `system` (`DND_5E`, `PF_2E`, `COC_7E`, etc.)
+- **Response:** `202 Accepted` with `{ rulebookId, status: "PROCESSING" }`
+
+### `GET /api/rulebooks`
+List all accessible rulebooks for the active user/campaign.
+- **Access:** Authenticated member
+- **Response:** `200 OK` with array of `{ id, title, system, pageCount, isProcessed }`
+
+### `GET /api/rulebooks/:id/search`
+Query parsed rulebook sections, spells, monsters, and items by keyword.
+- **Parameters:** `?q=fireball&type=spell`
+- **Response:** `200 OK` with matching entities and rulebook citation page numbers.
+
+---
+
+## Shop Endpoints
+
+### `GET /api/campaigns/:campaignId/shops`
+List all shops configured for a campaign.
+- **Access:** Campaign Member
+- **Response:** `200 OK` with array of `Shop` objects (name, type, buyModifier, sellModifier, items).
+
+### `POST /api/campaigns/:campaignId/shops`
+Create a new shop in the campaign.
+- **Access:** Campaign DM
+- **Payload:** `{ name, description, type, buyModifier, sellModifier, currency, restockRule }`
+- **Response:** `201 Created`
+
+### `POST /api/campaigns/:campaignId/shops/:shopId/buy`
+Execute a player purchase from shop inventory.
+- **Access:** Character Owner or Campaign DM
+- **Payload:** `{ items: [{ itemId, quantity }] }`
+- **Response:** `200 OK` with `{ success: true, transaction }`
+
+### `POST /api/campaigns/:campaignId/shops/:shopId/sell`
+Sell items from player inventory to the shop.
+- **Access:** Character Owner or Campaign DM
+- **Payload:** `{ items: [{ itemId, quantity }] }`
+- **Response:** `200 OK` with `{ success: true, transaction }`
+
+---
+
+## Inventory & Currency Endpoints
+
+### `GET /api/campaigns/:campaignId/inventory`
+Get inventory and container list for campaign characters.
+- **Access:** Campaign Member
+
+### `POST /api/characters/:characterId/currency/add`
+Add currency denominations (cp, sp, ep, gp, pp) to character wallet/containers.
+- **Access:** Character Owner or Campaign DM
+
+### `POST /api/characters/:characterId/currency/spend`
+Deduct currency with automatic denomination conversion.
+- **Access:** Character Owner or Campaign DM
+
+---
+
 ## WebSocket Events
 
 Described in one place rather than three:
@@ -1704,6 +1770,14 @@ Described in one place rather than three:
 — the connection and authentication handshake, a worked example of the
 token-movement flow, and a generated inventory of every event the server
 listens for or emits.
+
+### Key Phase 9–12 Real-Time Event Handlers
+- **Spell AoE (Phase 10):** `spell:cast`, `spell:resolve`, `spell:review`
+- **Universal DM Override (Phase 11):** `override:issue`, `override:revert`, `override:history`
+- **Dual-Mode Dice (Phase 12):** `dice.roll.v2`, `dice.setMode`, `dice.audit`, `dice.reshuffleDeck`
+- **Collaborative Character (Phase 2):** `character:draft:join`, `character:draft:patch`, `character:draft:lock`
+- **Real-Time Actions (Phase 4):** `action:preview`, `action:execute`, `action:reaction`
+- **Movement (Phase 6):** `token:move:plan`, `token:move:commit`
 
 ## Error Responses
 
@@ -1786,6 +1860,23 @@ authentication is set up on the account, and then has to send a code at every si
 ---
 
 ## Rate Limits
+
+## Phase Feature APIs
+
+All endpoints below are under `/api/campaigns` and require an authenticated campaign membership unless marked DM-only. The server applies the existing `campaignMember`/`campaignDM` gates before business logic.
+
+| Area | Endpoint | Access |
+|------|----------|--------|
+| Rulebooks | `POST /:campaignId/rulebooks`, `POST /:rulebookId/process`, `POST /:rulebookId/activate` | DM |
+| Shops | `GET/POST /:campaignId/shops`, `PUT/DELETE /:shopId`, `POST /:shopId/items` | DM for writes |
+| Shop transactions | `POST /:shopId/buy`, `POST /:shopId/sell`, `POST /:shopId/restock` | Member / DM |
+| Inventory | `GET/POST/PATCH /:campaignId/characters/:characterId/inventory`, containers, currency, and attunement subroutes | Member |
+| Loot | `POST /:campaignId/loot`, assign/confirm/suggest/complete/cancel subroutes | Member / DM |
+| Map layers and tiles | `/maps/:mapId/layers` and `/tiles` | DM for mutations |
+
+Live-only phase flows use the authenticated campaign WebSocket room: `character:draft:*`, `movement:*`, `spell:cast`, `spell:resolve`, `override:*`, `action:*`, and `layer:*`.
+
+Shop buy/sell mutations are limited to 30 requests per minute per client. Rulebook uploads retain their upload limiter, and spell casts are limited to 30 per socket per minute. Limits return `429` for HTTP and an `error` event for WebSocket callers.
 
 | Endpoint Group | Limit | Window | Counts |
 |----------------|-------|--------|--------|

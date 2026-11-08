@@ -22,7 +22,7 @@ jest.mock('../../services/systemSettings', () => ({
   getSystemSettings: jest.fn().mockResolvedValue({
     id: 'test-settings',
     setupCompleted: true,
-    instanceName: 'CozyVTT Test',
+    instanceName: 'CrazyVTT Test',
     timezone: 'UTC',
     allowRegistration: true,
     requireAdminApproval: false,
@@ -45,7 +45,7 @@ let userId: string;
 let agent: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
-  const user = await createTestUser({ email: `dname-owner-${stamp}@test.cozyvtt.local`, displayName: 'Owner' });
+  const user = await createTestUser({ email: `dname-owner-${stamp}@test.crazyvtt.local`, displayName: 'Owner' });
   userId = user.id;
   agent = request.agent(app);
   expect((await agent.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD })).status).toBe(200);
@@ -64,7 +64,7 @@ describe('registration', () => {
   const register = (label: string, displayName: unknown) =>
     request(app)
       .post('/api/auth/register')
-      .send({ email: `dname-${label}-${stamp}@test.cozyvtt.local`, password: TEST_PASSWORD, displayName });
+      .send({ email: `dname-${label}-${stamp}@test.crazyvtt.local`, password: TEST_PASSWORD, displayName });
 
   it('refuses a name that is only spaces', async () => {
     const res = await register('blank', '    ');

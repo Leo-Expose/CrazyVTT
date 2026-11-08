@@ -48,7 +48,7 @@ const stored = (mapId: string) =>
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `restlock-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `restlock-${stamp}@test.crazyvtt.local` });
   dmId = user.id;
   campaignId = (await createTestCampaign(dmId, { name: `REST locking ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

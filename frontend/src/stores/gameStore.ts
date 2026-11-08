@@ -47,6 +47,7 @@ const EMPTY_COMBAT: CombatState = {
 };
 
 interface GameState {
+  campaignId: string | null;
   /**
    * Where a token someone else is carrying is drawn, by id. A drag frame moves
    * only this. `tokens[id].position`, which sight, lighting and explored
@@ -108,9 +109,11 @@ interface GameState {
   seedCharacterHp: (entries: { id: string; hp: CharacterHpInfo | null }[]) => void;
   /** Session teardown. */
   clearGameState: () => void;
+  setCampaignId: (campaignId: string | null) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
+  campaignId: null,
   heldAt: {},
   tokens: {},
   tokenOrder: [],
@@ -118,6 +121,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   peekTokenId: null,
   peekSource: null,
   characterHp: {},
+  setCampaignId: (campaignId) => set({ campaignId }),
 
   setTokens: (list) =>
     set({
@@ -203,7 +207,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }),
 
   clearGameState: () =>
-    set({ tokens: {}, tokenOrder: [], heldAt: {}, combat: EMPTY_COMBAT, peekTokenId: null, peekSource: null, characterHp: {} }),
+    set({ campaignId: null, tokens: {}, tokenOrder: [], heldAt: {}, combat: EMPTY_COMBAT, peekTokenId: null, peekSource: null, characterHp: {} }),
 }));
 
 // ============================================

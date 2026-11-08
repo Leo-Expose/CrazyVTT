@@ -136,7 +136,7 @@ describe('validate:characters --export', () => {
   };
   let scratch: string;
   beforeEach(() => {
-    scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-validate-export-'));
+    scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-validate-export-'));
   });
   afterEach(() => {
     fs.chmodSync(scratch, 0o700);

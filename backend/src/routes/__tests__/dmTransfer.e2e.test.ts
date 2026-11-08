@@ -51,7 +51,7 @@ describe('PUT /api/campaigns/:campaignId/dm', () => {
   beforeAll(async () => {
     const stamp = Date.now();
     for (const who of ['owner', 'dm', 'player', 'spectator', 'admin', 'outsider']) {
-      emails[who] = `dmtransfer-${who}-${stamp}@test.cozyvtt.local`;
+      emails[who] = `dmtransfer-${who}-${stamp}@test.crazyvtt.local`;
     }
 
     const [owner, dm, player, spectator, admin, outsider] = await Promise.all([

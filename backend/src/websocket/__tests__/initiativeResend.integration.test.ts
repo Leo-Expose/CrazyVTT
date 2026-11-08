@@ -27,7 +27,7 @@ jest.setTimeout(30000);
 
 const app = createTestApp();
 const runId = randomUUID().slice(0, 8);
-const email = (name: string) => `resend-${name}-${runId}@test.cozyvtt.local`;
+const email = (name: string) => `resend-${name}-${runId}@test.crazyvtt.local`;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let server: WsTestServer;

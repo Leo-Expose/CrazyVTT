@@ -146,7 +146,7 @@ beforeAll(async () => {
   const roles = ['DM', 'PLAYER', 'SPECTATOR'] as const;
   const users = await Promise.all(
     roles.map((role) =>
-      prisma.user.create({ data: { email: `dmonly-${role}-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: role } })
+      prisma.user.create({ data: { email: `dmonly-${role}-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: role } })
     )
   );
   userIds.push(...users.map((u) => u.id));

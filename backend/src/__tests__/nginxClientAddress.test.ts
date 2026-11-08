@@ -58,8 +58,8 @@ const live = directives(conf);
 const locations = directives(read('nginx/locations.conf'));
 
 /** Where the nginx container finds the files the template includes. */
-const LOCATIONS_PATH = '/etc/nginx/cozyvtt/locations.conf';
-const LOCAL_DIR = '/etc/nginx/cozyvtt.d';
+const LOCATIONS_PATH = '/etc/nginx/crazyvtt/locations.conf';
+const LOCAL_DIR = '/etc/nginx/crazyvtt.d';
 
 /** The nginx service's block of docker-compose.yml. */
 const nginxService = (() => {
@@ -156,23 +156,23 @@ describe('the bundled nginx configuration', () => {
 
   it('names the backend and frontend only through variables', () => {
     expect(values(locations, 'set').map((v) => v.replace(/\s+/g, ' '))).toEqual([
-      '$cozyvtt_backend http://backend:4000',
-      '$cozyvtt_frontend http://frontend:80',
+      '$crazyvtt_backend http://backend:4000',
+      '$crazyvtt_frontend http://frontend:80',
     ]);
     expect(values(live, 'set')).toEqual([]);
     const targets = proxyingLocations(locations).map((l) => values(l.directives, 'proxy_pass')[0]);
     expect(targets.length).toBeGreaterThanOrEqual(6);
-    expect(targets.filter((t) => t !== '$cozyvtt_backend' && t !== '$cozyvtt_frontend')).toEqual([]);
+    expect(targets.filter((t) => t !== '$crazyvtt_backend' && t !== '$crazyvtt_frontend')).toEqual([]);
   });
 
   it('believes X-Forwarded-Proto only from the addresses it believes X-Forwarded-For from', () => {
     // A trusted connection is told apart by the address it really came from.
-    const geo = /^geo \$realip_remote_addr \$cozyvtt_trusted_proxy \{\n([\s\S]*?)\n\}/m.exec(conf);
+    const geo = /^geo \$realip_remote_addr \$crazyvtt_trusted_proxy \{\n([\s\S]*?)\n\}/m.exec(conf);
     if (!geo) throw new Error('nginx/nginx.conf no longer marks a trusted connection with a geo block');
     const entries = geo[1].split('\n').map((line) => line.trim()).filter(Boolean);
     expect(entries).toEqual(['default   0;', '127.0.0.1 1;', '::1       1;', '${NGINX_TRUSTED_GEO}']);
 
-    const proto = /^map "\$cozyvtt_trusted_proxy:\$http_x_forwarded_proto" \$real_proto \{\n([\s\S]*?)\n\}/m.exec(conf);
+    const proto = /^map "\$crazyvtt_trusted_proxy:\$http_x_forwarded_proto" \$real_proto \{\n([\s\S]*?)\n\}/m.exec(conf);
     if (!proto) throw new Error('nginx/nginx.conf no longer decides $real_proto from the trusted flag and the header');
     expect(proto[1].split('\n').map((line) => line.trim().replace(/\s+/g, ' ')).filter(Boolean)).toEqual([
       'default $scheme;',
@@ -201,7 +201,7 @@ describe('the bundled nginx configuration', () => {
   it('gives the plain-HTTP server the shared proxying rules, and proxies nothing itself', () => {
     expect(values(live, 'include')).toContain(LOCATIONS_PATH);
     expect(proxyingLocations(live)).toEqual([]);
-    expect(nginxService).toMatch(/\n {6}- \.\/nginx\/locations\.conf:\/etc\/nginx\/cozyvtt\/locations\.conf:ro\n/);
+    expect(nginxService).toMatch(/\n {6}- \.\/nginx\/locations\.conf:\/etc\/nginx\/crazyvtt\/locations\.conf:ro\n/);
   });
 
   it("reads the self-hoster's own settings from nginx/conf.d, at the top level, after the shipped server", () => {
@@ -215,7 +215,7 @@ describe('the bundled nginx configuration', () => {
     }
     expect(depth).toBe(0);
     expect(conf.indexOf('\nserver {')).toBeLessThan(at > -1 ? conf.indexOf(`include ${include};`) : -1);
-    expect(nginxService).toMatch(/\n {6}- \.\/nginx\/conf\.d:\/etc\/nginx\/cozyvtt\.d:ro\n/);
+    expect(nginxService).toMatch(/\n {6}- \.\/nginx\/conf\.d:\/etc\/nginx\/crazyvtt\.d:ro\n/);
   });
 
   it('keeps nginx/conf.d out of git, apart from its README', () => {

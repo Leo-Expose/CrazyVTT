@@ -43,7 +43,7 @@ import { errorMessage } from '../utils/errors';
 import { getState as getCombatState, setState as setCombatState, removeCombatants } from '../websocket/initiativeState';
 import { sendInitiativeState, resendInitiative } from '../websocket/handlers/initiative';
 import { readTokens, toJson } from '../utils/prisma-json';
-import type { Prisma } from '@prisma/client';
+import { Prisma, LayerType, TileCategory } from '@prisma/client';
 import { loadFogState, applyWsFogOperation, broadcastFogState, type Token, broadcastMapData, resendSightAfterChange, fogFits, FogTooLargeError } from '../websocket/shared';
 import { MapSideSchema, GridSizeSchema, FeetPerSquareSchema, MAP_LIMITS, MAP_NAME_TOO_LONG_MESSAGE, MAP_IMAGE_NOT_A_MAP_PICTURE_MESSAGE, SPIRIT_LAYER_NOT_A_MAP_PICTURE_MESSAGE, dimensionProblem, wallOutsideMap, lightOutsideMap, WALL_OUTSIDE_MAP_MESSAGE, LIGHT_OUTSIDE_MAP_MESSAGE, GEOMETRY_MARGIN_SQUARES, tooManyTokensMessage } from '../validators/maps';
 
@@ -2568,6 +2568,599 @@ router.put('/:id/lighting', campaignDM, async (req: AuthenticatedRequest, res: R
   } catch (error) {
     logger.error('Error updating lighting setting', { err: error });
     return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update lighting setting' });
+  }
+});
+
+// ============================================
+// MAP LAYER ENDPOINTS (Advanced Map Drawing)
+// ============================================
+
+/**
+ * GET /api/campaigns/:campaignId/maps/:id/layers
+ * Return all layers for a map
+ */
+router.get('/:id/layers', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, id } = req.params;
+    const map = await findMapInCampaign(campaignId, id, res, req.campaignMembership!.role);
+    if (!map) return;
+
+    const layers = await prisma.mapLayer.findMany({
+      where: { mapId: id },
+      orderBy: { order: 'asc' }
+    });
+
+    return res.status(200).json({ layers });
+  } catch (error) {
+    logger.error('Error fetching map layers', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch map layers' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/maps/:id/layers
+ * Create a new layer (DM only)
+ * Body: { name: string, type: LayerType, data?: Json, order?: number }
+ */
+router.post('/:id/layers', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, id } = req.params;
+    const map = await findMapInCampaign(campaignId, id, res, req.campaignMembership!.role);
+    if (!map) return;
+
+    const { name, type, data = {}, order } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Layer name is required' });
+    }
+
+    if (!type || !Object.values(['TERRAIN', 'STRUCTURE', 'FURNITURE', 'WALLS', 'LIGHTING', 'FOG', 'TOKENS', 'ANNOTATIONS']).includes(type)) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Invalid layer type' });
+    }
+
+    // Determine order if not provided
+    const layerOrder = order ?? (await prisma.mapLayer.count({ where: { mapId: id } }));
+
+    const layer = await prisma.mapLayer.create({
+      data: {
+        mapId: id,
+        name,
+        type,
+        order: layerOrder,
+        data: data as Prisma.InputJsonValue,
+        visible: true,
+        locked: false,
+      }
+    });
+
+    // Broadcast layer creation
+    try {
+      await tellMapReaders(campaignId, id, 'layer:added', { mapId: id, layer });
+    } catch { /* non-fatal */ }
+
+    return res.status(201).json({ layer });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return res.status(400).json({ error: 'Validation Error', message: 'A layer with this name already exists' });
+    }
+    logger.error('Error creating map layer', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create map layer' });
+  }
+});
+
+/**
+ * PUT /api/campaigns/:campaignId/maps/:id/layers/:layerId
+ * Update a layer (DM only)
+ * Body: { name?: string, order?: number, visible?: boolean, locked?: boolean, data?: Json }
+ */
+router.put('/:id/layers/:layerId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, id, layerId } = req.params;
+    const map = await findMapInCampaign(campaignId, id, res, req.campaignMembership!.role);
+    if (!map) return;
+
+    const { name, order, visible, locked, data } = req.body;
+
+    const updateData: Prisma.MapLayerUpdateInput = {};
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Layer name cannot be empty' });
+      }
+      updateData.name = name.trim();
+    }
+    if (order !== undefined) {
+      if (typeof order !== 'number' || order < 0) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Order must be a non-negative number' });
+      }
+      updateData.order = order;
+    }
+    if (visible !== undefined) {
+      if (typeof visible !== 'boolean') {
+        return res.status(400).json({ error: 'Validation Error', message: 'Visible must be a boolean' });
+      }
+      updateData.visible = visible;
+    }
+    if (locked !== undefined) {
+      if (typeof locked !== 'boolean') {
+        return res.status(400).json({ error: 'Validation Error', message: 'Locked must be a boolean' });
+      }
+      updateData.locked = locked;
+    }
+    if (data !== undefined) {
+      updateData.data = data as Prisma.InputJsonValue;
+    }
+
+    const layer = await prisma.mapLayer.update({
+      where: { id: layerId, mapId: id },
+      data: updateData
+    });
+
+    // Broadcast layer update
+    try {
+      await tellMapReaders(campaignId, id, 'layer:updated', { mapId: id, layer });
+    } catch { /* non-fatal */ }
+
+    return res.status(200).json({ layer });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return res.status(404).json({ error: 'Not Found', message: 'Layer not found' });
+    }
+    logger.error('Error updating map layer', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update map layer' });
+  }
+});
+
+/**
+ * DELETE /api/campaigns/:campaignId/maps/:id/layers/:layerId
+ * Delete a layer (DM only)
+ */
+router.delete('/:id/layers/:layerId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, id, layerId } = req.params;
+    const map = await findMapInCampaign(campaignId, id, res, req.campaignMembership!.role);
+    if (!map) return;
+
+    // Don't allow deleting system layers (WALLS, LIGHTING, FOG, TOKENS)
+    const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId: id } });
+    if (!layer) {
+      return res.status(404).json({ error: 'Not Found', message: 'Layer not found' });
+    }
+
+    const protectedTypes = ['WALLS', 'LIGHTING', 'FOG', 'TOKENS'];
+    if (protectedTypes.includes(layer.type)) {
+      return res.status(400).json({ error: 'Validation Error', message: `Cannot delete system layer: ${layer.type}` });
+    }
+
+    await prisma.mapLayer.delete({ where: { id: layerId } });
+
+    // Reorder remaining layers
+    const remainingLayers = await prisma.mapLayer.findMany({
+      where: { mapId: id },
+      orderBy: { order: 'asc' }
+    });
+    await prisma.$transaction(
+      remainingLayers.map((l, index) =>
+        prisma.mapLayer.update({ where: { id: l.id }, data: { order: index } })
+      )
+    );
+
+    // Broadcast layer deletion
+    try {
+      await tellMapReaders(campaignId, id, 'layer:removed', { mapId: id, layerId });
+    } catch { /* non-fatal */ }
+
+    return res.status(200).json({ message: 'Layer deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting map layer', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete map layer' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/maps/:id/layers/reorder
+ * Reorder layers (DM only)
+ * Body: { layerIds: string[] }
+ */
+router.post('/:id/layers/reorder', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, id } = req.params;
+    const map = await findMapInCampaign(campaignId, id, res, req.campaignMembership!.role);
+    if (!map) return;
+
+    const { layerIds } = req.body;
+    if (!Array.isArray(layerIds)) {
+      return res.status(400).json({ error: 'Validation Error', message: 'layerIds must be an array' });
+    }
+
+    // Verify all layers belong to this map
+    const layers = await prisma.mapLayer.findMany({
+      where: { id: { in: layerIds }, mapId: id }
+    });
+    if (layers.length !== layerIds.length) {
+      return res.status(400).json({ error: 'Validation Error', message: 'One or more layers not found' });
+    }
+
+    // Update orders in transaction
+    await prisma.$transaction(
+      layerIds.map((layerId, index) =>
+        prisma.mapLayer.update({ where: { id: layerId }, data: { order: index } })
+      )
+    );
+
+    const updatedLayers = await prisma.mapLayer.findMany({
+      where: { mapId: id },
+      orderBy: { order: 'asc' }
+    });
+
+    // Broadcast reorder
+    try {
+      await tellMapReaders(campaignId, id, 'layers:reordered', { mapId: id, layers: updatedLayers });
+    } catch { /* non-fatal */ }
+
+    return res.status(200).json({ layers: updatedLayers });
+  } catch (error) {
+    logger.error('Error reordering map layers', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to reorder map layers' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/maps/:id/layers/:layerId/duplicate
+ * Duplicate a layer (DM only)
+ */
+router.post('/:id/layers/:layerId/duplicate', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, id, layerId } = req.params;
+    const map = await findMapInCampaign(campaignId, id, res, req.campaignMembership!.role);
+    if (!map) return;
+
+    const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId: id } });
+    if (!layer) {
+      return res.status(404).json({ error: 'Not Found', message: 'Layer not found' });
+    }
+
+    // Generate unique name
+    let newName = `${layer.name} Copy`;
+    let counter = 1;
+    while (await prisma.mapLayer.findFirst({ where: { mapId: id, name: newName } })) {
+      newName = `${layer.name} Copy ${++counter}`;
+    }
+
+    const newLayer = await prisma.mapLayer.create({
+      data: {
+        mapId: id,
+        name: newName,
+        type: layer.type,
+        order: layer.order + 1,
+        data: layer.data as Prisma.InputJsonValue,
+        visible: layer.visible,
+        locked: layer.locked,
+      }
+    });
+
+    // Shift subsequent layers down
+    await prisma.$transaction(
+      (await prisma.mapLayer.findMany({ where: { mapId: id, order: { gt: layer.order } }, orderBy: { order: 'asc' } }))
+        .map(l => prisma.mapLayer.update({ where: { id: l.id }, data: { order: l.order + 1 } }))
+    );
+
+    // Broadcast
+    try {
+      await tellMapReaders(campaignId, id, 'layer:added', { mapId: id, layer: newLayer });
+    } catch { /* non-fatal */ }
+
+    return res.status(201).json({ layer: newLayer });
+  } catch (error) {
+    logger.error('Error duplicating map layer', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to duplicate map layer' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/maps/:id/layers/initialize
+ * Initialize default layers for a map (DM only)
+ */
+router.post('/:id/layers/initialize', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, id } = req.params;
+    const map = await findMapInCampaign(campaignId, id, res, req.campaignMembership!.role);
+    if (!map) return;
+
+    // Check if layers already exist
+    const existingLayers = await prisma.mapLayer.count({ where: { mapId: id } });
+    if (existingLayers > 0) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Map already has layers. Delete existing layers first.' });
+    }
+
+    const defaultLayers = [
+      { name: 'Terrain', type: 'TERRAIN', order: 0, data: { tiles: [] } },
+      { name: 'Structure', type: 'STRUCTURE', order: 1, data: { tiles: [] } },
+      { name: 'Furniture', type: 'FURNITURE', order: 2, data: { tiles: [] } },
+      { name: 'Walls', type: 'WALLS', order: 3, data: { segments: [] } },
+      { name: 'Lighting', type: 'LIGHTING', order: 4, data: { lights: [] } },
+      { name: 'Fog', type: 'FOG', order: 5, data: { boxes: [] } },
+      { name: 'Tokens', type: 'TOKENS', order: 6, data: {} },
+      { name: 'Annotations', type: 'ANNOTATIONS', order: 7, data: { drawings: [] } },
+    ];
+
+    const layers = await prisma.$transaction(
+      defaultLayers.map(l =>
+        prisma.mapLayer.create({
+          data: {
+            mapId: id,
+            name: l.name,
+            type: l.type as LayerType,
+            order: l.order,
+            data: l.data as Prisma.InputJsonValue,
+            visible: true,
+            locked: false,
+          }
+        })
+      )
+    );
+
+    return res.status(201).json({ layers });
+  } catch (error) {
+    logger.error('Error initializing map layers', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to initialize map layers' });
+  }
+});
+
+// ============================================
+// MAP TILE ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/campaigns/:campaignId/tiles
+ * Get all tiles for a campaign
+ * Query: category (optional)
+ */
+router.get('/tiles', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId } = req.params;
+    const { category } = req.query;
+
+    const tiles = await prisma.mapTile.findMany({
+      where: {
+        campaignId,
+        ...(typeof category === 'string' && Object.values(TileCategory).includes(category as TileCategory)
+          ? { category: category as TileCategory }
+          : {})
+      },
+      include: {
+        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
+        createdBy: { select: { id: true, displayName: true } }
+      },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }]
+    });
+
+    return res.status(200).json({ tiles });
+  } catch (error) {
+    logger.error('Error fetching map tiles', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch map tiles' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/tiles
+ * Create a new map tile (DM only)
+ */
+router.post('/tiles', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId } = req.params;
+    const { name, category, assetId, width, height, connections, isDefault = false } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Tile name is required' });
+    }
+    if (!category || !Object.values(['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL']).includes(category)) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Invalid tile category' });
+    }
+    if (!assetId || typeof assetId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
+    }
+    if (!Number.isInteger(width) || width < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Width must be a positive integer' });
+    }
+    if (!Number.isInteger(height) || height < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Height must be a positive integer' });
+    }
+
+    const tile = await prisma.mapTile.create({
+      data: {
+        campaignId,
+        name,
+        category,
+        assetId,
+        width,
+        height,
+        connections: connections as Prisma.InputJsonValue | undefined,
+        isDefault,
+        createdById: req.session.userId,
+      },
+      include: {
+        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
+        createdBy: { select: { id: true, displayName: true } }
+      }
+    });
+
+    return res.status(201).json({ tile });
+  } catch (error) {
+    logger.error('Error creating map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create map tile' });
+  }
+});
+
+/**
+ * GET /api/campaigns/:campaignId/tiles/:tileId
+ * Get a specific tile
+ */
+router.get('/tiles/:tileId', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, tileId } = req.params;
+
+    const tile = await prisma.mapTile.findFirst({
+      where: { id: tileId, campaignId },
+      include: {
+        asset: true,
+        createdBy: { select: { id: true, displayName: true } },
+        campaign: { select: { id: true, name: true } }
+      }
+    });
+
+    if (!tile) {
+      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
+    }
+
+    return res.status(200).json({ tile });
+  } catch (error) {
+    logger.error('Error fetching map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch map tile' });
+  }
+});
+
+/**
+ * PUT /api/campaigns/:campaignId/tiles/:tileId
+ * Update a tile (DM only)
+ */
+router.put('/tiles/:tileId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, tileId } = req.params;
+    const { name, category, width, height, connections } = req.body;
+
+    const tile = await prisma.mapTile.findFirst({ where: { id: tileId, campaignId } });
+    if (!tile) {
+      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
+    }
+    if (tile.isDefault) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Cannot modify default tiles' });
+    }
+
+    const updateData: Prisma.MapTileUpdateInput = {};
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Tile name cannot be empty' });
+      }
+      updateData.name = name.trim();
+    }
+    if (category !== undefined) {
+      if (!Object.values(['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL']).includes(category)) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Invalid tile category' });
+      }
+      updateData.category = category;
+    }
+    if (width !== undefined) {
+      if (!Number.isInteger(width) || width < 1) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Width must be a positive integer' });
+      }
+      updateData.width = width;
+    }
+    if (height !== undefined) {
+      if (!Number.isInteger(height) || height < 1) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Height must be a positive integer' });
+      }
+      updateData.height = height;
+    }
+    if (connections !== undefined) {
+      updateData.connections = connections as Prisma.InputJsonValue;
+    }
+
+    const updatedTile = await prisma.mapTile.update({
+      where: { id: tileId },
+      data: updateData,
+      include: {
+        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
+        createdBy: { select: { id: true, displayName: true } }
+      }
+    });
+
+    return res.status(200).json({ tile: updatedTile });
+  } catch (error) {
+    logger.error('Error updating map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update map tile' });
+  }
+});
+
+/**
+ * DELETE /api/campaigns/:campaignId/tiles/:tileId
+ * Delete a tile (DM only)
+ */
+router.delete('/tiles/:tileId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, tileId } = req.params;
+
+    const tile = await prisma.mapTile.findFirst({ where: { id: tileId, campaignId } });
+    if (!tile) {
+      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
+    }
+    if (tile.isDefault) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Cannot delete default tiles' });
+    }
+
+    await prisma.mapTile.delete({ where: { id: tileId } });
+
+    return res.status(200).json({ message: 'Tile deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete map tile' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/tiles/auto-slice
+ * Auto-slice a tile sheet into individual tiles (DM only)
+ */
+router.post('/tiles/auto-slice', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId } = req.params;
+    const { assetId, tileWidth, tileHeight, spacing = 0, margin = 0, namePrefix, category, columns, rows } = req.body;
+
+    if (!assetId || typeof assetId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
+    }
+    if (!Number.isInteger(tileWidth) || tileWidth < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'tileWidth must be a positive integer' });
+    }
+    if (!Number.isInteger(tileHeight) || tileHeight < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'tileHeight must be a positive integer' });
+    }
+
+    const tileService = await import('../services/tileService.js');
+    const result = await tileService.autoSliceTileSheet(assetId, campaignId, tileWidth, tileHeight, spacing, margin, {
+      namePrefix,
+      category: category || 'FLOOR',
+      createdById: req.session.userId,
+      columns,
+      rows
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    logger.error('Error auto-slicing tile sheet', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : 'Failed to auto-slice tile sheet' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/tiles/detect-connections
+ * Detect Wang tile connections from a tile image (DM only)
+ */
+router.post('/tiles/detect-connections', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId: _campaignId } = req.params;
+    const { assetId, threshold = 128 } = req.body;
+
+    if (!assetId || typeof assetId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
+    }
+
+    const tileService = await import('../services/tileService.js');
+    const connections = await tileService.detectWangConnections(assetId, threshold);
+
+    return res.status(200).json({ connections });
+  } catch (error) {
+    logger.error('Error detecting tile connections', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : 'Failed to detect tile connections' });
   }
 });
 

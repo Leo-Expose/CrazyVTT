@@ -36,7 +36,7 @@ const stamp = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 const created: string[] = [];
 
 async function account(label: string, role: 'ADMIN' | 'USER' = 'USER') {
-  const user = await createTestUser({ email: `adminlog-${label}-${stamp}@test.cozyvtt.local`, displayName: `Log ${label}`, role });
+  const user = await createTestUser({ email: `adminlog-${label}-${stamp}@test.crazyvtt.local`, displayName: `Log ${label}`, role });
   created.push(user.id);
   return user;
 }
@@ -94,7 +94,7 @@ describe('PUT /api/users/:id by an administrator', () => {
   it("writes changing someone else's email address and name, old and new", async () => {
     const { agent } = await signedInAdmin('change-email');
     const target = await account('change-email-target');
-    const newEmail = `adminlog-moved-${stamp}@test.cozyvtt.local`;
+    const newEmail = `adminlog-moved-${stamp}@test.crazyvtt.local`;
 
     const res = await agent.put(`/api/users/${target.id}`).send({ email: newEmail, displayName: 'Renamed' });
     expect(res.status).toBe(200);
@@ -114,7 +114,7 @@ describe('PUT /api/users/:id by an administrator', () => {
     const { agent } = await signedInAdmin('change-bio');
     const target = await account('change-bio-target');
     await prisma.user.update({ where: { id: target.id }, data: { bio: 'Likes dragons, afraid of owlbears' } });
-    const newEmail = `adminlog-bio-moved-${stamp}@test.cozyvtt.local`;
+    const newEmail = `adminlog-bio-moved-${stamp}@test.crazyvtt.local`;
 
     expect((await agent.put(`/api/users/${target.id}`).send({ bio: 'Moved to Lisbon in March' })).status).toBe(200);
     // Clearing it is a change too, and the other fields keep their values.

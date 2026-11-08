@@ -75,8 +75,8 @@ function collect<T>(client: ClientSocket, event: string, count: number, timeoutM
 }
 
 beforeAll(async () => {
-  const dm = await prisma.user.create({ data: { email: `mel-dm-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'Lock DM' } });
-  const player = await prisma.user.create({ data: { email: `mel-pl-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'Lock Player' } });
+  const dm = await prisma.user.create({ data: { email: `mel-dm-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'Lock DM' } });
+  const player = await prisma.user.create({ data: { email: `mel-pl-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'Lock Player' } });
   dmId = dm.id;
   playerId = player.id;
   campaignId = (await prisma.campaign.create({ data: { name: `Map edit locking ${runId}`, ownerId: dmId, vibeSettings: {} } })).id;

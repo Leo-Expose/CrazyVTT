@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Dices, User, Target } from 'lucide-react';
-import type { DiceRolledEvent } from '@/types';
+import type { DiceRolledEvent, DiceMode, RerollReason } from '@/types';
+import { REROLL_LABEL } from './DiceModeSelector';
 
 interface DiceResultProps {
   roll: DiceRolledEvent;
@@ -11,12 +12,22 @@ interface DiceResultProps {
    * cannot be claimed by whoever is rolling.
    */
   rollerIsDM?: boolean;
+  /** Phase 12: dice mode used for this roll */
+  mode?: DiceMode;
+  /** Phase 12: draw number within current deck cycle */
+  deckPosition?: number | null;
+  /** Phase 12: total deck size (number of unique outcomes) */
+  deckSize?: number | null;
+  /** Phase 12: whether this is a re-roll */
+  isReroll?: boolean;
+  /** Phase 12: why this was re-rolled */
+  rerollReason?: RerollReason | null;
 }
 
 /**
  * Display a single dice roll result with breakdown and animations
  */
-export default function DiceResult({ roll, isCurrentUser, rollerIsDM }: DiceResultProps) {
+export default function DiceResult({ roll, isCurrentUser, rollerIsDM, mode, deckPosition, deckSize, isReroll, rerollReason }: DiceResultProps) {
   const { userName, characterName, expression, result, breakdown, purpose, timestamp, secret } = roll;
 
   /**
@@ -179,6 +190,31 @@ export default function DiceResult({ roll, isCurrentUser, rollerIsDM }: DiceResu
           </motion.span>
         </div>
       </div>
+
+      {/* Phase 12: Mode badge + deck position + reroll indicator */}
+      {(mode || isReroll) && (
+        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+          {mode && (
+            <span
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-sm bg-ink/5 text-ink-muted"
+              title={mode === 'WEIGHTED_DECK' ? 'Weighted Bell Curve deck' : 'True Random'}
+            >
+              {mode === 'WEIGHTED_DECK' ? '🃏' : '🎲'}
+              {mode === 'WEIGHTED_DECK' && deckPosition != null && deckSize != null && (
+                <span className="font-mono">Draw {deckPosition}/{deckSize}</span>
+              )}
+            </span>
+          )}
+          {isReroll && rerollReason && (
+            <span
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-sm bg-brand/10 text-brand-ink"
+              title="Re-roll"
+            >
+              🔄 {REROLL_LABEL[rerollReason] ?? rerollReason}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Breakdown */}
       <div className="mt-2 pt-2 border-t">

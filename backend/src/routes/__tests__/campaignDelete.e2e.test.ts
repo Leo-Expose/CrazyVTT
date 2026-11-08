@@ -35,8 +35,8 @@ let playerCookie: string;
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const ownerUser = await createTestUser({ email: `del-owner-${stamp}@test.cozyvtt.local`, displayName: 'Owner' });
-  const playerUser = await createTestUser({ email: `del-player-${stamp}@test.cozyvtt.local`, displayName: 'Player' });
+  const ownerUser = await createTestUser({ email: `del-owner-${stamp}@test.crazyvtt.local`, displayName: 'Owner' });
+  const playerUser = await createTestUser({ email: `del-player-${stamp}@test.crazyvtt.local`, displayName: 'Player' });
   ownerId = ownerUser.id;
   playerId = playerUser.id;
   const campaign = await createTestCampaign(ownerId, { name: `Doomed ${stamp}` });

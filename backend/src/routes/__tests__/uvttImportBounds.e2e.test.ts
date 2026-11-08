@@ -94,7 +94,7 @@ const mapCount = () => prisma.map.count({ where: { campaignId } });
 beforeAll(async () => {
   const stamp = Date.now();
   const user = await createTestUser({
-    email: `uvtt-dm-${stamp}@test.cozyvtt.local`,
+    email: `uvtt-dm-${stamp}@test.crazyvtt.local`,
     displayName: 'UVTT DM',
   });
   dmId = user.id;
@@ -235,7 +235,7 @@ describe('whether dynamic lighting comes on', () => {
 describe('who may import', () => {
   it('refuses someone who is not the DM of this campaign', async () => {
     const stranger = await createTestUser({
-      email: `uvtt-stranger-${Date.now()}@test.cozyvtt.local`,
+      email: `uvtt-stranger-${Date.now()}@test.crazyvtt.local`,
       displayName: 'UVTT Stranger',
     });
     const agent = request.agent(app);

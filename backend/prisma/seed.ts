@@ -7,8 +7,15 @@ const prisma = createPrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Seed script will be implemented when needed
-  // This file is a placeholder for future development
+  // Seed default spell templates for DND_5E and PF_2E
+  try {
+    const { seedDefaultSpellTemplates } = await import('../src/services/spellTemplates');
+    const dndTemplates = await seedDefaultSpellTemplates('DND_5E');
+    const pfTemplates = await seedDefaultSpellTemplates('PF_2E');
+    console.log(`✨ Seeded ${dndTemplates.length + pfTemplates.length} default spell templates`);
+  } catch (err) {
+    console.warn('⚠️ Spell templates seeding skipped or deferred:', err);
+  }
 
   console.log('✅ Database seeding complete');
 }

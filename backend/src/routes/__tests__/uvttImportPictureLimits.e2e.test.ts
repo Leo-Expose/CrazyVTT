@@ -15,7 +15,7 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-uvtt-picture-limits-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-uvtt-picture-limits-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { createTestApp } from '../../__tests__/helpers/test-app';
@@ -68,7 +68,7 @@ function filesOnDisk(): string[] {
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `uvtt-limits-${stamp}@test.cozyvtt.local`, displayName: 'UVTT Limits DM' });
+  const user = await createTestUser({ email: `uvtt-limits-${stamp}@test.crazyvtt.local`, displayName: 'UVTT Limits DM' });
   dmId = user.id;
   campaignId = (await createTestCampaign(dmId, { name: `UVTT limits ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

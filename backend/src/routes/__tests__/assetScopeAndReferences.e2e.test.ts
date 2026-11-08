@@ -20,7 +20,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-asset-scope-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-asset-scope-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import request from 'supertest';
@@ -87,9 +87,9 @@ async function makeAsset(type: 'MAP' | 'TOKEN' | 'DOCUMENT', scope: 'USER' | 'CA
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const dmUser = await createTestUser({ email: `scope-dm-${stamp}@test.cozyvtt.local`, displayName: 'Scope DM' });
-  const playerUser = await createTestUser({ email: `scope-player-${stamp}@test.cozyvtt.local`, displayName: 'Scope Player' });
-  const spectatorUser = await createTestUser({ email: `scope-spec-${stamp}@test.cozyvtt.local`, displayName: 'Scope Spectator' });
+  const dmUser = await createTestUser({ email: `scope-dm-${stamp}@test.crazyvtt.local`, displayName: 'Scope DM' });
+  const playerUser = await createTestUser({ email: `scope-player-${stamp}@test.crazyvtt.local`, displayName: 'Scope Player' });
+  const spectatorUser = await createTestUser({ email: `scope-spec-${stamp}@test.crazyvtt.local`, displayName: 'Scope Spectator' });
   dmId = dmUser.id;
   playerId = playerUser.id;
   spectatorId = spectatorUser.id;
@@ -321,7 +321,7 @@ describe('what the asset library tells a member', () => {
 describe("an admin's picture pickers", () => {
   it('list only what the admin may use when asked for usable assets', async () => {
     const stamp = Date.now();
-    const adminUser = await createTestUser({ email: `scope-admin-${stamp}@test.cozyvtt.local`, displayName: 'Scope Admin', role: 'ADMIN' });
+    const adminUser = await createTestUser({ email: `scope-admin-${stamp}@test.crazyvtt.local`, displayName: 'Scope Admin', role: 'ADMIN' });
     try {
       const admin = await login(adminUser.email);
       const theirs = await makeAsset('MAP', 'USER', playerId, 'players-private-map');
@@ -354,7 +354,7 @@ describe("a campaign asset's uploader", () => {
 
   it('may neither delete nor move it once they have left', async () => {
     const stamp = Date.now();
-    const leftUser = await createTestUser({ email: `scope-left-${stamp}@test.cozyvtt.local`, displayName: 'Scope Left' });
+    const leftUser = await createTestUser({ email: `scope-left-${stamp}@test.crazyvtt.local`, displayName: 'Scope Left' });
     try {
       const left = await login(leftUser.email);
       const art = await makeAsset('MAP', 'CAMPAIGN', leftUser.id, 'departed-campaign-map');

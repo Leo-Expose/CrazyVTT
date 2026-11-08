@@ -14,9 +14,9 @@ afterEach(() => {
 });
 
 it('reads and writes localStorage when it is there', () => {
-  optionalStorage.setItem('cozyvtt.test', 'kept');
-  expect(window.localStorage.getItem('cozyvtt.test')).toBe('kept');
-  expect(optionalStorage.getItem('cozyvtt.test')).toBe('kept');
+  optionalStorage.setItem('crazyvtt.test', 'kept');
+  expect(window.localStorage.getItem('crazyvtt.test')).toBe('kept');
+  expect(optionalStorage.getItem('crazyvtt.test')).toBe('kept');
 });
 
 it('answers null and keeps nothing when the browser refuses storage', () => {
@@ -25,13 +25,13 @@ it('answers null and keeps nothing when the browser refuses storage', () => {
     get() { throw new DOMException('The operation is insecure.', 'SecurityError'); },
   });
 
-  expect(() => optionalStorage.setItem('cozyvtt.test', 'kept')).not.toThrow();
-  expect(optionalStorage.getItem('cozyvtt.test')).toBeNull();
+  expect(() => optionalStorage.setItem('crazyvtt.test', 'kept')).not.toThrow();
+  expect(optionalStorage.getItem('crazyvtt.test')).toBeNull();
 });
 
 it('keeps nothing when storage is full', () => {
   const full = { getItem: () => null, setItem: () => { throw new DOMException('Quota', 'QuotaExceededError'); } };
   Object.defineProperty(window, 'localStorage', { configurable: true, get: () => full });
 
-  expect(() => optionalStorage.setItem('cozyvtt.test', 'kept')).not.toThrow();
+  expect(() => optionalStorage.setItem('crazyvtt.test', 'kept')).not.toThrow();
 });

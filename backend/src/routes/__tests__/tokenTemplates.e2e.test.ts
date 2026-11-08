@@ -72,9 +72,9 @@ async function login(email: string) {
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const dmUser = await createTestUser({ email: `tt-dm-${stamp}@test.cozyvtt.local`, displayName: 'Template DM' });
-  const playerUser = await createTestUser({ email: `tt-player-${stamp}@test.cozyvtt.local`, displayName: 'Template Player' });
-  const spectatorUser = await createTestUser({ email: `tt-spec-${stamp}@test.cozyvtt.local`, displayName: 'Template Spectator' });
+  const dmUser = await createTestUser({ email: `tt-dm-${stamp}@test.crazyvtt.local`, displayName: 'Template DM' });
+  const playerUser = await createTestUser({ email: `tt-player-${stamp}@test.crazyvtt.local`, displayName: 'Template Player' });
+  const spectatorUser = await createTestUser({ email: `tt-spec-${stamp}@test.crazyvtt.local`, displayName: 'Template Spectator' });
   dmId = dmUser.id;
   playerId = playerUser.id;
   spectatorId = spectatorUser.id;

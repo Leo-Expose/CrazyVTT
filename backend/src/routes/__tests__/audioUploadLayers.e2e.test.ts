@@ -14,7 +14,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-audio-layers-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-audio-layers-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import request from 'supertest';

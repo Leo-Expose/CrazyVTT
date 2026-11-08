@@ -18,7 +18,8 @@ import { cn } from '@/utils/cn';
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export interface ModalProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   /**
    * Called on Escape and the X button. A click beside the window never closes
    * it, so typed input survives a stray click.
@@ -43,6 +44,7 @@ export interface ModalProps {
    * should size themselves with flex-1 and min-h-0.
    */
   fitViewport?: boolean;
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -55,6 +57,7 @@ const SIZE_CLASSES: Record<ModalSize, string> = {
 
 export default function Modal({
   open,
+  isOpen,
   onClose,
   title,
   icon: Icon,
@@ -64,7 +67,9 @@ export default function Modal({
   layer = 'base',
   children,
   fitViewport = false,
+  className,
 }: ModalProps) {
+  const actualOpen = open ?? isOpen ?? false;
   const titleId = useId();
   const dialogExit = useMotionExit({ opacity: 0, scale: 0.95, y: 20 });
 
@@ -72,7 +77,7 @@ export default function Modal({
     if (!closeDisabled) onClose();
   };
 
-  const modalRef = useFocusTrap(open, handleClose);
+  const modalRef = useFocusTrap(actualOpen, handleClose);
   // The backdrop shares the dialog's layer, so a window opened from a side
   // panel (z-50, see SlideOver) dims the panel too; it comes later in the
   // page, so it is drawn over it.
@@ -84,7 +89,7 @@ export default function Modal({
   // children and clip the dialog inside scrollable panels.
   return createPortal(
     <AnimatePresence>
-      {open && (
+      {actualOpen && (
         <>
           {/* Backdrop */}
           <motion.div
@@ -110,7 +115,8 @@ export default function Modal({
                 'w-full p-6 relative rounded-cozy-lg border border-brand/20 shadow-2xl',
                 'bg-surface-light/95 backdrop-blur-cozy',
                 fitViewport ? 'h-[90vh] flex flex-col overflow-hidden' : 'max-h-[90vh] overflow-y-auto',
-                SIZE_CLASSES[size]
+                SIZE_CLASSES[size],
+                className
               )}
               onClick={(e) => e.stopPropagation()}
             >

@@ -38,7 +38,7 @@ const storedPosition = async (mapId: string) =>
   readTokens((await prisma.map.findUniqueOrThrow({ where: { id: mapId }, select: { tokens: true } })).tokens)[0].position;
 
 beforeAll(async () => {
-  const dm = await prisma.user.create({ data: { email: `drop-dm-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'Drop DM' } });
+  const dm = await prisma.user.create({ data: { email: `drop-dm-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'Drop DM' } });
   dmId = dm.id;
   campaignId = (await prisma.campaign.create({ data: { name: `Drop ${runId}`, ownerId: dmId, vibeSettings: {}, status: 'ACTIVE' } })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

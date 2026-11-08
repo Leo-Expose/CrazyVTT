@@ -39,7 +39,7 @@ const setBranding = (body: Record<string, unknown>) => admin.put('/api/admin/set
 
 beforeAll(async () => {
   const user = await createTestUser({
-    email: `branding-admin-${Date.now()}@test.cozyvtt.local`,
+    email: `branding-admin-${Date.now()}@test.crazyvtt.local`,
     displayName: 'Branding Admin',
     role: PlatformRole.ADMIN,
   });

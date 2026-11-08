@@ -39,6 +39,9 @@ interface CampaignContextState {
 
   // User Role
   userRole: CampaignRole | null;
+  /** Compatibility aliases for feature panels written against the early API. */
+  role: CampaignRole | null;
+  currentCampaign: Campaign | null;
 
   // Loading & Error States
   loading: boolean;
@@ -580,6 +583,8 @@ export function CampaignProvider({ children }: CampaignProviderProps) {
     campaign,
     currentMap,
     userRole,
+    role: userRole,
+    currentCampaign: campaign,
     loading,
     error,
     loadCampaign,

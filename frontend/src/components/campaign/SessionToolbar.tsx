@@ -14,6 +14,10 @@ import {
   Ghost,
   Cloud,
   Settings,
+  Store,
+  BookOpen,
+  History,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -25,6 +29,10 @@ export type SessionToolKey =
   | 'tokens'
   | 'creatures'
   | 'templates'
+  | 'shops'
+  | 'rulebooks'
+  | 'spells'
+  | 'overrides'
   | 'spirit'
   | 'atmosphere'
   | 'settings';
@@ -42,6 +50,10 @@ const TOOL_GROUPS: ToolDef[][] = [
     { key: 'tokens', label: 'Token Manager', icon: Swords },
     { key: 'creatures', label: 'Creature Library', icon: Skull },
     { key: 'templates', label: 'Token Templates', icon: Stamp },
+    { key: 'shops', label: 'Shops & Merchants', icon: Store },
+    { key: 'rulebooks', label: 'Rulebooks', icon: BookOpen },
+    { key: 'spells', label: 'Spell Templates (AoE)', icon: Sparkles },
+    { key: 'overrides', label: 'DM Override History', icon: History },
   ],
   [
     { key: 'spirit', label: 'Spirit Layer', icon: Ghost },

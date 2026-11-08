@@ -1,8 +1,8 @@
 {
-  "name": "cozyvtt-frontend",
+  "name": "crazyvtt-frontend",
   "version": "1.5.4",
   "type": "module",
-  "description": "CozyVTT Frontend - Self-hosted Virtual Tabletop",
+  "description": "CrazyVTT Frontend - Self-hosted Virtual Tabletop",
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {

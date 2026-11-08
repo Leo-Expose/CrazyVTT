@@ -29,7 +29,7 @@ import request from 'supertest';
 
 // A throwaway uploads directory, set before anything reads UPLOAD_DIR, so no
 // test file is ever written into the repository's own uploads folder.
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-upload-test-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-upload-test-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { createTestApp } from '../../__tests__/helpers/test-app';

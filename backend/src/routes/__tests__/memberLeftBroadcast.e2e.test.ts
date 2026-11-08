@@ -31,7 +31,7 @@ const created: string[] = [];
 type RosterUpdate = { action: string; userId: string; campaignId: string };
 
 async function member(label: string): Promise<{ id: string; email: string }> {
-  const user = await createTestUser({ email: `left-${label}-${randomUUID().slice(0, 8)}@test.cozyvtt.local`, displayName: label });
+  const user = await createTestUser({ email: `left-${label}-${randomUUID().slice(0, 8)}@test.crazyvtt.local`, displayName: label });
   created.push(user.id);
   await prisma.campaignMembership.create({ data: { userId: user.id, campaignId, role: 'PLAYER', characterIds: [] } });
   return { id: user.id, email: user.email };
@@ -39,8 +39,8 @@ async function member(label: string): Promise<{ id: string; email: string }> {
 
 beforeAll(async () => {
   const stamp = randomUUID().slice(0, 8);
-  const dmUser = await createTestUser({ email: `left-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
-  const admin = await createTestUser({ email: `left-admin-${stamp}@test.cozyvtt.local`, displayName: 'Admin', role: PlatformRole.ADMIN });
+  const dmUser = await createTestUser({ email: `left-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
+  const admin = await createTestUser({ email: `left-admin-${stamp}@test.crazyvtt.local`, displayName: 'Admin', role: PlatformRole.ADMIN });
   dmId = dmUser.id;
   adminId = admin.id;
   campaignId = (await createTestCampaign(dmId, { name: `Member left ${stamp}` })).id;

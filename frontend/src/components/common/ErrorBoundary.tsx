@@ -65,7 +65,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h1>
             <p className="text-sm text-warm-gray">
-              CozyVTT encountered an unexpected error. Your data is safe — this is a display problem only.
+              CrazyVTT encountered an unexpected error. Your data is safe — this is a display problem only.
             </p>
           </div>
 
@@ -103,7 +103,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             </Button>
 
             <a
-              href="https://github.com/CheekyChinchilla/CozyVTT/issues"
+              href="https://github.com/CrazyVTT/CrazyVTT/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary flex items-center justify-center gap-2"

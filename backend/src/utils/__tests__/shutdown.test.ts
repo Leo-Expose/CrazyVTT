@@ -388,7 +388,7 @@ setTimeout(() => {
 
   /** Runs the scenario in a folder of its own, where production writes logs/. */
   function run(scenario: 'several' | 'after a shutdown' | 'twice' | 'deadline'): Promise<Ended> {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-fatal-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-fatal-'));
     const script = path.join(dir, 'fail.js');
     fs.writeFileSync(script, child);
     const backend = path.resolve(__dirname, '../../..');

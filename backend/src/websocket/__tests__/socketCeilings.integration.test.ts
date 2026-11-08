@@ -86,7 +86,7 @@ type Sheet = {
 async function newPlayer(): Promise<{ id: string; cookie: string; characterId: string; tokenId: string }> {
   counter += 1;
   const user = await prisma.user.create({
-    data: { email: `ceiling-${counter}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Ceiling ${counter}` },
+    data: { email: `ceiling-${counter}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Ceiling ${counter}` },
   });
   users.push(user.id);
   const sheet: Sheet = {
@@ -119,7 +119,7 @@ const sheetOf = async (characterId: string): Promise<Sheet> =>
 
 beforeAll(async () => {
   const dm = await prisma.user.create({
-    data: { email: `ceiling-dm-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: 'Ceiling DM' },
+    data: { email: `ceiling-dm-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: 'Ceiling DM' },
   });
   dmId = dm.id;
   users.push(dmId);

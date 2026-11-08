@@ -37,7 +37,7 @@ const AdminPage        = lazy(() => import('@/pages/AdminPage'));
 
 function MascotImage({ className = '' }: { className?: string }) {
   const { mascotUrl } = useTheme();
-  return <img src={mascotUrl} alt="CozyVTT" className={`object-contain ${className}`} />;
+  return <img src={mascotUrl} alt="CrazyVTT" className={`object-contain ${className}`} />;
 }
 
 /** Minimal full-screen spinner shown while a lazy page chunk loads. */
@@ -231,7 +231,7 @@ function WelcomePage() {
         </div>
         <div>
           <h1 className="text-4xl font-bold text-brand-ink font-heading text-shadow-soft">
-            CozyVTT
+            CrazyVTT
           </h1>
           <p className="mt-2 text-warm-gray">
             A self-hosted Virtual Tabletop for cozy, narrative-driven campaigns

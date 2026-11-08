@@ -6,8 +6,8 @@
  * throwaway one. With DATABASE_URL unset, Prisma and dotenv read backend/.env,
  * which DEVELOPMENT.md points at the development database; a run there would
  * change real data. So the run stops before any suite starts unless the
- * database's name has `test` in it as a word, as `cozyvtt_test` and
- * `cozyvtt_test_b10` do.
+ * database's name has `test` in it as a word, as `crazyvtt_test` and
+ * `crazyvtt_test_b10` do.
  */
 
 import fs from 'fs';
@@ -17,20 +17,20 @@ import { testDatabaseRefusal, effectiveDatabaseUrl } from './helpers/testDatabas
 
 describe('testDatabaseRefusal', () => {
   it.each([
-    'postgresql://cozyvtt:cozyvtt@localhost:55500/cozyvtt_test',
-    'postgresql://cozyvtt:cozyvtt@localhost:55500/cozyvtt_test_b10',
-    'postgresql://cozyvtt:cozyvtt@localhost:55433/cozyvtt_test?connection_limit=5',
-    'postgresql://u:p@db:5432/test_cozyvtt?schema=setup_wizard',
-    'postgresql://u:p@db:5432/cozyvtt-test',
+    'postgresql://crazyvtt:crazyvtt@localhost:55500/crazyvtt_test',
+    'postgresql://crazyvtt:crazyvtt@localhost:55500/crazyvtt_test_b10',
+    'postgresql://crazyvtt:crazyvtt@localhost:55433/crazyvtt_test?connection_limit=5',
+    'postgresql://u:p@db:5432/test_crazyvtt?schema=setup_wizard',
+    'postgresql://u:p@db:5432/crazyvtt-test',
   ])('lets %s through', (url) => {
     expect(testDatabaseRefusal(url)).toBeNull();
   });
 
   it.each([
-    'postgresql://cozyvtt:cozyvtt@localhost:5432/cozyvtt',
-    'postgresql://cozyvtt:cozyvtt@postgres:5432/cozyvtt?schema=public',
+    'postgresql://crazyvtt:crazyvtt@localhost:5432/crazyvtt',
+    'postgresql://crazyvtt:crazyvtt@postgres:5432/crazyvtt?schema=public',
     'postgresql://u:p@db:5432/contest',
-    'postgresql://u:p@db:5432/cozyvtt_testing',
+    'postgresql://u:p@db:5432/crazyvtt_testing',
   ])('refuses %s, naming the database', (url) => {
     const refusal = testDatabaseRefusal(url);
     expect(refusal).not.toBeNull();
@@ -60,20 +60,20 @@ describe('effectiveDatabaseUrl', () => {
   });
 
   it('prefers the environment', () => {
-    fs.writeFileSync(path.join(dir, '.env'), 'DATABASE_URL=postgresql://u:p@h/cozyvtt\n');
-    expect(effectiveDatabaseUrl({ DATABASE_URL: 'postgresql://u:p@h/cozyvtt_test' }, dir)).toBe(
-      'postgresql://u:p@h/cozyvtt_test'
+    fs.writeFileSync(path.join(dir, '.env'), 'DATABASE_URL=postgresql://u:p@h/crazyvtt\n');
+    expect(effectiveDatabaseUrl({ DATABASE_URL: 'postgresql://u:p@h/crazyvtt_test' }, dir)).toBe(
+      'postgresql://u:p@h/crazyvtt_test'
     );
   });
 
   it('reads backend/.env when the environment has none, as Prisma and dotenv would', () => {
-    fs.writeFileSync(path.join(dir, '.env'), 'DATABASE_URL="postgresql://u:p@h/cozyvtt"\n');
-    expect(effectiveDatabaseUrl({}, dir)).toBe('postgresql://u:p@h/cozyvtt');
+    fs.writeFileSync(path.join(dir, '.env'), 'DATABASE_URL="postgresql://u:p@h/crazyvtt"\n');
+    expect(effectiveDatabaseUrl({}, dir)).toBe('postgresql://u:p@h/crazyvtt');
   });
 
   it('reads prisma/.env after that', () => {
-    fs.writeFileSync(path.join(dir, 'prisma', '.env'), 'DATABASE_URL=postgresql://u:p@h/cozyvtt\n');
-    expect(effectiveDatabaseUrl({}, dir)).toBe('postgresql://u:p@h/cozyvtt');
+    fs.writeFileSync(path.join(dir, 'prisma', '.env'), 'DATABASE_URL=postgresql://u:p@h/crazyvtt\n');
+    expect(effectiveDatabaseUrl({}, dir)).toBe('postgresql://u:p@h/crazyvtt');
   });
 
   it('is undefined when nothing names a database', () => {

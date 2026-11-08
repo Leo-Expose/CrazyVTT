@@ -30,6 +30,20 @@ import { withMapsLocked } from '../utils/mapTokens';
 import { systemsCompatible } from '../utils/gameSystemCompatibility';
 import { holdOwnerCreates } from '../utils/ownerLimit';
 import { getCharacterTemplate } from '../utils/character-templates';
+import {
+  getOrCreateDraft,
+  applyPatchToDraft,
+  lockField,
+  unlockField,
+  suggestChange,
+  overrideField,
+  resolveConflict,
+  getChangeHistory,
+  getLocks,
+  getConflicts,
+  ChangeType,
+} from '../services/characterDraft';
+import { JsonPatch } from '../utils/jsonPatch';
 import { FLEXIBLE_TEMPLATES } from '../utils/character-templates/flexible-templates';
 
 const router = Router();
@@ -1225,6 +1239,487 @@ router.post('/:id/copy', authenticated, async (req: AuthenticatedRequest, res: R
       error: 'Internal Server Error',
       message: 'Failed to copy character',
     });
+  }
+});
+
+/**
+ * GET /api/characters/:id/draft
+ * Get or create a character draft for collaborative editing
+ * Requires: Authentication
+ * Authorization: Character owner OR campaign member
+ */
+router.get('/:id/draft', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Character not found',
+      });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Character not found',
+      });
+    }
+
+    const draft = await getOrCreateDraft(id, userId);
+    const [locks, conflicts] = await Promise.all([
+      getLocks(id),
+      getConflicts(id),
+    ]);
+
+    return res.status(200).json({
+      message: 'Draft retrieved successfully',
+      draft,
+      locks,
+      conflicts,
+    });
+  } catch (error) {
+    logger.error('Error getting character draft', { err: error });
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to get character draft',
+    });
+  }
+});
+
+/**
+ * POST /api/characters/:id/draft/patch
+ * Apply JSON Patch to character draft
+ * Requires: Authentication
+ * Authorization: Character owner OR campaign DM
+ */
+router.post('/:id/draft/patch', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { patches, version, note } = req.body;
+
+    if (!Array.isArray(patches) || typeof version !== 'number') {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'patches (array) and version (number) are required',
+      });
+    }
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const membership = character.campaignId
+      ? await prisma.campaignMembership.findUnique({
+          where: { userId_campaignId: { userId, campaignId: character.campaignId } },
+        })
+      : null;
+
+    const isOwner = character.userId === userId;
+    const isDM = membership?.role === 'DM';
+    const canEdit = isOwner || isDM;
+
+    if (!canEdit) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'You do not have permission to edit this character',
+      });
+    }
+
+    const changeType = isDM ? ChangeType.DM_OVERRIDE : ChangeType.PLAYER_EDIT;
+    const result = await applyPatchToDraft(id, patches as JsonPatch[], version, userId, changeType, note);
+
+    return res.status(200).json({
+      message: 'Patch applied successfully',
+      draft: result.draft,
+      changes: result.changes,
+      conflicts: result.conflicts,
+      locks: result.locks,
+    });
+  } catch (error) {
+    logger.error('Error applying patch to draft', { err: error });
+    const message = error instanceof Error ? error.message : 'Failed to apply patch';
+    const status = message.includes('Version conflict') ? 409 : 500;
+    return res.status(status).json({
+      error: status === 409 ? 'Conflict' : 'Internal Server Error',
+      message,
+    });
+  }
+});
+
+/**
+ * POST /api/characters/:id/draft/lock
+ * Lock a field (DM only)
+ */
+router.post('/:id/draft/lock', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { fieldPath, reason } = req.body;
+
+    if (!fieldPath) {
+      return res.status(400).json({ error: 'Validation Error', message: 'fieldPath is required' });
+    }
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const membership = character.campaignId
+      ? await prisma.campaignMembership.findUnique({
+          where: { userId_campaignId: { userId, campaignId: character.campaignId } },
+        })
+      : null;
+
+    if (membership?.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'Only DMs can lock fields' });
+    }
+
+    const result = await lockField(id, fieldPath, userId, reason);
+
+    return res.status(200).json({
+      message: 'Field locked successfully',
+      lock: result.lock,
+      conflicts: result.conflicts,
+    });
+  } catch (error) {
+    logger.error('Error locking field', { err: error });
+    const message = error instanceof Error ? error.message : 'Failed to lock field';
+    return res.status(500).json({ error: 'Internal Server Error', message });
+  }
+});
+
+/**
+ * POST /api/characters/:id/draft/unlock
+ * Unlock a field (DM only)
+ */
+router.post('/:id/draft/unlock', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { fieldPath } = req.body;
+
+    if (!fieldPath) {
+      return res.status(400).json({ error: 'Validation Error', message: 'fieldPath is required' });
+    }
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const membership = character.campaignId
+      ? await prisma.campaignMembership.findUnique({
+          where: { userId_campaignId: { userId, campaignId: character.campaignId } },
+        })
+      : null;
+
+    if (membership?.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'Only DMs can unlock fields' });
+    }
+
+    const result = await unlockField(id, fieldPath, userId);
+
+    return res.status(200).json({
+      message: 'Field unlocked successfully',
+      success: result.success,
+      conflicts: result.conflicts,
+    });
+  } catch (error) {
+    logger.error('Error unlocking field', { err: error });
+    const message = error instanceof Error ? error.message : 'Failed to unlock field';
+    return res.status(500).json({ error: 'Internal Server Error', message });
+  }
+});
+
+/**
+ * POST /api/characters/:id/draft/suggest
+ * DM suggests a change
+ */
+router.post('/:id/draft/suggest', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { fieldPath, suggestedValue, note } = req.body;
+
+    if (!fieldPath) {
+      return res.status(400).json({ error: 'Validation Error', message: 'fieldPath is required' });
+    }
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const membership = character.campaignId
+      ? await prisma.campaignMembership.findUnique({
+          where: { userId_campaignId: { userId, campaignId: character.campaignId } },
+        })
+      : null;
+
+    if (membership?.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'Only DMs can suggest changes' });
+    }
+
+    const result = await suggestChange(id, fieldPath, suggestedValue, userId, note);
+
+    return res.status(200).json({
+      message: 'Suggestion created successfully',
+      change: result.change,
+      conflicts: result.conflicts,
+    });
+  } catch (error) {
+    logger.error('Error creating suggestion', { err: error });
+    const message = error instanceof Error ? error.message : 'Failed to create suggestion';
+    return res.status(500).json({ error: 'Internal Server Error', message });
+  }
+});
+
+/**
+ * POST /api/characters/:id/draft/override
+ * DM overrides a field value
+ */
+router.post('/:id/draft/override', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { fieldPath, value, note } = req.body;
+
+    if (!fieldPath) {
+      return res.status(400).json({ error: 'Validation Error', message: 'fieldPath is required' });
+    }
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const membership = character.campaignId
+      ? await prisma.campaignMembership.findUnique({
+          where: { userId_campaignId: { userId, campaignId: character.campaignId } },
+        })
+      : null;
+
+    if (membership?.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'Only DMs can override fields' });
+    }
+
+    const result = await overrideField(id, fieldPath, value, userId, note);
+
+    return res.status(200).json({
+      message: 'Field overridden successfully',
+      change: result.change,
+      conflicts: result.conflicts,
+    });
+  } catch (error) {
+    logger.error('Error overriding field', { err: error });
+    const message = error instanceof Error ? error.message : 'Failed to override field';
+    return res.status(500).json({ error: 'Internal Server Error', message });
+  }
+});
+
+/**
+ * POST /api/characters/:id/draft/resolve
+ * Resolve a conflict (accept/reject/force)
+ */
+router.post('/:id/draft/resolve', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { conflictId, resolution, note } = req.body;
+
+    if (!conflictId || !resolution || !['accept', 'reject', 'force'].includes(resolution)) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'conflictId and resolution (accept|reject|force) are required',
+      });
+    }
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const membership = character.campaignId
+      ? await prisma.campaignMembership.findUnique({
+          where: { userId_campaignId: { userId, campaignId: character.campaignId } },
+        })
+      : null;
+
+    const isOwner = character.userId === userId;
+    const isDM = membership?.role === 'DM';
+
+    if (!isOwner && !isDM) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Only the character owner or DM can resolve conflicts',
+      });
+    }
+
+    const result = await resolveConflict(id, conflictId, resolution, userId, note);
+
+    return res.status(200).json({
+      message: 'Conflict resolved successfully',
+      conflict: result.conflict,
+      change: result.change,
+      conflicts: result.conflicts,
+    });
+  } catch (error) {
+    logger.error('Error resolving conflict', { err: error });
+    const message = error instanceof Error ? error.message : 'Failed to resolve conflict';
+    return res.status(500).json({ error: 'Internal Server Error', message });
+  }
+});
+
+/**
+ * GET /api/characters/:id/draft/history
+ * Get change history for a character
+ */
+router.get('/:id/draft/history', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { limit = 100, offset = 0 } = req.query;
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const result = await getChangeHistory(id, parseInt(limit as string), parseInt(offset as string));
+
+    return res.status(200).json({
+      message: 'History retrieved successfully',
+      changes: result.changes,
+      total: result.total,
+    });
+  } catch (error) {
+    logger.error('Error getting change history', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to get history' });
+  }
+});
+
+/**
+ * GET /api/characters/:id/draft/locks
+ * Get all locks for a character
+ */
+router.get('/:id/draft/locks', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const locks = await getLocks(id);
+
+    return res.status(200).json({
+      message: 'Locks retrieved successfully',
+      locks,
+    });
+  } catch (error) {
+    logger.error('Error getting locks', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to get locks' });
+  }
+});
+
+/**
+ * GET /api/characters/:id/draft/conflicts
+ * Get all conflicts for a character
+ */
+router.get('/:id/draft/conflicts', authenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const { id } = req.params;
+    const { includeResolved = false } = req.query;
+
+    const character = await prisma.character.findUnique({
+      where: { id },
+    });
+
+    if (!character) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    if (!(await mayReadCharacter(character, userId))) {
+      return res.status(404).json({ error: 'Not Found', message: 'Character not found' });
+    }
+
+    const conflicts = await getConflicts(id, includeResolved === 'true');
+
+    return res.status(200).json({
+      message: 'Conflicts retrieved successfully',
+      conflicts,
+    });
+  } catch (error) {
+    logger.error('Error getting conflicts', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to get conflicts' });
   }
 });
 

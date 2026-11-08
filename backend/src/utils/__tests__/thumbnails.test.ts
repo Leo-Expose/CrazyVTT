@@ -18,7 +18,7 @@ import logger from '../logger';
 let dir: string;
 
 beforeAll(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-thumbnails-'));
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-thumbnails-'));
 });
 
 afterAll(() => {

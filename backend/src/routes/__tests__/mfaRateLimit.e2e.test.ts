@@ -25,7 +25,7 @@ let email: string;
 const extraUsers: string[] = [];
 
 beforeAll(async () => {
-  const u = await createTestUser({ email: `mfa-rl-${Date.now()}@test.cozyvtt.local`, displayName: 'MFA RL' });
+  const u = await createTestUser({ email: `mfa-rl-${Date.now()}@test.crazyvtt.local`, displayName: 'MFA RL' });
   userId = u.id;
   email = u.email;
 });
@@ -59,7 +59,7 @@ describe('the sign-in code step, per account', () => {
   const stamp = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 
   async function mfaUser(label: string) {
-    const u = await createTestUser({ email: `mfa-rl-acct-${label}-${stamp}@test.cozyvtt.local` });
+    const u = await createTestUser({ email: `mfa-rl-acct-${label}-${stamp}@test.crazyvtt.local` });
     extraUsers.push(u.id);
     await prisma.user.update({ where: { id: u.id }, data: { mfaEnabled: true, mfaSecret: secret } });
     return u;

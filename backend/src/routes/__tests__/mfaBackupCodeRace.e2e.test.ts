@@ -33,7 +33,7 @@ const created: string[] = [];
 
 /** A user with MFA on and ten known backup codes, set straight in the table. */
 async function withCodes(label: string) {
-  const user = await createTestUser({ email: `mfa-race-${label}-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `mfa-race-${label}-${stamp}@test.crazyvtt.local` });
   created.push(user.id);
   const codes = generateBackupCodes();
   await prisma.user.update({

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- socket.io's untyped event listeners are intentionally adapted here. */
 // ============================================
 // The shape every map tool's input handling takes.
 //
@@ -41,6 +42,8 @@ export interface MapTool {
 /** The slice of a socket the tools send on; the real one is socket.io's. */
 export interface ToolSocket {
   emit(event: string, data: unknown): unknown;
+  on?(event: string, handler: (...args: any[]) => void): unknown;
+  off?(event: string, handler: (...args: any[]) => void): unknown;
 }
 
 export interface ToolSocketSource {

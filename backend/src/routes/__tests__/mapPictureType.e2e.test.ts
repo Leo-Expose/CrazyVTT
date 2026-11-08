@@ -25,7 +25,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-map-picture-type-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-map-picture-type-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { randomUUID } from 'crypto';

@@ -50,7 +50,7 @@ async function eventually<T>(read: () => Promise<T>, ok: (value: T) => boolean):
 }
 
 beforeAll(async () => {
-  dmId = (await prisma.user.create({ data: { email: `fanout-dm-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'Fanout DM' } })).id;
+  dmId = (await prisma.user.create({ data: { email: `fanout-dm-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'Fanout DM' } })).id;
   campaignId = (await prisma.campaign.create({ data: { name: `Fanout ${runId}`, ownerId: dmId, vibeSettings: {} } })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });
   mapId = (await prisma.map.create({

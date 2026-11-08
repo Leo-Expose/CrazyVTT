@@ -43,7 +43,7 @@ const tokens = (mapId: string) => `/api/campaigns/${campaignId}/maps/${mapId}/to
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `footprint-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `footprint-${stamp}@test.crazyvtt.local` });
   dmId = user.id;
   campaignId = (await createTestCampaign(dmId, { name: `Footprint ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

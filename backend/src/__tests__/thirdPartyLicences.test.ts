@@ -1,7 +1,7 @@
 /**
  * The licence documents, checked against the lockfiles.
  *
- * THIRD_PARTY_NOTICES.txt names the packages each half of CozyVTT runs and
+ * THIRD_PARTY_NOTICES.txt names the packages each half of CrazyVTT runs and
  * every licence among them, and THIRD_PARTY_LICENSES.md the main libraries it
  * is built on. Both are written by hand, and they drifted: versions two
  * releases old, packages no longer used, one listed twice, dependencies
@@ -190,7 +190,7 @@ describe('THIRD_PARTY_LICENSES.md', () => {
     expect(wrong).toEqual([]);
   });
 
-  // A library that only builds or tests CozyVTT never reaches an instance,
+  // A library that only builds or tests CrazyVTT never reaches an instance,
   // so NOTICES, which lists what an instance runs, leaves it out, unless the
   // build copies its code into the app (SHIPPED_BY_THE_BUILD).
   it('has every library an instance runs in NOTICES too, and leaves the development tools out of it', () => {

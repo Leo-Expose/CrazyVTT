@@ -15,6 +15,10 @@ import { gridYToTopPx } from '../coords';
 import { conditionAbbreviation, MAX_CONDITION_BADGES } from '@/utils/conditions';
 import { isTokenDowned, isTokenVisibleTo, visibleTokenHp } from '../tokenHitTest';
 import { facing } from '@/utils/tokenRotation';
+import {
+  getQualitativeHealth,
+  HEALTH_BORDER_COLORS,
+} from '@/utils/rules/qualitativeHealth';
 
 /** How much of its opacity a token at zero hit points keeps. */
 export const DOWNED_TOKEN_ALPHA = 0.45;
@@ -56,6 +60,12 @@ export interface TokenDrawState {
    * static treatment than the turn ring, and can apply at the same time.
    */
   peekTokenId: string | null;
+  /**
+   * The campaign's game system (e.g. 'DND_5E').  Used to compute qualitative
+   * health tiers for the player-facing border colour.  Defaults to 'DND_5E'
+   * when absent so the render loop never crashes on an unset campaign.
+   */
+  gameSystem?: string;
 }
 
 // ── Turn highlight ──────────────────────────────────────────────────────────
@@ -373,6 +383,62 @@ export function drawTokens(
         ctx.globalAlpha = 0.6;
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius + ringWidth / 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    // Qualitative health border — shown to players instead of the numeric HP bar.
+    //
+    // The DM already sees the HP bar; this ring is for players and communicates
+    // condition (Healthy / Wounded / Bloodied / Critical / …) with colour alone
+    // so they can read an enemy's state at a glance without learning its numbers.
+    //
+    // Drawn outside the disposition ring (which sits at radius + ringWidth/2)
+    // so the two rings are visually separate.  The gap keeps the health ring
+    // legible even when both are present.  Fixed hex colours — not themed —
+    // for the same reason every other map decoration is hardcoded.
+    //
+    // Applies to NPC tokens that have HP the player can see (showHpBar) *or*
+    // when the DM is viewing (DM still uses the bar below, not this ring).
+    // For player tokens the character sheet already shows their own HP, so the
+    // ring would be redundant on the player's own token and confusing on others.
+    if (!isDM) {
+      // The effective HP source for this token from the player's perspective.
+      const hpForQualitative = visibleTokenHp(token, state.characterHpCache, false);
+      if (hpForQualitative && hpForQualitative.max > 0) {
+        const qs = getQualitativeHealth(
+          {
+            current: hpForQualitative.current,
+            max: hpForQualitative.max,
+            temp: hpForQualitative.temp,
+            conditions: token.conditions,
+          },
+          state.gameSystem ?? 'DND_5E',
+        );
+        const healthColor = HEALTH_BORDER_COLORS[qs];
+        // Draw outside any disposition ring: add a gap of ~6 screen-px so the
+        // two rings do not merge at low zoom.
+        const healthRingGap = Math.max(6, 6 / zoom);
+        const healthRingWidth = Math.max(2, 2 / zoom);
+        ctx.strokeStyle = healthColor;
+        ctx.lineWidth = healthRingWidth;
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        if (displayMode === 'full-art') {
+          const cr = Math.max(3, 3 / zoom) + healthRingGap;
+          const hx = tokenX - healthRingGap;
+          const hy = tokenY - healthRingGap;
+          const hw = tokenWidth + healthRingGap * 2;
+          const hh = tokenHeight + healthRingGap * 2;
+          if (ctx.roundRect) {
+            ctx.roundRect(hx, hy, hw, hh, cr);
+          } else {
+            ctx.rect(hx, hy, hw, hh);
+          }
+        } else {
+          ctx.arc(centerX, centerY, radius + healthRingGap, 0, Math.PI * 2);
+        }
         ctx.stroke();
         ctx.globalAlpha = 1.0;
       }

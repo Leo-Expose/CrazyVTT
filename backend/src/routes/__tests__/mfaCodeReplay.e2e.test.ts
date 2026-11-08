@@ -48,7 +48,7 @@ async function freshStep(): Promise<number> {
 
 /** A user with MFA turned on through the real enrolment, using the code for `enrolOffset`. */
 async function enrolled(label: string, base: number, enrolOffset: number) {
-  const user = await createTestUser({ email: `mfa-replay-${label}-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `mfa-replay-${label}-${stamp}@test.crazyvtt.local` });
   created.push(user.id);
   const agent = request.agent(app);
   expect((await agent.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD })).status).toBe(200);

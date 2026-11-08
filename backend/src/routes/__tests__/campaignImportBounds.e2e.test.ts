@@ -15,7 +15,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-bounds-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-bounds-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 import request from 'supertest';
@@ -37,7 +37,7 @@ const manifest = (overrides: Record<string, unknown> = {}) =>
   JSON.stringify({
     formatVersion: 1,
     exportedAt: '2026-10-06T00:00:00.000Z',
-    exportedFrom: 'CozyVTT test',
+    exportedFrom: 'CrazyVTT test',
     campaignName: 'Bounded',
     gameSystem: 'DND_5E',
     mapCount: 0,
@@ -101,8 +101,8 @@ describe('a manifest that unpacks to hundreds of megabytes', () => {
 
   beforeAll(async () => {
     const bomb = (): FixtureEntry => ({ name: 'manifest.json', data: () => repeatedBytes(BOMB_BYTES) });
-    honest = await archive('honest-bomb.cozyvtt', [bomb(), { name: 'campaign.json', data: campaignJson }]);
-    lying = await archive('lying-bomb.cozyvtt', [bomb(), { name: 'campaign.json', data: campaignJson }]);
+    honest = await archive('honest-bomb.crazyvtt', [bomb(), { name: 'campaign.json', data: campaignJson }]);
+    lying = await archive('lying-bomb.crazyvtt', [bomb(), { name: 'campaign.json', data: campaignJson }]);
     claimUnpackedSize(lying, 'manifest.json', 100);
     // The point of a bomb: small to send.
     expect(fs.statSync(honest).size).toBeLessThan(2 * MB);
@@ -138,7 +138,7 @@ describe('a manifest that unpacks to hundreds of megabytes', () => {
 describe('a picture that unpacks to far more than its type allows', () => {
   it('is left out of the import, without unpacking it into memory', async () => {
     const assetId = '11111111-1111-4111-8111-111111111111';
-    const file = await archive('asset-bomb.cozyvtt', [
+    const file = await archive('asset-bomb.crazyvtt', [
       { name: 'manifest.json', data: manifest({ assetCount: 1 }) },
       { name: 'campaign.json', data: campaignJson },
       {
@@ -171,7 +171,7 @@ describe('pictures that together unpack past the archive limit', () => {
       .mockResolvedValue({ campaignExportSizeLimit: 20 * MB } as unknown as Awaited<ReturnType<typeof appPrisma.systemSettings.findFirst>>);
     const ids = ['22222222-2222-4222-8222-222222222221', '22222222-2222-4222-8222-222222222222', '22222222-2222-4222-8222-222222222223'];
     const picture = () => Buffer.concat([PNG_SIGNATURE, Buffer.alloc(9 * MB)]);
-    const file = await archive('too-much-in-total.cozyvtt', [
+    const file = await archive('too-much-in-total.crazyvtt', [
       { name: 'manifest.json', data: manifest({ assetCount: 3 }) },
       { name: 'campaign.json', data: campaignJson },
       {
@@ -191,7 +191,7 @@ describe('pictures that together unpack past the archive limit', () => {
 describe('an archive whose directory lists more entries than an import allows', () => {
   let many: string;
   beforeAll(async () => {
-    many = path.join(SCRATCH, 'many.cozyvtt');
+    many = path.join(SCRATCH, 'many.crazyvtt');
     await writeManyEntryZip(many, 1001, [
       { name: 'manifest.json', data: manifest() },
       { name: 'campaign.json', data: campaignJson },

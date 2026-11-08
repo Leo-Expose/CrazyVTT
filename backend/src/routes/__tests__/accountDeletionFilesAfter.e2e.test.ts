@@ -34,7 +34,7 @@ import logger from '../../utils/logger';
 
 const app = createTestApp();
 const userIds: string[] = [];
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-account-files-after-'));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-account-files-after-'));
 
 async function member(label: string, role?: PlatformRole) {
   const user = await createTestUser({ displayName: label, ...(role && { role }) });

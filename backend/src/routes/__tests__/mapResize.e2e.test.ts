@@ -31,7 +31,7 @@ const LAMP = { id: 'l1', x: 150, y: 250, brightRadius: 2, dimRadius: 4, color: '
 
 beforeAll(async () => {
   const stamp = randomUUID().slice(0, 8);
-  const dm = await createTestUser({ email: `resize-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
+  const dm = await createTestUser({ email: `resize-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
   dmId = dm.id;
   campaignId = (await createTestCampaign(dmId, { name: `Resize ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

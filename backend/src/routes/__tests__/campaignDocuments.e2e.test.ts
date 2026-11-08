@@ -19,7 +19,7 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 
-const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-campaigndocs-test-'));
+const UPLOAD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-campaigndocs-test-'));
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
 import { createTestApp } from '../../__tests__/helpers/test-app';
@@ -76,7 +76,7 @@ describe('campaign documents', () => {
   beforeAll(async () => {
     const stamp = Date.now();
     for (const who of ['owner', 'player', 'stranger']) {
-      emails[who] = `campdocs-${who}-${stamp}@test.cozyvtt.local`;
+      emails[who] = `campdocs-${who}-${stamp}@test.crazyvtt.local`;
     }
     const [o, p, s] = await Promise.all([
       createTestUser({ email: emails.owner, displayName: 'Doc Owner' }),
@@ -189,7 +189,7 @@ describe('campaign documents', () => {
       // An admin can read every file, so reading proves nothing here. Linking
       // takes the linker's own document or a global one, admin or not: the
       // uploader chose who sees it, and an admin's table is not on that list.
-      const admin = await createTestUser({ email: `campdocs-admin-${Date.now()}@test.cozyvtt.local`, role: 'ADMIN' });
+      const admin = await createTestUser({ email: `campdocs-admin-${Date.now()}@test.crazyvtt.local`, role: 'ADMIN' });
       const table = (await createTestCampaign(admin.id, { name: `Docs Admin ${Date.now()}` })).id;
       await prisma.campaignMembership.create({ data: { userId: admin.id, campaignId: table, role: 'DM', characterIds: [] } });
       try {

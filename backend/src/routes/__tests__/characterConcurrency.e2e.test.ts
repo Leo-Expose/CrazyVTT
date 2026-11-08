@@ -22,7 +22,7 @@ let userId: string;
 let agent: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
-  const u = await createTestUser({ email: `concurrency-${Date.now()}@test.cozyvtt.local`, displayName: 'Concurrent' });
+  const u = await createTestUser({ email: `concurrency-${Date.now()}@test.crazyvtt.local`, displayName: 'Concurrent' });
   userId = u.id;
   agent = request.agent(app);
   expect((await agent.post('/api/auth/login').send({ email: u.email, password: TEST_PASSWORD })).status).toBe(200);

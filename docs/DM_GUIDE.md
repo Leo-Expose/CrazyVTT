@@ -1,6 +1,6 @@
-# CozyVTT Dungeon Master Guide
+# CrazyVTT Dungeon Master Guide
 
-So you're running the show. Welcome to the DM side of CozyVTT — where you get all the tools to build worlds, set the atmosphere, and guide your players through whatever story you have waiting for them.
+So you're running the show. Welcome to the DM side of CrazyVTT — where you get all the tools to build worlds, set the atmosphere, and guide your players through whatever story you have waiting for them.
 
 This guide focuses on DM-specific features. For general platform features (character sheets, dice, chat, etc.), refer to the [User Guide](USER_GUIDE.md).
 
@@ -66,7 +66,7 @@ To invite a player to your campaign:
 
 **About that checkbox.** It's off by default, and the invitation reaches them either way — the dashboard is what they actually accept from. Tick it only when a nudge in their inbox is genuinely useful; if they're sitting across the table from you, it isn't. If your instance has no mail server set up the option is greyed out and says so, rather than pretending to send something.
 
-The email's subject line names your instance and nothing else ("You have a new campaign invitation on CozyVTT"); the campaign's name, its description and your display name are in the body. Each DM can have the instance send 20 invitation emails an hour. Past that, **Send Invitation** with the box ticked says so and how many minutes to wait; untick the box and the invitation goes through at once, without the email.
+The email's subject line names your instance and nothing else ("You have a new campaign invitation on CrazyVTT"); the campaign's name, its description and your display name are in the body. Each DM can have the instance send 20 invitation emails an hour. Past that, **Send Invitation** with the box ticked says so and how many minutes to wait; untick the box and the invitation goes through at once, without the email.
 
 The search deliberately shows display names and profile pictures and not email addresses, and lists nobody until you type, so running a campaign doesn't become a way to collect everyone's address or a list of everyone on the instance. Two people can have the same display name; their profile pictures are how to tell them apart, and if neither has one, ask your player which they are.
 
@@ -113,7 +113,7 @@ What happens:
 
 **A campaign has exactly one DM**, so handing it over is a swap rather than an
 addition. If you want two people running a game at once, that is not something
-CozyVTT does yet.
+CrazyVTT does yet.
 
 > **Getting it back.** The new DM can hand it back the same way. And if the
 > campaign is yours — you created it — you keep a way in regardless: an **Owner
@@ -127,7 +127,7 @@ CozyVTT does yet.
 
 ## Preparing Your Maps
 
-Good maps make great sessions. Here's how to get them into CozyVTT.
+Good maps make great sessions. Here's how to get them into CrazyVTT.
 
 ### Uploading Map Assets
 
@@ -276,7 +276,7 @@ If a change cannot be saved, for example while the connection is down, a message
 
 #### Turning a Token
 
-A token can face any direction, to show which way a creature is looking or a cart is pointing ([#89](https://github.com/CheekyChinchilla/CozyVTT/issues/89)):
+A token can face any direction, to show which way a creature is looking or a cart is pointing ([#89](https://github.com/CheekyChinchilla/CrazyVTT/issues/89)):
 
 - **Right-click the token** and choose **Rotate Left** or **Rotate Right** to turn it 45 degrees. The menu stays open, so press again to keep turning.
 - **For an exact angle,** open **Edit Token** and type it in **Facing**, in degrees clockwise: 0 is the picture as uploaded, 90 a quarter turn to the right. A full turn wraps round, so 405 becomes 45.
@@ -301,7 +301,7 @@ After setting a token's image, you can save it back to the creature template so 
 
 1. In the quick editor, below the token image, click **Save image to creature template**
 
-**SRD creatures are read-only.** If the token is based on an SRD creature (imported from Open5e), CozyVTT will automatically create a custom duplicate of that creature for your campaign:
+**SRD creatures are read-only.** If the token is based on an SRD creature (imported from Open5e), CrazyVTT will automatically create a custom duplicate of that creature for your campaign:
 
 - You'll be prompted to **name the duplicate** (e.g., "Ancient Red Dragon (Fire Variant)"), then click **Create & Save Image**
 - If a duplicate of that SRD creature already exists in your campaign, a warning appears asking if you want to create another
@@ -383,7 +383,7 @@ The first time you open the Creature Library on a new server, it may be empty. A
 - Seeding takes a few seconds — a progress indicator shows while it runs. If Open5e cannot be reached, or takes more than 15 seconds over a page, the import stops, says why, and adds nothing; try again later
 - SRD creatures are **global** (shared across all campaigns on the instance) and **read-only**
 - You can duplicate any SRD creature to create an editable custom version
-- The button is offered only while no SRD creatures have been imported, so it disappears once they are in. An import that runs again adds no creature twice, and on a library seeded before CozyVTT 1.1.1 it fills in each SRD creature's hit points; custom creatures are never modified
+- The button is offered only while no SRD creatures have been imported, so it disappears once they are in. An import that runs again adds no creature twice, and on a library seeded before CrazyVTT 1.1.1 it fills in each SRD creature's hit points; custom creatures are never modified
 
 ### Browsing and Searching
 
@@ -448,7 +448,7 @@ Each list of traits, actions, bonus actions, reactions or legendary actions hold
 ### Saving Throws and Skills
 
 Rather than typing a number for each save and skill, you tick what the creature is
-good at and CozyVTT works out the bonus. This applies everywhere a stat block is
+good at and CrazyVTT works out the bonus. This applies everywhere a stat block is
 edited: the Creature Library, the Token Template editor, and the quick editor on a
 token already on the map.
 
@@ -487,7 +487,7 @@ warning triangle — the value is still saved, it's just flagged so a typo doesn
 pass unnoticed. You can also override the proficiency bonus itself.
 
 **Existing creatures keep their numbers.** SRD creatures and anything you made
-earlier are read, not rewritten. CozyVTT works backwards from the printed bonus to
+earlier are read, not rewritten. CrazyVTT works backwards from the printed bonus to
 show the right checkboxes — an SRD Goblin opens already showing Stealth as
 expertise, still at its printed +6. Where a printed value doesn't fit the rules
 (the Night Hag is one), it's kept exactly as published and shown as an override.
@@ -499,7 +499,7 @@ differently: creature stat blocks print final modifiers rather than deriving the
 from proficiency ranks. You'll see **Fortitude, Reflex and Will** instead of six
 ability saves, a **Level** instead of a Challenge Rating, **Attribute Modifiers**
 (Str +4, Dex -1) instead of ability scores, and you enter each modifier directly.
-CozyVTT warns if a number looks far off for the creature's level, but never
+CrazyVTT warns if a number looks far off for the creature's level, but never
 changes it. The stat block then reads as Pathfinder prints one: its level, its
 modifiers, and Fort, Ref and Will. A D&D creature used in a Pathfinder campaign
 keeps its Challenge Rating, shown as CR.
@@ -571,7 +571,7 @@ If you DM multiple campaigns, you can copy a template from one campaign to anoth
 
 ## Campaign Export & Import
 
-Export your campaign as a portable `.cozyvtt` archive and import it on another CozyVTT instance — or use it as a backup.
+Export your campaign as a portable `.crazyvtt` archive and import it on another CrazyVTT instance — or use it as a backup.
 
 ### Exporting a Campaign
 
@@ -581,7 +581,7 @@ Export your campaign as a portable `.cozyvtt` archive and import it on another C
 4. Click **Export Campaign**
 5. In Chrome and Edge, choose where to save the file; the archive is written there as it arrives. Other browsers download it as they would any file, and save it once it has all arrived
 
-A large campaign takes as long to export as your connection needs; nothing gives up after a set time. Choose where to save within a minute or so: on a large campaign, the web proxy that comes with CozyVTT gives up on a download that nothing has taken for longer than that, and the export has to be started again.
+A large campaign takes as long to export as your connection needs; nothing gives up after a set time. Choose where to save within a minute or so: on a large campaign, the web proxy that comes with CrazyVTT gives up on a download that nothing has taken for longer than that, and the export has to be started again.
 
 **Size limit.** A campaign archive can hold up to **500 MB** of pictures, sound and campaign data, which is the most an import accepts. If the campaign's files add up to more, **Export Campaign** says how large they are instead of making an archive no server could import. If leaving out audio would bring it under the limit, the message says so; otherwise remove maps or pictures the campaign no longer uses and export again. Each person can export 20 campaigns an hour, one at a time.
 
@@ -604,7 +604,7 @@ A large campaign takes as long to export as your connection needs; nothing gives
 ### Importing a Campaign
 
 1. From the **Dashboard**, click the **Import** button (next to Create Campaign)
-2. Drop a `.cozyvtt` archive on the window, or click the drop area (or press Enter on it) to choose one
+2. Drop a `.crazyvtt` archive on the window, or click the drop area (or press Enter on it) to choose one
 3. Review the preview: map count, creature count, token templates, asset count, and total size. The window reads these from the archive on your computer, so nothing is uploaded until you import
 4. Optionally rename the campaign and toggle whether to import tokens
 5. Click **Import Campaign**
@@ -612,20 +612,20 @@ A large campaign takes as long to export as your connection needs; nothing gives
 
 While **Importing campaign...** is showing, the window cannot be closed: Escape, a click outside it and the X do nothing, so you always see how the import ended. The window can be closed again once it says the import is complete or has failed.
 
-An archive can be up to **500 MB**. Anyone with an account can import one, players included, and becomes the new campaign's DM. Each person can import 20 campaigns an hour, one at a time. If the import window says the archive is larger than the server accepts, the web proxy in front of the server has a lower size limit than CozyVTT's; whoever runs the server can raise it as the deployment guide describes.
+An archive can be up to **500 MB**. Anyone with an account can import one, players included, and becomes the new campaign's DM. Each person can import 20 campaigns an hour, one at a time. If the import window says the archive is larger than the server accepts, the web proxy in front of the server has a lower size limit than CrazyVTT's; whoever runs the server can raise it as the deployment guide describes.
 
 The imported campaign is created fresh with new IDs — it does not interfere with any existing campaigns. You become the DM automatically.
 
-**What comes back as it was, what is shortened, and what is left out.** Everything in the archive is held to what CozyVTT itself can store, so whatever arrives can be opened, edited and saved again. When the import finishes, its window lists anything it had to change under **Changed to fit**, and anything it could not bring in under **Left out**, each with the reason. The map count it shows is the maps it made.
+**What comes back as it was, what is shortened, and what is left out.** Everything in the archive is held to what CrazyVTT itself can store, so whatever arrives can be opened, edited and saved again. When the import finishes, its window lists anything it had to change under **Changed to fit**, and anything it could not bring in under **Left out**, each with the reason. The map count it shows is the maps it made.
 
-- **Kept as it was:** everything a campaign made in CozyVTT holds, up to the limits the app itself has: maps up to 500 by 500 squares with any grid size from 10 to 500, up to 1,000 tokens, 5,000 walls and doors and 200 lights on each map, and their fog. The Map Library lists the maps in the order the original did, and the campaign opens on the oldest.
+- **Kept as it was:** everything a campaign made in CrazyVTT holds, up to the limits the app itself has: maps up to 500 by 500 squares with any grid size from 10 to 500, up to 1,000 tokens, 5,000 walls and doors and 200 lights on each map, and their fog. The Map Library lists the maps in the order the original did, and the campaign opens on the oldest.
 - **Refused as a whole:** an archive of more than 1,000 files (one for each map and each picture or sound file), or with more than 10 MB of creatures, of token templates or of one map's data. Nothing is imported. Exporting checks the same limits and says when a campaign is over them, so a campaign that exports can be imported again.
 - **Creatures and token templates past 2,000:** an archive carries up to 2,000 of each. Any after the first 2,000 are left out and listed under **Left out** as one line. Exporting a campaign with more than 2,000 custom creatures or token templates says so instead of saving an archive.
-- **Shortened:** a map name over 200 characters, a token name over 200 characters, token notes over 5,000 characters, and text or lists in a stat block longer than the creature editor allows (an action's description over 5,000 characters, say, or more than 50 actions). Older versions of CozyVTT stored some of these at any length, and an imported creature that kept them could not be placed on a map or saved.
+- **Shortened:** a map name over 200 characters, a token name over 200 characters, token notes over 5,000 characters, and text or lists in a stat block longer than the creature editor allows (an action's description over 5,000 characters, say, or more than 50 actions). Older versions of CrazyVTT stored some of these at any length, and an imported creature that kept them could not be placed on a map or saved.
 - **Game system:** a campaign or creature whose game system this server does not know, from a hand-edited archive for example, is imported with none.
 - **Moved:** a token that is not on a whole square, or that hangs off the edge of its map, is put on the nearest whole square inside it.
-- **Left out on its own:** a token that CozyVTT cannot store (one with no position, for example), and any tokens past the first 1,000 on a map. The rest of the map is imported. A stat block that cannot be stored even when shortened is left off its token or template, which are kept; a creature, which needs one, is left out.
-- **Walls, doors and lights left behind:** a wall, door or light that CozyVTT cannot store, one more than 500 squares outside its map, and any past the first 5,000 walls and doors or the first 200 lights on a map are not imported. The rest of the map is. The window lists these under **Changed to fit**, as a note on the map they belonged to, and not under **Left out**.
+- **Left out on its own:** a token that CrazyVTT cannot store (one with no position, for example), and any tokens past the first 1,000 on a map. The rest of the map is imported. A stat block that cannot be stored even when shortened is left off its token or template, which are kept; a creature, which needs one, is left out.
+- **Walls, doors and lights left behind:** a wall, door or light that CrazyVTT cannot store, one more than 500 squares outside its map, and any past the first 5,000 walls and doors or the first 200 lights on a map are not imported. The rest of the map is. The window lists these under **Changed to fit**, as a note on the map they belonged to, and not under **Left out**.
 - **Left out whole:** a map larger than the map limits (more than 500 squares on a side, a grid size outside 10 to 500, or more than 100 feet per square). Make the map smaller on the server it came from, export again and import that.
 - **Files built too deeply:** a data file built far more deeply than any export writes, as a damaged or hand-made file can be, costs only what it holds. For a map, that map is left out; the creatures file leaves out every creature, and the token templates file every template, each listed under **Left out**. In the campaign's own files (its settings and the lists of what the archive holds) it stops the import, with a message naming the file.
 - **Pictures and sound** that are missing from the archive, larger than an upload of their kind may be, or not a format the upload window accepts, are left out, and whatever used them arrives without them. So is a picture over the size and frame limits an upload has (see [Asset Types](USER_GUIDE.md#asset-types) in the User Guide), with the limit it is over as the reason.
@@ -790,7 +790,7 @@ or the **cross** to cancel.
 list — it is a record that the session happened — but it goes back to reading
 "No notes were written."
 
-This exists for a specific reason. CozyVTT saved session notes long before
+This exists for a specific reason. CrazyVTT saved session notes long before
 anything displayed them, so the first time you open Past Sessions you may find
 recaps going back months that nobody has ever seen — including any you wrote as
 private reminders to yourself, back when nothing showed them to anyone. Read
@@ -851,7 +851,45 @@ Two things worth knowing. **Call of Cthulhu's readied firearms** act at DEX + 50
 
 Since values are saved on the token, you can always click a number and correct it, whatever produced it.
 
-*GIF pending — Adding combatants and setting initiative order.*
+### Qualitative Enemy Health
+
+When running combat, you see exact HP numbers everywhere — on map tokens, the initiative tracker, and the token roster. For players, enemy health can be displayed qualitatively (such as "Healthy", "Wounded", "Bloodied", "Critical") rather than as exact numbers, matching traditional tabletop conventions.
+
+- **Token Borders**: When an NPC's health is visible, players see a color-coded border on the token:
+  - **Healthy** (100%–75%): Green (`#22c55e`)
+  - **Wounded** (75%–50%): Yellow (`#eab308`)
+  - **Bloodied** (50%–25%): Orange (`#f97316`)
+  - **Critical** (25%–1%): Red (`#ef4444`)
+  - **Unconscious** (0 HP / stable): Gray (`#6b7280`)
+  - **Dying** (0 HP / failing saves): Dark Red (`#dc2626`)
+  - **Dead**: Dark Slate (`#1f2937`)
+- **Hover & Initiative**: Hovering an enemy token shows players descriptions like *"Looks bloodied"* instead of exact digits, and the Initiative Tracker reflects this qualitative status.
+- **DM Visibility**: DMs always see exact HP values (e.g. `24/60 HP (Bloodied)`) and the full HP bar.
+
+### Spell Templates & AoE Radii
+
+When casting spells with an Area of Effect (AoE) — such as *Fireball*, *Burning Hands*, *Lightning Bolt*, or *Thunderwave* — players can place geometric templates directly onto the map canvas:
+
+- **Shape Support**: Circles/Spheres, Cones, Lines, Cubes, Cylinders, Hemispheres, and custom polygons.
+- **Grid Snapping**: Automatically snaps to grid intersections (D&D 5e / PF2e standards) or cell centers, with options for freehand theater-of-the-mind placement.
+- **Coverage Detection**: Automatically detects affected tokens using standard rules (e.g., DMG p.251 50% square coverage threshold).
+- **DM Review Modal**: When a player confirms an AoE spell cast, the DM receives a review modal showing all affected targets, their cover percentage, saving throw toggles (Full vs. Half damage), and editable damage fields before applying damage to the table.
+
+### Universal DM Override System
+
+As DM, you have the authority to modify, cancel, or force any automated mechanic in CrazyVTT with a full audit trail and reversibility:
+
+- **Universal Override Access**: Right-click on any game element (token, HP bar, dice roll, initiative row, spell slot, or condition) to open the **DM Override** menu.
+- **Required Reason**: Every override mandates a reason (e.g., *"Rule of cool"*, *"DM fiat"*, or *"Balancing adjustment"*) to preserve a clean audit log.
+- **Visibility Levels**:
+  - **DM Only**: Kept completely secret from players.
+  - **DM & Players**: Visible to all players in the campaign.
+  - **Whole Table**: Broadcast to everyone including spectators.
+- **Audit Trail & Revertibility**: The **DM Override History** panel records who, what, when, why, and the previous value of each override. Any override can be reverted with one click and a revert reason.
+
+*GIF pending — Overriding roll outcome and checking audit history.*
+
+*GIF pending — Placing an AoE template and reviewing targets.*
 
 ### Managing Turn Order
 
@@ -886,7 +924,7 @@ This works for players too, and it's read-only — hovering never selects, moves
 
 ### A Combatant's Sheet and Rolls
 
-You can roll for a combatant, or look something up on their sheet, straight from the tracker, without finding their token on the map ([#90](https://github.com/CheekyChinchilla/CozyVTT/issues/90)):
+You can roll for a combatant, or look something up on their sheet, straight from the tracker, without finding their token on the map ([#90](https://github.com/CheekyChinchilla/CrazyVTT/issues/90)):
 
 - **Right-click a combatant's row** for the same sheet and roll choices as right-clicking their token on the map: **View Character Sheet** for a player's character, and **Roll...**, which opens the character's rolls or, for a creature, the rolls from its stat block.
 - **Double-click a player character's row** to open their sheet at once. Double-clicking a creature does nothing.
@@ -1045,14 +1083,14 @@ The **Brush** tool lets you paint over the map to quickly trace walls:
 
 ### Snap-to-Wall for Doors and Windows
 
-When drawing a **door** or **window**, CozyVTT can automatically **snap to an existing wall** and replace a section of it — saving you from manually splitting walls.
+When drawing a **door** or **window**, CrazyVTT can automatically **snap to an existing wall** and replace a section of it — saving you from manually splitting walls.
 
 **How it works:**
 
 1. Select a door or **Window** from the **Draw type** buttons
 2. Click near an existing wall to start — the starting point snaps to the nearest wall (shown as a green dot)
 3. Click a second point along the **same wall** — the endpoint also snaps
-4. CozyVTT automatically:
+4. CrazyVTT automatically:
    - Removes the original wall segment between your two points
    - Creates the door or window segment in its place
    - Preserves the remaining wall stubs on either side
@@ -1127,7 +1165,7 @@ straight after importing (it has the map's name), and under **Move to…** choos
 players can see it once you switch to that map. Until you move it, anyone
 browsing the library can see it.
 
-**Size limits.** The picture inside the file must be a PNG, JPEG or WebP no larger than the map size limit (50 MB unless your host changed it), and at most 16,384 pixels on each side. An animated WebP also has the frame limits an uploaded map has (see [Asset Types](USER_GUIDE.md#asset-types) in the User Guide). A file whose picture is over a limit is refused with a message saying which, and nothing is imported. It travels inside the file as text, which makes the file about a third bigger than the picture, so the import accepts a file of up to the map limit plus a third plus 8 MB (75 MB at 50 MB). A file over that is refused straight away with a message saying so. A map holds at most 5,000 wall segments, doors included, and 200 lights; a file with more is refused before anything is imported, and if it would fit without its furniture walls the message says so. A file holding more than a million points, doors, lights and settings in all, far more than any map uses even with its furniture walls left in the file, is refused straight away. The map's name can be up to 200 characters. A PDF is not accepted as a map picture, here or anywhere else, since a PDF cannot be drawn on the map. If the file is refused although it is under these limits, the proxy in front of CozyVTT may have a smaller limit (your host can raise it; see *Upload Size Limits* in the Deployment guide).
+**Size limits.** The picture inside the file must be a PNG, JPEG or WebP no larger than the map size limit (50 MB unless your host changed it), and at most 16,384 pixels on each side. An animated WebP also has the frame limits an uploaded map has (see [Asset Types](USER_GUIDE.md#asset-types) in the User Guide). A file whose picture is over a limit is refused with a message saying which, and nothing is imported. It travels inside the file as text, which makes the file about a third bigger than the picture, so the import accepts a file of up to the map limit plus a third plus 8 MB (75 MB at 50 MB). A file over that is refused straight away with a message saying so. A map holds at most 5,000 wall segments, doors included, and 200 lights; a file with more is refused before anything is imported, and if it would fit without its furniture walls the message says so. A file holding more than a million points, doors, lights and settings in all, far more than any map uses even with its furniture walls left in the file, is refused straight away. The map's name can be up to 200 characters. A PDF is not accepted as a map picture, here or anywhere else, since a PDF cannot be drawn on the map. If the file is refused although it is under these limits, the proxy in front of CrazyVTT may have a smaller limit (your host can raise it; see *Upload Size Limits* in the Deployment guide).
 
 **One import at a time.** Start the next import once the last one has finished. A second file sent while one is still being read is refused with "Another import is still running", and nothing is lost: send it again. Importing a folder of maps one after another is never slowed down. If another DM on the same server is importing a map at the same moment, yours waits until theirs has been read and then goes ahead; with very large files that can add a few seconds. While yours uploads, waits and runs, the **Import UVTT** button shows a spinning circle. Two limits keep one import from holding up everyone else's, and either way the answer comes within a minute of your file finishing its upload, in red at the top of the Map Library:
 
@@ -1140,7 +1178,7 @@ If you close the page or lose your connection while your import is waiting its t
 
 **One file is one map.** A Universal VTT holds a single picture, so a dungeon
 with several levels comes as one file per level, and each one becomes its own
-map in CozyVTT. That is how the format works everywhere, not a CozyVTT limit.
+map in CrazyVTT. That is how the format works everywhere, not a CrazyVTT limit.
 
 **Furniture walls.** Some tools keep the walls for furniture, pillars and
 crates apart from the room walls. They block sight the same way a wall does, so
@@ -1148,11 +1186,11 @@ whether a table should hide what is behind it is your call: when a file has
 them, the import asks, and leaving the box unticked means only the architecture
 blocks sight.
 
-**If CozyVTT asks "Some walls sit outside this map's picture".** The file
+**If CrazyVTT asks "Some walls sit outside this map's picture".** The file
 describes walls in places its own picture does not reach. That normally means
 the tool that exported it cropped the picture to part of the map but wrote out
 the walls for all of it, which is a fault in that tool rather than in the file
-you chose or in CozyVTT. Import it and everything inside the picture works
+you chose or in CrazyVTT. Import it and everything inside the picture works
 normally; the walls beyond the edge arrive with nothing underneath them, and
 they cannot block sight, because sight stops at the edge of the map. If a whole
 section of your map is missing its artwork, check whether the tool you exported
@@ -1163,7 +1201,7 @@ from can export that section on its own, or export the map as a PNG instead and
 
 Open the **Map Library** and click the **download** button (**Export as .uvtt file**) on the map's card, between the pencil and the bin. Your browser saves the map as a `.uvtt` file named after it once the whole file has arrived, which for a large map picture can take a few seconds. A script or a tool built on the unsupported HTTP surface can fetch the same file (`GET /api/campaigns/{campaignId}/maps/{id}/export-uvtt`, DM only). Importing that file back gives a map that sees and lights the same way, with the limits of the format: a window is written as an open doorway, because the format has no windows and a wall in its place would block sight, so it comes back as an open door; a locked door comes back as an ordinary closed door; and a switched-off light is kept and comes back switched off, though other tools may show it lit. Tokens, fog and the spirit layer are not included.
 
-A map whose picture is not a PNG, JPEG, WebP or GIF image, such as a map picture an older version of CozyVTT stored as a PDF, cannot be exported: the Map Library says so, and nothing is saved. Choose a map picture for it in **Edit Map**, then export it again.
+A map whose picture is not a PNG, JPEG, WebP or GIF image, such as a map picture an older version of CrazyVTT stored as a PDF, cannot be exported: the Map Library says so, and nothing is saved. Choose a map picture for it in **Edit Map**, then export it again.
 
 ### Undo / Redo
 
@@ -1366,7 +1404,7 @@ Upload audio files to your Asset Library (type: **Audio**; MP3, Ogg or WAV, an O
 
 **Vibes carry their own music.** A track picked in the period editor starts whenever you switch to that period. The Atmosphere panel then acts as a live override: stop its track, or let a non-looping one finish, and the vibe's music comes back on its own. Stopping the vibe's own track from the panel silences the table until the next vibe switch. The return after a finished one-shot is sent by your browser, so keep your tab open while one plays.
 
-**What your players can hear.** The sound is not relayed from your computer; each player's browser fetches the track from your CozyVTT instance. So while a track is playing, everyone in the campaign can fetch that one track, including a track from your personal library. Stop it, and it is private to you again. Nothing else in your library is exposed, and no one can browse or list your audio.
+**What your players can hear.** The sound is not relayed from your computer; each player's browser fetches the track from your CrazyVTT instance. So while a track is playing, everyone in the campaign can fetch that one track, including a track from your personal library. Stop it, and it is private to you again. Nothing else in your library is exposed, and no one can browse or list your audio.
 
 *GIF pending — Setting ambient audio and the player hearing it start.*
 
@@ -1391,7 +1429,7 @@ Visual particle overlays render on top of the map to complement your audio. Choo
 
 ## Session State and Continuity
 
-CozyVTT remembers your campaign between sessions, so you can pick up exactly where you left off.
+CrazyVTT remembers your campaign between sessions, so you can pick up exactly where you left off.
 
 ### What Gets Saved
 
@@ -1443,10 +1481,54 @@ As a DM, you can run as many campaigns as you like simultaneously. Each campaign
 
 ### Working with the Admin
 
-If you're on a shared CozyVTT instance, coordinate with your platform administrator for:
+If you're on a shared CrazyVTT instance, coordinate with your platform administrator for:
 - Creating accounts for new players before you invite them
 - Uploading assets to the Global scope (available to all DMs on the platform)
 - Recovering from any platform-level issues
+
+---
+
+### Dual-Mode Dice System
+
+CozyVTT supports two mathematically distinct dice rolling modes, selectable per-campaign from the **Dice Panel** settings (DM-only):
+
+#### 🎲 True Random
+Standard cryptographic randomness — each roll is entirely independent. Over thousands of rolls the distribution converges toward the theoretical average, but short sequences can cluster (streak of high or low results) exactly like a real physical die.
+
+#### 🃏 Weighted Bell Curve (Deck Mode)
+Every possible outcome is enumerated and placed in a deck, then Fisher-Yates shuffled with a cryptographic seed. Players draw from the deck in sequence. When the deck is exhausted it reshuffles automatically.
+
+**What this means in play:**
+- For a d20 with 20 outcomes, players will see every result from 1–20 exactly once per cycle of 20 rolls (in a random order).
+- For 2d6 with 36 combinations, every combination appears once per cycle. The natural bell curve of 2d6 is maintained because totals like 7 have 6 combinations.
+- Short-run luck evens out dramatically — no more "five natural-1s in a row."
+
+#### Switching Modes
+1. Open the **Dice Panel** (dice icon in the sidebar).
+2. Click the **Dice Mode** toggle: **True Random** or **Weighted Bell Curve**.
+3. The change broadcasts instantly to all players.
+
+> **Note:** Switching modes does **not** reset any existing deck — the deck picks up where it left off. If you want a fresh shuffle, click **Reshuffle Deck** (right-click the mode selector).
+
+#### Statistical Audit Tool
+The **Dice Distribution Audit** panel (DM-only, in the Dice Panel settings) runs chi-squared tests across all expressions rolled in the campaign:
+
+| Badge | p-value | Meaning |
+|-------|---------|---------|
+| ✅ **PASS** | ≥ 0.05 | Distribution is statistically expected |
+| ⚠️ **WARN** | ≥ 0.01 | Mild deviation — keep an eye on it |
+| ❌ **FAIL** | < 0.01  | Significant deviation — investigate |
+
+Fewer than 10 samples always passes (too little data to test).
+
+#### Roll Metadata in the Dice Panel
+Each roll in the history shows optional metadata badges:
+- **🎲** — True Random roll
+- **🃏 Draw 7/36** — Weighted Deck roll, 7th draw of this cycle (36-entry deck)
+- **🔄 Adv** — Re-rolled with Advantage (and similar for Halfling Luck, Portent, etc.)
+
+#### Reroll Tracking
+Reroll chains (Advantage, Halfling Luck, etc.) are linked in the database. The **DM Override History** panel can show all rolls in a chain.
 
 ---
 

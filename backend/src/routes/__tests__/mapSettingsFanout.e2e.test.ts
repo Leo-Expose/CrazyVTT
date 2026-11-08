@@ -28,7 +28,7 @@ let dm: ReturnType<typeof request.agent>;
 
 beforeAll(async () => {
   const stamp = randomUUID().slice(0, 8);
-  const dmUser = await createTestUser({ email: `mapset-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
+  const dmUser = await createTestUser({ email: `mapset-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
   dmId = dmUser.id;
   campaignId = (await createTestCampaign(dmId, { name: `Map settings ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

@@ -37,7 +37,7 @@ const stamp = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 const created: string[] = [];
 
 async function signedInAdmin(label: string) {
-  const user = await createTestUser({ email: `demote-read-${label}-${stamp}@test.cozyvtt.local`, role: 'ADMIN' });
+  const user = await createTestUser({ email: `demote-read-${label}-${stamp}@test.crazyvtt.local`, role: 'ADMIN' });
   created.push(user.id);
   const agent = request.agent(app);
   expect((await agent.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD })).status).toBe(200);
@@ -79,7 +79,7 @@ afterAll(async () => {
 
 it('refuses to demote the only admin when a promotion landed after the route read the account', async () => {
   const { agent } = await signedInAdmin('only');
-  const target = await createTestUser({ email: `demote-read-target-${stamp}@test.cozyvtt.local` });
+  const target = await createTestUser({ email: `demote-read-target-${stamp}@test.crazyvtt.local` });
   created.push(target.id);
   jest.spyOn(platformAdmins, 'isOnlyAdmin').mockResolvedValueOnce(true);
   promoteAfterTheRouteReads(target.id);
@@ -94,7 +94,7 @@ it('refuses to demote the only admin when a promotion landed after the route rea
 
 it('treats an account promoted after the read as demoted: signs it out and writes the log line', async () => {
   const { user: admin, agent } = await signedInAdmin('other');
-  const target = await createTestUser({ email: `demote-read-logged-${stamp}@test.cozyvtt.local` });
+  const target = await createTestUser({ email: `demote-read-logged-${stamp}@test.crazyvtt.local` });
   created.push(target.id);
   const endedSignIns = jest.spyOn(sessionStore, 'destroyUserLoginSessions');
   promoteAfterTheRouteReads(target.id);

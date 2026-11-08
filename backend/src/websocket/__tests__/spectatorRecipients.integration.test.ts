@@ -22,7 +22,7 @@ import { setState, clearState } from '../initiativeState';
 jest.setTimeout(30000);
 
 const runId = randomUUID().slice(0, 8);
-const email = (name: string) => `specrecv-${name}-${runId}@test.cozyvtt.local`;
+const email = (name: string) => `specrecv-${name}-${runId}@test.crazyvtt.local`;
 const HIDDEN = randomUUID();
 const WRAITH = randomUUID();
 const HERO = randomUUID();

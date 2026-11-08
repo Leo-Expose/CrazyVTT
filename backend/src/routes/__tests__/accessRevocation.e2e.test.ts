@@ -61,10 +61,10 @@ async function login(email: string) {
 beforeAll(async () => {
   const stamp = Date.now();
   const [a, t, d, k] = await Promise.all([
-    createTestUser({ email: `revoke-admin-${stamp}@test.cozyvtt.local`, displayName: 'Acting Admin', role: 'ADMIN' }),
-    createTestUser({ email: `revoke-target-${stamp}@test.cozyvtt.local`, displayName: 'Target Admin', role: 'ADMIN' }),
-    createTestUser({ email: `revoke-doomed-${stamp}@test.cozyvtt.local`, displayName: 'Doomed User' }),
-    createTestUser({ email: `revoke-keeper-${stamp}@test.cozyvtt.local`, displayName: 'Keeper' }),
+    createTestUser({ email: `revoke-admin-${stamp}@test.crazyvtt.local`, displayName: 'Acting Admin', role: 'ADMIN' }),
+    createTestUser({ email: `revoke-target-${stamp}@test.crazyvtt.local`, displayName: 'Target Admin', role: 'ADMIN' }),
+    createTestUser({ email: `revoke-doomed-${stamp}@test.crazyvtt.local`, displayName: 'Doomed User' }),
+    createTestUser({ email: `revoke-keeper-${stamp}@test.crazyvtt.local`, displayName: 'Keeper' }),
   ]);
   actingAdminId = a.id;
   targetId = t.id;
@@ -97,7 +97,7 @@ describe('revoking access ends the sessions already issued', () => {
   it('when a user deletes their own account, on every device', async () => {
     // An admin, so what the other devices would keep is the admin role.
     const self = await createTestUser({
-      email: `revoke-self-${Date.now()}${Math.random().toString(36).slice(2, 8)}@test.cozyvtt.local`,
+      email: `revoke-self-${Date.now()}${Math.random().toString(36).slice(2, 8)}@test.crazyvtt.local`,
       role: 'ADMIN',
     });
     extra.push(self.id);

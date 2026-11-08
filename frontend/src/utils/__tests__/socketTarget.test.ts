@@ -2,7 +2,7 @@
  * Splitting VITE_SOCKET_URL into what socket.io actually wants.
  *
  * `io(url)` reads the URL's *pathname* as a namespace, not as a location — so
- * pointing the setting at `https://host/cozyvtt` asked for a namespace the
+ * pointing the setting at `https://host/crazyvtt` asked for a namespace the
  * server has never registered, and the connection simply failed. Where the
  * endpoint lives is the separate `path` option, which was never passed at all.
  *
@@ -28,16 +28,16 @@ describe('socketTarget', () => {
   });
 
   it('moves a path off the origin and onto the path option', () => {
-    // This is the case that could never have worked: /cozyvtt was being read
+    // This is the case that could never have worked: /crazyvtt was being read
     // as a namespace.
-    expect(socketTarget('https://example.com/cozyvtt')).toEqual({
+    expect(socketTarget('https://example.com/crazyvtt')).toEqual({
       origin: 'https://example.com',
-      path: '/cozyvtt/socket.io',
+      path: '/crazyvtt/socket.io',
     });
   });
 
   it('handles a bare path with no origin', () => {
-    expect(socketTarget('/cozyvtt')).toEqual({ origin: '', path: '/cozyvtt/socket.io' });
+    expect(socketTarget('/crazyvtt')).toEqual({ origin: '', path: '/crazyvtt/socket.io' });
   });
 
   it('does not care about a trailing slash', () => {
@@ -45,16 +45,16 @@ describe('socketTarget', () => {
       origin: 'https://example.com',
       path: '/socket.io',
     });
-    expect(socketTarget('https://example.com/cozyvtt/')).toEqual({
+    expect(socketTarget('https://example.com/crazyvtt/')).toEqual({
       origin: 'https://example.com',
-      path: '/cozyvtt/socket.io',
+      path: '/crazyvtt/socket.io',
     });
   });
 
   it('ignores surrounding whitespace, which .env files collect', () => {
-    expect(socketTarget('  https://example.com/cozyvtt  ')).toEqual({
+    expect(socketTarget('  https://example.com/crazyvtt  ')).toEqual({
       origin: 'https://example.com',
-      path: '/cozyvtt/socket.io',
+      path: '/crazyvtt/socket.io',
     });
   });
 

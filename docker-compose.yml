@@ -40,7 +40,7 @@ x-logging: &logging
 services:
   database:
     image: postgres:15-alpine
-    container_name: cozyvtt-database
+    container_name: crazyvtt-database
     logging: *logging
     restart: unless-stopped
     # Nothing in the container can gain privileges through a setuid program.
@@ -78,8 +78,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    image: cozyvtt-backend:latest
-    container_name: cozyvtt-backend
+    image: crazyvtt-backend:latest
+    container_name: crazyvtt-backend
     logging: *logging
     restart: unless-stopped
     # How long Docker lets the backend stop on its own before killing it. A
@@ -182,8 +182,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
-    image: cozyvtt-frontend:latest
-    container_name: cozyvtt-frontend
+    image: crazyvtt-frontend:latest
+    container_name: crazyvtt-frontend
     logging: *logging
     restart: unless-stopped
     # Nothing in the container can gain privileges through a setuid program.
@@ -223,7 +223,7 @@ services:
     # nginx's stable line, the same as the frontend image's (frontend/Dockerfile.prod).
     # A test keeps the two in step; move both together.
     image: nginx:1.30-alpine
-    container_name: cozyvtt-nginx
+    container_name: crazyvtt-nginx
     # The image stops nginx with SIGQUIT, which waits for every live game
     # connection to close; a connected player's never does, so a stop took
     # the full 10 seconds and then killed it. SIGTERM ends at once, and
@@ -286,7 +286,7 @@ services:
       # `docker compose up -d --build` leaves a running container alone unless
       # its definition changed, so without a change here an upgrade keeps
       # serving the previous config.
-      NGINX_CONF_STAMP: "d3fe8e6463a6"
+      NGINX_CONF_STAMP: "b5511a575455"
     ports:
       # Change these if 80/443 are already in use on your host.
       # Example: HTTP_PORT=8080 in .env to access CozyVTT at http://yourserver:8080
@@ -297,13 +297,13 @@ services:
       # /etc/nginx/conf.d/default.conf at start, filling in NGINX_MAX_BODY_SIZE.
       - ./nginx/nginx.conf:/etc/nginx/templates/default.conf.template:ro
       # The proxying rules, included by the HTTP server and by your HTTPS one.
-      - ./nginx/locations.conf:/etc/nginx/cozyvtt/locations.conf:ro
+      - ./nginx/locations.conf:/etc/nginx/templates/locations.conf:ro
       # Run by the image's entrypoint before it renders the template above.
-      - ./nginx/trusted-proxies.envsh:/docker-entrypoint.d/19-cozyvtt-trusted-proxies.envsh:ro
+      - ./nginx/trusted-proxies.envsh:/docker-entrypoint.d/19-crazyvtt-trusted-proxies.envsh:ro
       - ./nginx/certs:/etc/nginx/certs:ro  # Place your SSL certs here
       # Your own nginx settings, such as HTTPS: every .conf file here is read.
       # git ignores this folder's contents, so `git pull` never stops at them.
-      - ./nginx/conf.d:/etc/nginx/cozyvtt.d:ro
+      - ./nginx/conf.d:/etc/nginx/crazyvtt.d:ro
       # Scratch files only: nothing in it needs a backup.
       - nginx_temp:/var/cache/nginx
     networks:
@@ -315,6 +315,7 @@ services:
 
 volumes:
   postgres_data:
+    name: cozyvtt_production_postgres_data
     driver: local
   # nginx's request and response scratch files; Compose makes it on the
   # first start, and nothing in it needs a backup.

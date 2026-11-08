@@ -1,6 +1,6 @@
-# CozyVTT — Development Setup
+# CrazyVTT — Development Setup
 
-This guide covers everything you need to run CozyVTT locally **for development work** — hot reload, exposed ports for debugging, source-mounted volumes.
+This guide covers everything you need to run CrazyVTT locally **for development work** — hot reload, exposed ports for debugging, source-mounted volumes.
 
 > 🚨 **Looking to deploy a production instance?** You're in the wrong file. See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for the production setup guide (hardened Docker stack, Nginx reverse proxy, SSL/TLS, backups). Deploying the dev stack to a public-facing server is a security risk — it exposes the database port and runs services with hot-reload tooling and verbose logging.
 
@@ -36,7 +36,7 @@ This guide covers everything you need to run CozyVTT locally **for development w
 ## Repository Structure
 
 ```
-cozyvtt/
+crazyvtt/
 ├── backend/               Express API server
 │   ├── src/
 │   │   ├── config/        Configuration loading and validation
@@ -110,7 +110,7 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values.
 | `SMTP_SECURE` | No | `false` | Use TLS (`true`) or STARTTLS (`false`) |
 | `APP_URL` | No | `http://localhost:3000` | Public URL used in email links |
 | `FRONTEND_URL` | No | — | An older name for `APP_URL`, read only when `APP_URL` is not set |
-| `INSTANCE_NAME` | No | — | The name emails use while the name in Admin > Settings is empty or still CozyVTT |
+| `INSTANCE_NAME` | No | — | The name emails use while the name in Admin > Settings is empty or still CrazyVTT |
 | `SETUP_TOKEN` | No | — | The token the setup wizard asks for; unset, the backend makes one and prints it in its log until setup has run |
 | `UPLOAD_DIR` | No | `uploads` | Where uploaded files are stored, relative to the backend folder |
 | `BACKUP_DIR` | No | `backups` | Where the Admin Dashboard writes backups; must not be inside the uploads folder |
@@ -132,7 +132,7 @@ The `MAX_*_SIZE_MB` values are read at startup by `backend/src/utils/fileUtils.t
 **Example `backend/.env` for local development:**
 
 ```env
-DATABASE_URL="postgresql://cozyvtt:cozyvtt@localhost:5432/cozyvtt"
+DATABASE_URL="postgresql://crazyvtt:crazyvtt@localhost:5432/crazyvtt"
 SESSION_SECRET="dev-session-secret-change-in-production-please"
 NODE_ENV="development"
 PORT=4000
@@ -191,8 +191,8 @@ and `approve` work only on a tree that is already installed.
 Create a database and user:
 
 ```sql
-CREATE USER cozyvtt WITH PASSWORD 'cozyvtt' CREATEDB;
-CREATE DATABASE cozyvtt OWNER cozyvtt;
+CREATE USER crazyvtt WITH PASSWORD 'crazyvtt' CREATEDB;
+CREATE DATABASE crazyvtt OWNER crazyvtt;
 ```
 
 The user owns the database so the migrations can create tables in its `public`
@@ -222,7 +222,7 @@ Since Prisma 7, `migrate dev` and `db push` no longer generate the client, so
 
 ### 5. Create the administrator
 
-There is no seed data yet: `backend/prisma/seed.ts` is a stub that logs two lines and creates nothing, so `npm run prisma:seed` does nothing useful. A fresh database starts with the setup wizard, which creates the administrator account. Start the backend and the frontend (below), open the app and complete the wizard. It asks for a setup token that the backend prints in its log; see [DEPLOYMENT.md](DEPLOYMENT.md#4-complete-the-setup-wizard).
+A fresh database starts with the setup wizard, which creates the administrator account. Start the backend and the frontend (below), open the app and complete the wizard. It asks for a setup token that the backend prints in its log; see [DEPLOYMENT.md](DEPLOYMENT.md#4-complete-the-setup-wizard). The Prisma seed script also installs the shared default spell templates for D&D 5e and Pathfinder 2e; campaign creation seeds the templates for that campaign's game system automatically.
 
 ---
 
@@ -325,7 +325,7 @@ npx prisma migrate deploy
 >
 > ```bash
 > # Once, with the dev stack running:
-> docker compose -f docker-compose.dev.yml exec database createdb -U cozyvtt cozyvtt_shadow
+> docker compose -f docker-compose.dev.yml exec database createdb -U crazyvtt crazyvtt_shadow
 >
 > # Each new migration, from backend/ (the folder name is a UTC timestamp and a name):
 > mkdir -p prisma/migrations/20261011120000_describe_your_change
@@ -340,7 +340,7 @@ npx prisma migrate deploy
 > reads its address from `SHADOW_DATABASE_URL`. Add it to `backend/.env`:
 >
 > ```bash
-> SHADOW_DATABASE_URL="postgresql://cozyvtt:YOUR_DATABASE_PASSWORD@localhost:5432/cozyvtt_shadow"
+> SHADOW_DATABASE_URL="postgresql://crazyvtt:YOUR_DATABASE_PASSWORD@localhost:5432/crazyvtt_shadow"
 > ```
 >
 > A fresh database that the backend has never started against has no `session` table, and `migrate dev` works on it as usual.
@@ -417,10 +417,10 @@ and empty as they run. Start a throwaway one in Docker and load the schema into
 it:
 
 ```bash
-docker run -d --name cozyvtt-test-pg -e POSTGRES_USER=cozyvtt -e POSTGRES_PASSWORD=cozyvtt \
-  -e POSTGRES_DB=cozyvtt_test -p 55500:5432 postgres:15-alpine
+docker run -d --name crazyvtt-test-pg -e POSTGRES_USER=crazyvtt -e POSTGRES_PASSWORD=crazyvtt \
+  -e POSTGRES_DB=crazyvtt_test -p 55500:5432 postgres:15-alpine
 cd backend
-DATABASE_URL=postgresql://cozyvtt:cozyvtt@localhost:55500/cozyvtt_test npx prisma db push
+DATABASE_URL=postgresql://crazyvtt:crazyvtt@localhost:55500/crazyvtt_test npx prisma db push
 ```
 
 Run the same `db push` again after switching to a branch with a different
@@ -430,8 +430,8 @@ up to date.
 Then run the suite, or one file, with the same `DATABASE_URL`:
 
 ```bash
-DATABASE_URL=postgresql://cozyvtt:cozyvtt@localhost:55500/cozyvtt_test npx jest
-DATABASE_URL=postgresql://cozyvtt:cozyvtt@localhost:55500/cozyvtt_test npx jest src/routes/__tests__/auth.e2e.test.ts
+DATABASE_URL=postgresql://crazyvtt:crazyvtt@localhost:55500/crazyvtt_test npx jest
+DATABASE_URL=postgresql://crazyvtt:crazyvtt@localhost:55500/crazyvtt_test npx jest src/routes/__tests__/auth.e2e.test.ts
 ```
 
 Tests live in `backend/src/**/__tests__/`, or beside the code as `name.test.ts`. Unit tests use Jest; integration tests use Supertest against an in-process server.
@@ -441,8 +441,8 @@ Tests live in `backend/src/**/__tests__/`, or beside the code as `name.test.ts`.
 > change the instance's settings, and five create and drop schemas of their
 > own. So
 > jest stops before any suite starts unless the database `DATABASE_URL` names
-> has `test` in its name as a word: `cozyvtt_test` and `cozyvtt_test_2` pass,
-> `cozyvtt` does not. With `DATABASE_URL` unset it checks the database
+> has `test` in its name as a word: `crazyvtt_test` and `crazyvtt_test_2` pass,
+> `crazyvtt` does not. With `DATABASE_URL` unset it checks the database
 > `backend/.env` names, which is your development database, and refuses it.
 > The check is `src/__tests__/helpers/testDatabaseGuard.ts`.
 
@@ -532,7 +532,7 @@ cd frontend && npm run typecheck && npm run lint && npx vitest run --maxWorkers=
 # Backend. The Prisma client is generated, not committed: without a fresh one,
 # every column added since the last generate is a type error.
 cd backend && npx prisma generate && npx tsc --noEmit && npm run lint && \
-  DATABASE_URL=postgresql://cozyvtt:cozyvtt@localhost:55500/cozyvtt_test npx jest
+  DATABASE_URL=postgresql://crazyvtt:crazyvtt@localhost:55500/crazyvtt_test npx jest
 
 # Documentation, from the repository root (on Windows the command is usually
 # `python`)
@@ -804,7 +804,7 @@ tagged, rehearse exactly that:
 1. In a second checkout (`git worktree add ../cozy-rehearsal <previous-tag>`),
    copy `.env.example` to `.env`, give it ports of its own (`HTTP_PORT`,
    `HTTPS_PORT`) and its own secrets, and start the production stack with
-   `docker compose up -d --build`. Its containers are named `cozyvtt-*`, like
+   `docker compose up -d --build`. Its containers are named `crazyvtt-*`, like
    a real instance's, so do this on a machine that is not running one.
 2. Seed it through the app: an admin, a player with two-factor sign-in on,
    a campaign with a lit map (walls, a light, a hidden token with notes, some
@@ -969,4 +969,4 @@ current layer and crossover status.
 
 ### Contributing
 
-CozyVTT does not accept cold Pull Requests. If you'd like to contribute to the official project, please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+CrazyVTT does not accept cold Pull Requests. If you'd like to contribute to the official project, please read [CONTRIBUTING.md](CONTRIBUTING.md) first.

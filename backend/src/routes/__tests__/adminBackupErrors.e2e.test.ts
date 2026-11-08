@@ -13,7 +13,7 @@ import fsSync from 'fs';
 import os from 'os';
 import path from 'path';
 
-const BACKUP_DIR = fsSync.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-backup-errors-'));
+const BACKUP_DIR = fsSync.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-backup-errors-'));
 process.env.BACKUP_DIR = BACKUP_DIR;
 
 jest.mock('child_process', () => ({
@@ -68,7 +68,7 @@ it('says pg_dump is missing when pg_dump cannot be started', async () => {
 });
 
 it('does not blame pg_dump when the temporary folder cannot be used', async () => {
-  jest.spyOn(fs, 'mkdtemp').mockRejectedValueOnce(Object.assign(new Error("ENOENT: no such file or directory, mkdtemp '/tmp/cozyvtt-db-'"), { code: 'ENOENT' }));
+  jest.spyOn(fs, 'mkdtemp').mockRejectedValueOnce(Object.assign(new Error("ENOENT: no such file or directory, mkdtemp '/tmp/crazyvtt-db-'"), { code: 'ENOENT' }));
   const res = await admin.post('/api/admin/backups');
   expect(res.status).toBe(500);
   expect(res.body.message).not.toMatch(/not installed/);

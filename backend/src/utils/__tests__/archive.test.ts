@@ -45,7 +45,7 @@ async function zipOf(entries: Record<string, string>): Promise<Buffer> {
 const LIMITS = { maxFiles: 10, maxTotalBytes: 1024 * 1024 };
 
 let root: string;
-beforeEach(async () => { root = await fs.mkdtemp(path.join(os.tmpdir(), 'cozyvtt-archive-')); });
+beforeEach(async () => { root = await fs.mkdtemp(path.join(os.tmpdir(), 'crazyvtt-archive-')); });
 afterEach(async () => { await fs.rm(root, { recursive: true, force: true }); });
 
 /**

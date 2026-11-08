@@ -316,7 +316,7 @@ router.put('/settings', async (req, res) => {
       if (typeof value === 'string' && value !== '' && !isSameOriginPath(value)) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: `${field} must be a path served by this instance, such as /default-logo.png. Replace the images in frontend/public/ and rebuild to change the branding.`,
+          message: `${field} must be a path served by this instance, such as /crazyvtt-logo.png. Replace the images in frontend/public/ and rebuild to change the branding.`,
         });
       }
       const stored = typeof value === 'string' && value !== '' ? value : null;
@@ -1292,7 +1292,7 @@ router.post('/backups/restore', oneRestoreAtATime, takeRestoreUpload, async (req
     } catch {
       return res.status(400).json({
         error: 'Invalid Backup',
-        message: 'This file does not appear to be a valid CozyVTT backup (database.sql not found inside ZIP)',
+        message: 'This file does not appear to be a valid CrazyVTT backup (database.sql not found inside ZIP)',
       });
     }
 
@@ -1301,7 +1301,7 @@ router.post('/backups/restore', oneRestoreAtATime, takeRestoreUpload, async (req
       return res.status(500).json({ error: 'Configuration Error', message: 'DATABASE_URL is not set' });
     }
 
-    // 3. Check the dump is a complete CozyVTT backup that runs nothing but
+    // 3. Check the dump is a complete CrazyVTT backup that runs nothing but
     // SQL, and write the copy psql loads: the schema is replaced first, and a
     // setting this server would reject (a dump written by a newer pg_dump) is
     // dropped from the header. See utils/pgRestore.ts for why each matters.

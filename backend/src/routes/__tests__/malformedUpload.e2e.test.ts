@@ -31,7 +31,7 @@ import {
   TEST_PASSWORD,
 } from '../../__tests__/helpers/db';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-malformed-upload-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-malformed-upload-'));
 const UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 const BACKUP_DIR = path.join(SCRATCH, 'backups');
 const SERVER_SCRIPT = path.join(__dirname, '..', '..', '__tests__', 'helpers', 'serve-test-app.ts');

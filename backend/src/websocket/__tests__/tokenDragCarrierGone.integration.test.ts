@@ -34,7 +34,7 @@ type Moved = { tokenId: string; x: number; y: number; dragging?: boolean };
 
 beforeAll(async () => {
   const [dm, player, watcher] = await Promise.all(['dm', 'player', 'watcher'].map((name) =>
-    prisma.user.create({ data: { email: `carriergone-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Carrier ${name}` } })));
+    prisma.user.create({ data: { email: `carriergone-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Carrier ${name}` } })));
   dmId = dm.id;
   playerId = player.id;
   watcherId = watcher.id;

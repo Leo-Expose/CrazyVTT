@@ -72,7 +72,7 @@ describe('the app page policy', () => {
   });
 
   it('leaves plain-HTTP instances alone', () => {
-    // CozyVTT is commonly served over http on a home network. This directive
+    // CrazyVTT is commonly served over http on a home network. This directive
     // would rewrite every request on such an instance to https and break it.
     expect(csp).not.toContain('upgrade-insecure-requests');
   });

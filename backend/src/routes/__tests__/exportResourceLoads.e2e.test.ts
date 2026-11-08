@@ -16,7 +16,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-export-loads-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-export-loads-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 import request from 'supertest';

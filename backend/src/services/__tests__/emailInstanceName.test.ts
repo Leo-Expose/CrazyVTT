@@ -4,8 +4,8 @@
  * The setup wizard and Admin → Settings store an instance name, and the
  * guides said emails use it, but the emails read only the INSTANCE_NAME
  * environment variable, which nothing documented, so every email from a
- * renamed instance still said CozyVTT. They now use the stored name; when
- * it is empty or still CozyVTT, INSTANCE_NAME if it is set, so an instance
+ * renamed instance still said CrazyVTT. They now use the stored name; when
+ * it is empty or still CrazyVTT, INSTANCE_NAME if it is set, so an instance
  * that used the variable keeps its name.
  */
 
@@ -44,7 +44,7 @@ describe('the instance name in emails', () => {
 
     expect(sent().subject).toContain('Welcome to Friday Night Table');
     expect(sent().html).toContain('Friday Night Table');
-    expect(sent().html).not.toContain('account for you on CozyVTT');
+    expect(sent().html).not.toContain('account for you on CrazyVTT');
   });
 
   it('is used by the password reset, invitation and test emails too', async () => {
@@ -56,12 +56,12 @@ describe('the instance name in emails', () => {
 
     for (const [mail] of sendMail.mock.calls) {
       expect(mail.subject).toContain('Friday Night Table');
-      expect(mail.html).not.toMatch(/your CozyVTT (account|instance)/);
+      expect(mail.html).not.toMatch(/your CrazyVTT (account|instance)/);
     }
   });
 
-  it('falls back to INSTANCE_NAME while the stored name is still CozyVTT', async () => {
-    getSystemSettings.mockResolvedValue({ instanceName: 'CozyVTT' });
+  it('falls back to INSTANCE_NAME while the stored name is still CrazyVTT', async () => {
+    getSystemSettings.mockResolvedValue({ instanceName: 'CrazyVTT' });
     process.env.INSTANCE_NAME = 'Env Tavern';
 
     await sendWelcomeEmail('p@x.test', 'Pat', 'TEMP-PASS-WORD-0000');
@@ -69,11 +69,11 @@ describe('the instance name in emails', () => {
     expect(sent().subject).toContain('Welcome to Env Tavern');
   });
 
-  it('still sends, as CozyVTT, when the settings cannot be read', async () => {
+  it('still sends, as CrazyVTT, when the settings cannot be read', async () => {
     getSystemSettings.mockRejectedValue(new Error('database down'));
 
     await sendWelcomeEmail('p@x.test', 'Pat', 'TEMP-PASS-WORD-0000');
 
-    expect(sent().subject).toContain('Welcome to CozyVTT');
+    expect(sent().subject).toContain('Welcome to CrazyVTT');
   });
 });

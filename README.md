@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="assets/default-logo.png" alt="CozyVTT Logo" width="300" />
+  <img src="frontend/public/default-logo.png" alt="CrazyVTT Logo" width="300" />
 </p>
 
 <p align="center">
-  <a href="https://cozyvtt.com">cozyvtt.com</a>
+  <a href="https://crazyvtt.com">crazyvtt.com</a>
 </p>
 
 A self-hosted, browser-based Virtual Tabletop (VTT) platform. Designed for ease of use and narrative-driven tabletop RPG campaigns where atmosphere matters more than mechanics.
@@ -14,7 +14,7 @@ A self-hosted, browser-based Virtual Tabletop (VTT) platform. Designed for ease 
 
 ## ⚠️ Self-Hosted Reality Check
 
-CozyVTT is a self-hosted, community-maintained project run **by you** on **your hardware**. It is provided as-is, with no warranty, no SLA, and no central support — see the [AGPL-3.0 License](LICENSE) for the legal version of this.
+CrazyVTT is a self-hosted, community-maintained project run **by you** on **your hardware**. It is provided as-is, with no warranty, no SLA, and no central support — see the [AGPL-3.0 License](LICENSE) for the legal version of this.
 
 **You are responsible for the security and uptime of your instance.** We do our best (Argon2id passwords, MFA, magic-byte file validation, per-endpoint rate limiting, security headers on the app page, a backend that runs as an unprivileged user — the full list is under [Features → Security](#security)), but the operating environment is yours.
 
@@ -28,7 +28,7 @@ CozyVTT is a self-hosted, community-maintained project run **by you** on **your 
 - Configure regular database backups (`backend/scripts/backup.sh` + cron — see [DEPLOYMENT.md](docs/DEPLOYMENT.md))
 - Review the **Hardening Checklist** in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before flipping public
 
-If those words mean nothing to you, run CozyVTT **only on your local network** (e.g. via a Tailscale node, ZeroTier, or just LAN-accessible) until you've leveled up your sysadmin chops. That's a perfectly valid way to play — your campaigns aren't worse for being LAN-only, and you skip the whole attack-surface conversation.
+If those words mean nothing to you, run CrazyVTT **only on your local network** (e.g. via a Tailscale node, ZeroTier, or just LAN-accessible) until you've leveled up your sysadmin chops. That's a perfectly valid way to play — your campaigns aren't worse for being LAN-only, and you skip the whole attack-surface conversation.
 
 If you find a security issue, please report it privately per [SECURITY.md](SECURITY.md) rather than filing a public issue.
 
@@ -49,9 +49,9 @@ If you find a security issue, please report it privately per [SECURITY.md](SECUR
 - **Creature library** — browse, search, and place creatures from the SRD bestiary (imported from Open5e by an administrator, with one button) or custom campaign-specific templates; per-campaign favorites with star toggle; duplicate SRD creatures to customize; edit custom creatures in-place; save token images back to templates
 - **Token templates** — save reusable token configurations (image, stats, HP, size, disposition, full NPC stat block); place from library or save from map context menu; copy templates between campaigns the DM owns
 - **NPC right-click rolls** — DMs right-click any NPC token to roll abilities, saves, skills, attacks, and damage parsed from its stat block; advantage/disadvantage selector for d20 systems; free-form custom roll fallback for systems whose stat blocks have nothing to parse
-- **Campaign export/import** — export campaigns as portable `.cozyvtt` archives; import on any CozyVTT instance; includes maps, tokens, creatures, templates, and assets; multi-step preview flow; optional audio toggle; secured against path traversal, zip bombs, and malicious files
+- **Campaign export/import** — export campaigns as portable `.cozyvtt` archives; import on any CrazyVTT instance; includes maps, tokens, creatures, templates, and assets; multi-step preview flow; optional audio toggle; secured against path traversal, zip bombs, and malicious files
 - **Walls & dynamic lighting** — DM-drawn wall segments (walls, doors, windows) with raycasting visibility; draw, polygon, and brush drawing modes; snap-to-grid and snap-to-endpoint; split, select, erase, and merge point tools; multi-select with Shift, a drag-box or Ctrl+A, then move or delete the lot together; snap-to-wall door/window placement (auto-splits existing walls); players only see what their character can: bright light clearly, dim light and the token's darkvision at half, nothing beyond, and light never reveals through a wall — a lit room is visible only to someone with line of sight into it; per-map Global Illumination lights everything in line of sight for tables that prefer it; explored areas are remembered per player and shown in grey until seen again; door interactions for both DM and players; bright/dim light radii matching D&D 5e and PF2e rules; named light presets (Candle, Torch, Lamp, Lantern, Campfire); overlapping dim zones combine to bright
-- **Universal VTT import/export** — bring in a `.uvtt`, `.dd2vtt` or `.df2vtt` map from Dungeondraft, Dungeon Alchemist, Czepeku and others, with its walls, doors and lights already placed, and export any map back out. One file is one map, as the format intends; if a file's walls reach outside its own picture, CozyVTT says so before importing rather than leaving you to wonder
+- **Universal VTT import/export** — bring in a `.uvtt`, `.dd2vtt` or `.df2vtt` map from Dungeondraft, Dungeon Alchemist, Czepeku and others, with its walls, doors and lights already placed, and export any map back out. One file is one map, as the format intends; if a file's walls reach outside its own picture, CrazyVTT says so before importing rather than leaving you to wonder
 - **Fog of war** — drag a box to reveal or hide chunks of the map; the selection snaps to whole grid squares, with animated fade transitions
 - **Spirit layer** — a second canvas layer for ethereal / astral / out-of-body scenes, hidden from players by default
 - **Initiative tracker** — real-time combat turn order that follows each token; the DM runs it and players roll their own initiative. Players see every combatant the DM has not hidden, on the map the table is looking at and on their own plane, even one they cannot yet find in the dark or under fog, and a creature's hit points only when the DM turns its HP bar on. The acting token is ringed on the map for everyone, hovering a name highlights its token (and vice versa), and right-clicking a combatant opens their sheet and rolls
@@ -78,7 +78,7 @@ If you find a security issue, please report it privately per [SECURITY.md](SECUR
 - **Campaign chat** — in-session messaging between all members
 - **System messages** — automatic notices when a session starts, pauses, resumes or ends, when the DM changes the time of day, and when the spirit layer is revealed or hidden
 - **Personal notes** — private per-campaign notes in Markdown, with a rendered preview and autosave; readable only by their author, enforced server-side
-- **Documents** — upload a PDF, plain text or Markdown rulebook or handout, or write one in the app, and read it without leaving CozyVTT; a DM shares documents with a campaign, and every member reads them from inside the session; text and Markdown documents can be edited by their uploader
+- **Documents** — upload a PDF, plain text or Markdown rulebook or handout, or write one in the app, and read it without leaving CrazyVTT; a DM shares documents with a campaign, and every member reads them from inside the session; text and Markdown documents can be edited by their uploader
 - **Session history** — every finished session with its date, length and the recap the DM wrote; the DM can edit or clear any past recap
 
 ### Theming & Customization
@@ -99,7 +99,7 @@ If you find a security issue, please report it privately per [SECURITY.md](SECUR
 - **Admin-approval registration** (optional)
 - **File upload validation** — magic-byte content checks (not just MIME header), size limits by type; text uploads must genuinely be text, and documents are served as plain text or PDF, never as a web page
 - **Per-endpoint rate limiting** — global API limit, strict auth limit, asset upload limit (configurable via `ASSET_UPLOAD_RATE_LIMIT`), a limit on campaign invitation emails per DM, and per-account limits on everything sent to the live table, set far above what a game sends
-- **Security headers on the app page** — a Content-Security-Policy that allows script only from your own instance, plus `X-Frame-Options`, `nosniff`, `Referrer-Policy` and `Permissions-Policy`. Injected script cannot run, the app cannot be framed by another site, and the browser will not send data to an address CozyVTT does not use. The Docker setup sends them; an install without Docker gets them from the Nginx example in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#5-serve-with-nginx)
+- **Security headers on the app page** — a Content-Security-Policy that allows script only from your own instance, plus `X-Frame-Options`, `nosniff`, `Referrer-Policy` and `Permissions-Policy`. Injected script cannot run, the app cannot be framed by another site, and the browser will not send data to an address CrazyVTT does not use. The Docker setup sends them; an install without Docker gets them from the Nginx example in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#5-serve-with-nginx)
 - **WebSocket campaign isolation** — server-authenticated campaign membership; no client-spoofing
 - **The backend runs as an unprivileged user** — the container starts as root only long enough to fix ownership on your mounted folders, then drops to `appuser` before the app itself runs. In the two nginx containers the master process runs as root, as nginx's own image does, and the worker processes that handle requests run as the unprivileged `nginx` user. The database container runs PostgreSQL as the unprivileged `postgres` user, as its official image does. Every container runs with `no-new-privileges` and drops every Linux capability except the few its start-up needs, such as changing a folder's owner and switching user, and the frontend, the proxy and the backend have read-only filesystems, apart from the folders each writes to
 - **Production refuses to start** with a placeholder `SESSION_SECRET` or `DATABASE_PASSWORD`, or a `SESSION_SECRET` shorter than 32 characters
@@ -156,8 +156,8 @@ If you find a security issue, please report it privately per [SECURITY.md](SECUR
 ### Docker (Recommended)
 
 ```bash
-git clone https://github.com/CheekyChinchilla/CozyVTT.git
-cd CozyVTT
+git clone https://github.com/CheekyChinchilla/CrazyVTT.git
+cd CrazyVTT
 
 # Copy it, then set at least DATABASE_PASSWORD and SESSION_SECRET (see docs/DEPLOYMENT.md)
 cp .env.example .env
@@ -170,7 +170,7 @@ Navigate to `http://localhost` and complete the setup wizard. It asks for the se
 
 ### Local Development
 
-If you've cloned the repo to hack on CozyVTT itself, use the dev compose file instead — it enables hot reload, publishes the frontend, backend and database ports on this computer only, and runs `NODE_ENV=development`:
+If you've cloned the repo to hack on CrazyVTT itself, use the dev compose file instead — it enables hot reload, publishes the frontend, backend and database ports on this computer only, and runs `NODE_ENV=development`:
 
 ```bash
 docker compose -f docker-compose.dev.yml up
@@ -248,29 +248,30 @@ Pictures also have fixed limits: at most 16,384 pixels on each side, and for an 
 | [Development Setup](docs/DEVELOPMENT.md) | Local development guide |
 | [Architecture](docs/ARCHITECTURE.md) | System architecture and design decisions |
 | [Deployment](docs/DEPLOYMENT.md) | Production deployment guide |
-| [Contributing](docs/CONTRIBUTING.md) | How to contribute to CozyVTT |
+| [Contributing](docs/CONTRIBUTING.md) | How to contribute to CrazyVTT |
 | [Game Systems](docs/GAME_SYSTEMS.md) | How to add new game system support |
 | [API Reference](docs/API_REFERENCE.md) | REST API and WebSocket event reference |
+| [Migration Guide](docs/MIGRATION_GUIDE.md) | Safe upgrade, migration, rollback, and validation steps |
 | [WebSocket Events](backend/docs/WEBSOCKET_DOCUMENTATION.md) | Detailed Socket.io event schema |
 | [Future Features](docs/FUTURE_FEATURES.md) | Backlog of planned work |
 | [Security Policy](SECURITY.md) | How to report vulnerabilities |
 | [Changelog](CHANGELOG.md) | Release history |
-| [Third-Party Licenses](THIRD_PARTY_LICENSES.md) | Licences of the fonts, icons, libraries and game content CozyVTT uses |
+| [Third-Party Licenses](THIRD_PARTY_LICENSES.md) | Licences of the fonts, icons, libraries and game content CrazyVTT uses |
 | [SRD Attribution](SRD_ATTRIBUTION.md) | Attribution for the D&D 5e SRD creatures an administrator can import |
 
 ---
 
 ## Community Projects
 
-Built by other people, on their own terms. They are not part of CozyVTT, are not maintained by this project, and are listed because they are useful — check their own documentation and licence before running them.
+Built by other people, on their own terms. They are not part of CrazyVTT, are not maintained by this project, and are listed because they are useful — check their own documentation and licence before running them.
 
 | Project | What it does |
 |---------|--------------|
-| [cozyvtt-mcp](https://github.com/yanjingzhaisun/cozyvtt-mcp) | An MCP bridge that lets an AI assistant act in a campaign — post to chat, roll dice, move tokens, change maps and run initiative. MIT licensed, independent of this codebase. |
+| [crazyvtt-mcp](https://github.com/yanjingzhaisun/crazyvtt-mcp) | An MCP bridge that lets an AI assistant act in a campaign — post to chat, roll dice, move tokens, change maps and run initiative. MIT licensed, independent of this codebase. |
 
-A note on building things like this. CozyVTT's HTTP and WebSocket surfaces are **not a public API**: they are what the web client calls, they are not versioned, and they carry no compatibility promise, so they can change in any release. They *can* be driven by a program — signing in with your own email and password returns a session cookie that authenticates both, and a script can do exactly what the web client does, as that user with that user's permissions. Unsupported is the honest word for it, not impossible.
+A note on building things like this. CrazyVTT's HTTP and WebSocket surfaces are **not a public API**: they are what the web client calls, they are not versioned, and they carry no compatibility promise, so they can change in any release. They *can* be driven by a program — signing in with your own email and password returns a session cookie that authenticates both, and a script can do exactly what the web client does, as that user with that user's permissions. Unsupported is the honest word for it, not impossible.
 
-That is why `cozyvtt-mcp` pins to a CozyVTT version and keeps a compatibility table. Check that table before pairing the two: the surface it builds on is unversioned and can change in any release.
+That is why `crazyvtt-mcp` pins to a CrazyVTT version and keeps a compatibility table. Check that table before pairing the two: the surface it builds on is unversioned and can change in any release.
 
 ---
 
@@ -295,6 +296,6 @@ Backups made from the Admin Panel are not kept here: they go in `backend/backups
 
 GNU Affero General Public License v3.0 — see [LICENSE](LICENSE) for details.
 
-CozyVTT is free to use, self-host, and fork. The AGPLv3 requires that any modified version you run as a network service must also make its source code available under the same license.
+CrazyVTT is free to use, self-host, and fork. The AGPLv3 requires that any modified version you run as a network service must also make its source code available under the same license.
 
 For third-party font and content licenses, see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

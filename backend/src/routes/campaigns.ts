@@ -257,6 +257,14 @@ router.post('/', authenticated, async (req: AuthenticatedRequest, res: Response)
       },
     });
 
+    // Auto-seed default spell templates for the campaign's gameSystem (Phase 10)
+    try {
+      const { seedDefaultSpellTemplates } = await import('../services/spellTemplates.js');
+      await seedDefaultSpellTemplates(gameSystem || 'DND_5E');
+    } catch (templateErr) {
+      logger.warn('Failed to auto-seed spell templates for campaign', { err: templateErr, campaignId: campaign.id });
+    }
+
     return res.status(201).json({
       message: 'Campaign created successfully',
       campaign: campaignWithMemberships,

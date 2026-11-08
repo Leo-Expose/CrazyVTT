@@ -384,10 +384,20 @@ const fakeIDSchema = z.object({
 });
 
 /**
- * Currency
+ * Currency container
+ */
+const currencyContainerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  nuyen: z.number().int().min(0),
+});
+
+/**
+ * Currency with container tracking
  */
 const currencySchema = z.object({
-  nuyen: z.number().int().min(0),
+  nuyen: z.number().int().min(0).default(0),
+  containers: z.array(currencyContainerSchema).optional(),
 });
 
 /**
@@ -398,6 +408,16 @@ const gearItemSchema = z.object({
   rating: z.number().int().min(0).nullable(),
   quantity: z.number().int().min(0),
   notes: longText,
+  // Container fields
+  containerId: z.string().optional(),
+  location: z.enum(['EQUIPPED', 'CARRIED', 'STOWED', 'CONTAINER']).optional(),
+  // Weight (Shadowrun uses weight in kg)
+  weight: z.number().min(0).optional(),
+  // Container capacity
+  capacity: z.number().min(0).optional(),
+  capacityUnit: z.enum(['LBS', 'BULK', 'KG']).optional(),
+  // Value
+  value: z.number().min(0).optional(),
 });
 
 /**

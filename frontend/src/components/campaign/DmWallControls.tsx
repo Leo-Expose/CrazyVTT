@@ -47,7 +47,7 @@ export interface DmWallControlsProps {
   onBrushSizeChange?: (v: number) => void;
 }
 
-const WALL_TYPE_COLORS: Record<WallType, string> = {
+const WALL_TYPE_COLORS: Partial<Record<WallType, string>> = {
   'wall':        'bg-orange-500/20 text-orange-400 border-orange-500/50',
   'door-closed': 'bg-violet-500/20 text-violet-400 border-violet-500/50',
   'door-open':   'bg-green-500/20 text-green-400 border-green-500/50',
@@ -55,7 +55,7 @@ const WALL_TYPE_COLORS: Record<WallType, string> = {
   'window':      'bg-blue-400/20 text-blue-300 border-blue-400/50',
 };
 
-const WALL_TYPE_LABELS: Record<WallType, string> = {
+const WALL_TYPE_LABELS: Partial<Record<WallType, string>> = {
   'wall':        'Wall',
   'door-closed': 'Door',
   'door-open':   'Open Door',

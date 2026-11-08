@@ -31,9 +31,12 @@ import characterRoutes from './routes/characters';
 import characterTemplateRoutes from './routes/characterTemplates';
 import invitationRoutes from './routes/invitations';
 import assetRoutes from './routes/assets';
+import rulebookRoutes from './routes/rulebooks';
 import mapRoutes from './routes/maps';
 import creatureRoutes from './routes/creatures';
 import tokenTemplateRoutes from './routes/tokenTemplates';
+import inventoryRoutes from './routes/inventory';
+import shopRoutes from './routes/shops';
 import adminRoutes from './routes/admin';
 import adminStorageRoutes from './routes/adminStorage';
 import configRoutes from './routes/config';
@@ -231,6 +234,12 @@ export function createApp(options: AppOptions): express.Express {
   app.use('/api/campaigns', campaignMacroRoutes);
   app.use('/api/campaigns', campaignDocumentRoutes);
 
+  // Shops (nested under campaigns)
+  app.use('/api/campaigns/:campaignId/shops', shopRoutes);
+
+  // Inventory (nested under campaigns)
+  app.use('/api/campaigns', inventoryRoutes);
+
   // Characters
   app.use('/api/characters', characterRoutes);
   // Distinct from GET /api/characters/templates/:system/:name, which serves the
@@ -242,6 +251,9 @@ export function createApp(options: AppOptions): express.Express {
 
   // Asset library
   app.use('/api/assets', assetRoutes);
+
+  // Rulebooks
+  app.use('/api/rulebooks', rulebookRoutes);
 
   // Maps (nested under campaigns)
   app.use('/api/campaigns/:campaignId/maps', mapRoutes);

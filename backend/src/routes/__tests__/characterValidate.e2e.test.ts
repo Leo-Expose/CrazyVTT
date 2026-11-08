@@ -26,8 +26,8 @@ type Verdict = { isValid: boolean; errors?: Array<{ path: string; message: strin
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const o = await createTestUser({ email: `validate-owner-${stamp}@test.cozyvtt.local`, displayName: 'Owner' });
-  const x = await createTestUser({ email: `validate-other-${stamp}@test.cozyvtt.local`, displayName: 'Other' });
+  const o = await createTestUser({ email: `validate-owner-${stamp}@test.crazyvtt.local`, displayName: 'Owner' });
+  const x = await createTestUser({ email: `validate-other-${stamp}@test.crazyvtt.local`, displayName: 'Other' });
   ownerId = o.id;
   otherId = x.id;
   owner = request.agent(app);

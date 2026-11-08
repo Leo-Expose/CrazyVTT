@@ -19,7 +19,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-shapes-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-shapes-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 import { importCampaign, jsonNestsDeeperThan, jsonListCut, jsonHoldsMoreValuesThan } from '../campaignImporter';
@@ -45,11 +45,11 @@ interface Contents {
 }
 
 async function archive(contents: Contents): Promise<string> {
-  const file = path.join(SCRATCH, `${randomUUID()}.cozyvtt`);
+  const file = path.join(SCRATCH, `${randomUUID()}.crazyvtt`);
   const maps = contents.maps ?? [];
   const files: Record<string, string> = {
     'manifest.json': JSON.stringify({
-      formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT v1.5.0', campaignName: 'Shapes',
+      formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT v1.5.0', campaignName: 'Shapes',
       gameSystem: 'DND_5E', mapCount: maps.length, tokenCount: 0, creatureCount: contents.creatures?.length ?? 0,
       tokenTemplateCount: contents.templates?.length ?? 0, assetCount: 0, includesAudio: false, totalSizeBytes: 0,
     }),
@@ -180,13 +180,13 @@ describe('data nested deeper than an export ever writes', () => {
     );
 
     expect(result.mapCount).toBe(1);
-    expect(result.skipped).toEqual([{ kind: 'map', name: 'Map 1', reason: 'Its data nests more than 32 levels deep, far deeper than CozyVTT ever writes.' }]);
+    expect(result.skipped).toEqual([{ kind: 'map', name: 'Map 1', reason: 'Its data nests more than 32 levels deep, far deeper than CrazyVTT ever writes.' }]);
   });
 
   it('refuses the archive when it is in the campaign settings', async () => {
     await expect(
       importCampaign(await archive({ campaign: { vibeSettings: { periods: [], extra: nested(40) } } }), userId)
-    ).rejects.toThrow('campaign.json in the archive nests more than 32 levels deep, far deeper than CozyVTT ever writes. It may be damaged, or not a CozyVTT export.');
+    ).rejects.toThrow('campaign.json in the archive nests more than 32 levels deep, far deeper than CrazyVTT ever writes. It may be damaged, or not a CrazyVTT export.');
   });
 });
 
@@ -203,7 +203,7 @@ describe('a map holding more values than an export ever writes', () => {
     );
 
     expect(result.mapCount).toBe(1);
-    expect(result.skipped).toEqual([{ kind: 'map', name: 'Map 1', reason: 'It holds more than 1,000,000 values, far more than CozyVTT ever writes for one map.' }]);
+    expect(result.skipped).toEqual([{ kind: 'map', name: 'Map 1', reason: 'It holds more than 1,000,000 values, far more than CrazyVTT ever writes for one map.' }]);
   });
 });
 

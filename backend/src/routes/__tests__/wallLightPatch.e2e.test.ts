@@ -41,7 +41,7 @@ const stored = (mapId: string) => prisma.map.findUniqueOrThrow({ where: { id: ma
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const user = await createTestUser({ email: `patch-${stamp}@test.cozyvtt.local` });
+  const user = await createTestUser({ email: `patch-${stamp}@test.crazyvtt.local` });
   dmId = user.id;
   campaignId = (await createTestCampaign(dmId, { name: `Patch ${stamp}` })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });

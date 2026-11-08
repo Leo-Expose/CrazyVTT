@@ -27,7 +27,7 @@ jest.mock('../../services/systemSettings', () => ({
   getSystemSettings: jest.fn().mockResolvedValue({
     id: 'test-settings',
     setupCompleted: true,
-    instanceName: 'CozyVTT Test',
+    instanceName: 'CrazyVTT Test',
     timezone: 'UTC',
     allowRegistration: true,
     requireAdminApproval: false,

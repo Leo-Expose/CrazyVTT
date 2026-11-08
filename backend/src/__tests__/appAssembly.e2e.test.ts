@@ -106,12 +106,12 @@ describe('the session cookie', () => {
     created.push(user.id);
     const res = await request(app).post('/api/auth/login').set(headers).send({ email: user.email, password: TEST_PASSWORD });
     expect(res.status).toBe(200);
-    const cookie = cookiesOf(res).find((c) => c.startsWith('cozyvtt.sid='));
+    const cookie = cookiesOf(res).find((c) => c.startsWith('crazyvtt.sid='));
     expect(cookie).toBeDefined();
     return cookie ?? '';
   }
 
-  it('is the server\'s: named cozyvtt.sid, out of reach of scripts, and not sent along by other sites', async () => {
+  it('is the server\'s: named crazyvtt.sid, out of reach of scripts, and not sent along by other sites', async () => {
     const cookie = await signIn();
 
     expect(cookie).toMatch(/; HttpOnly/);

@@ -276,17 +276,38 @@ const spellsAndMythosSchema = z.object({
 const possessionSchema = z.object({
   name: shortText.min(1),
   notes: longText.optional(),
+  // Container fields
+  containerId: z.string().optional(),
+  location: z.enum(['EQUIPPED', 'CARRIED', 'STOWED', 'CONTAINER']).optional(),
+  // Weight (CoC uses weight in lbs)
+  weight: z.number().min(0).optional(),
+  // Container capacity
+  capacity: z.number().min(0).optional(),
+  capacityUnit: z.enum(['LBS', 'BULK']).optional(),
+  // Value
+  value: z.number().min(0).optional(),
 });
 
 /**
- * Wealth
+ * Wealth with container tracking
  * All fields optional for progressive wealth tracking
+ */
+const currencyContainerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  cash: z.number().min(0),
+});
+
+/**
+ * Wealth with container tracking
  */
 const wealthSchema = z.object({
   spendingLevel: shortText.optional(),
   cash: z.number().min(0).optional(),
   assets: longText.optional(),
   notes: longText.optional(),
+  // Per container currency tracking
+  containers: z.array(currencyContainerSchema).optional(),
 });
 
 /**

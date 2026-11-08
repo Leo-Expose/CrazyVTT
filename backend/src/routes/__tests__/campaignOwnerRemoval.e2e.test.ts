@@ -45,9 +45,9 @@ async function login(email: string) {
 beforeAll(async () => {
   const stamp = Date.now();
   const [o, c, p] = await Promise.all([
-    createTestUser({ email: `owner-${stamp}@test.cozyvtt.local`, displayName: 'Owner' }),
-    createTestUser({ email: `cohost-${stamp}@test.cozyvtt.local`, displayName: 'Co-host' }),
-    createTestUser({ email: `player-${stamp}@test.cozyvtt.local`, displayName: 'Ordinary Player' }),
+    createTestUser({ email: `owner-${stamp}@test.crazyvtt.local`, displayName: 'Owner' }),
+    createTestUser({ email: `cohost-${stamp}@test.crazyvtt.local`, displayName: 'Co-host' }),
+    createTestUser({ email: `player-${stamp}@test.crazyvtt.local`, displayName: 'Ordinary Player' }),
   ]);
   ownerId = o.id;
   coHostId = c.id;

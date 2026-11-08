@@ -12,7 +12,10 @@ RUN npm ci
 
 COPY . .
 
-RUN chown -R appuser:appgroup /app
+# The dev server reads source and dependencies; it does not need ownership of
+# the whole dependency tree. Keep image builds fast and grant ownership only to
+# the directory used for generated output.
+RUN mkdir -p /app/dist && chown -R appuser:appgroup /app/dist
 
 USER appuser
 

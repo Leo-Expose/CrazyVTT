@@ -15,7 +15,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-atomic-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-atomic-'));
 const UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
@@ -36,12 +36,12 @@ const map = (name: string) => ({
 
 /** An archive of one picture and these maps, written to disk as the import route saves one. */
 async function archive(maps: object[]): Promise<string> {
-  const file = path.join(SCRATCH, `${Date.now()}-${Math.random()}.cozyvtt`);
+  const file = path.join(SCRATCH, `${Date.now()}-${Math.random()}.crazyvtt`);
   const entries: FixtureEntry[] = [
     {
       name: 'manifest.json',
       data: JSON.stringify({
-        formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT test', campaignName: 'Atomic',
+        formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT test', campaignName: 'Atomic',
         gameSystem: 'DND_5E', mapCount: maps.length, tokenCount: maps.length, creatureCount: 0, tokenTemplateCount: 0,
         assetCount: 1, includesAudio: false, totalSizeBytes: PNG.length,
       }),
@@ -118,13 +118,13 @@ describe('a campaign import whose pictures cannot be moved into place', () => {
       if (String(to).includes(`${path.sep}campaigns${path.sep}`) && ++renames > 1) throw new Error('ENOSPC: no space left on device');
       return realRename(from, to);
     });
-    const file = path.join(SCRATCH, 'two-pictures.cozyvtt');
+    const file = path.join(SCRATCH, 'two-pictures.crazyvtt');
     const second = '55555555-5555-4555-8555-555555555555';
     await writeZip(file, [
       {
         name: 'manifest.json',
         data: JSON.stringify({
-          formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CozyVTT test', campaignName: 'Moved',
+          formatVersion: 1, exportedAt: '2026-10-06T00:00:00.000Z', exportedFrom: 'CrazyVTT test', campaignName: 'Moved',
           gameSystem: 'DND_5E', mapCount: 1, tokenCount: 1, creatureCount: 0, tokenTemplateCount: 0, assetCount: 2,
           includesAudio: false, totalSizeBytes: PNG.length * 2,
         }),

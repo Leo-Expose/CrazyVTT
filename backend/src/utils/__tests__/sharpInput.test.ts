@@ -2,7 +2,7 @@
  * sharp is given only bytes identified as PNG, JPEG, WebP or GIF.
  *
  * The image library has readers for many more formats than a picture in
- * CozyVTT can be, and reads whatever it is handed with whichever claims it.
+ * CrazyVTT can be, and reads whatever it is handed with whichever claims it.
  * openPicture identifies the bytes first, with the real file-type, and
  * refuses everything else before sharp sees it; and nothing else in the
  * backend may import sharp, so there is no way round it.
@@ -17,7 +17,7 @@ import { openPicture, NotAPictureError } from '../sharpInput';
 let dir: string;
 
 beforeAll(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-sharp-input-'));
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-sharp-input-'));
 });
 
 afterAll(() => {

@@ -27,7 +27,7 @@ import path from 'path';
 // reads the uploads, so this file gives the app folders of its own, removed
 // in afterAll however the tests went. Set before the app is imported: the
 // admin routes read both when they load.
-const SCRATCH = fsSync.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-backup-restore-'));
+const SCRATCH = fsSync.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-backup-restore-'));
 const BACKUP_DIR = path.join(SCRATCH, 'backups');
 const UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 process.env.BACKUP_DIR = BACKUP_DIR;
@@ -119,7 +119,7 @@ function stubTools(fail?: { cmd: string; stderr: string }): ToolCall[] {
  * it works is a copy of the whole database.
  */
 async function withSharedTmp(run: (tmp: string) => Promise<void>): Promise<void> {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'cozyvtt-shared-tmp-'));
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'crazyvtt-shared-tmp-'));
   await fs.chmod(tmp, 0o777);
   // Jest gives each test file its own copy of process.env, which os.tmpdir() does not read.
   const tmpdir = jest.spyOn(os, 'tmpdir').mockReturnValue(tmp);
@@ -192,7 +192,7 @@ const DUMP_FROM_NEWER_CLIENT = [
   '',
   'DROP TABLE IF EXISTS public."Note";',
   'CREATE TABLE public."Note" (id text NOT NULL, body text);',
-  'ALTER TABLE public."Note" OWNER TO "cozyvttAdmin";',
+  'ALTER TABLE public."Note" OWNER TO "crazyvttAdmin";',
   'COPY public."Note" (id, body) FROM stdin;',
   'a1\tSET transaction_timeout = 0;',
   '\\.',
@@ -223,8 +223,8 @@ async function login(email: string) {
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const a = await createTestUser({ email: `restore-admin-${stamp}@test.cozyvtt.local`, role: PlatformRole.ADMIN });
-  const u = await createTestUser({ email: `restore-user-${stamp}@test.cozyvtt.local` });
+  const a = await createTestUser({ email: `restore-admin-${stamp}@test.crazyvtt.local`, role: PlatformRole.ADMIN });
+  const u = await createTestUser({ email: `restore-user-${stamp}@test.crazyvtt.local` });
   adminId = a.id;
   userId = u.id;
   admin = await login(a.email);
@@ -439,7 +439,7 @@ describe('POST /api/admin/backups/restore', () => {
     const zip = await backupZip({ 'database.sql': DUMP_FROM_NEWER_CLIENT });
     const original = fs.mkdtemp.bind(fs);
     const refused = jest.spyOn(fs, 'mkdtemp').mockImplementation(((prefix: string) =>
-      prefix.includes('cozyvtt-restore-')
+      prefix.includes('crazyvtt-restore-')
         ? Promise.reject(Object.assign(new Error('ENOENT: no such file or directory'), { code: 'ENOENT' }))
         : original(prefix)) as never);
     try {

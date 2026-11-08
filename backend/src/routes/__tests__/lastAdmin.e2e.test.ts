@@ -35,7 +35,7 @@ const stamp = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 const created: string[] = [];
 
 async function signedInAdmin(label: string) {
-  const user = await createTestUser({ email: `lastadmin-${label}-${stamp}@test.cozyvtt.local`, role: 'ADMIN' });
+  const user = await createTestUser({ email: `lastadmin-${label}-${stamp}@test.crazyvtt.local`, role: 'ADMIN' });
   created.push(user.id);
   const agent = request.agent(app);
   expect((await agent.post('/api/auth/login').send({ email: user.email, password: TEST_PASSWORD })).status).toBe(200);

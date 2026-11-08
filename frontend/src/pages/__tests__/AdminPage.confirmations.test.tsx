@@ -82,7 +82,7 @@ beforeEach(() => {
   adminService.getUsers.mockResolvedValue([otherAdmin, regularUser]);
   adminService.getConfig.mockResolvedValue({ smtp: { configured: false } });
   adminService.listBackups.mockResolvedValue([
-    { filename: 'cozyvtt-backup-2026-01-01.zip', sizeBytes: 2048, createdAt: '2026-01-01T00:00:00.000Z' },
+    { filename: 'crazyvtt-backup-2026-01-01.zip', sizeBytes: 2048, createdAt: '2026-01-01T00:00:00.000Z' },
   ]);
   adminService.deleteBackup.mockResolvedValue(undefined);
   adminService.updateUser.mockImplementation(async (id: string, data: Partial<User>) => ({
@@ -192,25 +192,25 @@ describe('the bin on a backup', () => {
   it('asks first, naming the file, and Cancel deletes nothing', async () => {
     renderPage();
     await openTab('Backups');
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete backup cozyvtt-backup-2026-01-01.zip' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete backup crazyvtt-backup-2026-01-01.zip' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(dialog).toHaveTextContent('cozyvtt-backup-2026-01-01.zip');
+    expect(dialog).toHaveTextContent('crazyvtt-backup-2026-01-01.zip');
     expect(adminService.deleteBackup).not.toHaveBeenCalled();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(adminService.deleteBackup).not.toHaveBeenCalled();
-    expect(screen.getByText('cozyvtt-backup-2026-01-01.zip')).toBeInTheDocument();
+    expect(screen.getByText('crazyvtt-backup-2026-01-01.zip')).toBeInTheDocument();
   });
 
   it('deletes the backup once confirmed', async () => {
     renderPage();
     await openTab('Backups');
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete backup cozyvtt-backup-2026-01-01.zip' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete backup crazyvtt-backup-2026-01-01.zip' }));
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete Backup' }));
 
-    await waitFor(() => expect(adminService.deleteBackup).toHaveBeenCalledWith('cozyvtt-backup-2026-01-01.zip'));
-    await waitFor(() => expect(screen.queryByText('cozyvtt-backup-2026-01-01.zip')).not.toBeInTheDocument());
+    await waitFor(() => expect(adminService.deleteBackup).toHaveBeenCalledWith('crazyvtt-backup-2026-01-01.zip'));
+    await waitFor(() => expect(screen.queryByText('crazyvtt-backup-2026-01-01.zip')).not.toBeInTheDocument());
   });
 });
 

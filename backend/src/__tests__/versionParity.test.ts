@@ -61,7 +61,7 @@ describe('the version is the same everywhere it is written', () => {
 
   it('matches the exportedFrom example in the API reference', () => {
     const reference = readText('docs/API_REFERENCE.md');
-    const match = reference.match(/"exportedFrom": "CozyVTT v(\d+\.\d+\.\d+)"/);
+    const match = reference.match(/"exportedFrom": "CrazyVTT v(\d+\.\d+\.\d+)"/);
     expect(match?.[1]).toBe(backendVersion);
   });
 

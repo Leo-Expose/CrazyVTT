@@ -36,8 +36,8 @@ type State = { combatants: Array<{ tokenId: string; hp: { current: number; max: 
 
 beforeAll(async () => {
   const stamp = Date.now();
-  const dmUser = await createTestUser({ email: `if-dm-${stamp}@test.cozyvtt.local`, displayName: 'DM' });
-  const playerUser = await createTestUser({ email: `if-player-${stamp}@test.cozyvtt.local`, displayName: 'Player' });
+  const dmUser = await createTestUser({ email: `if-dm-${stamp}@test.crazyvtt.local`, displayName: 'DM' });
+  const playerUser = await createTestUser({ email: `if-player-${stamp}@test.crazyvtt.local`, displayName: 'Player' });
   dmId = dmUser.id;
   playerId = playerUser.id;
   const campaign = await createTestCampaign(dmId, { name: `Initiative follows ${stamp}` });

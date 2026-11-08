@@ -20,7 +20,7 @@ import { ExplorationRevealSchema } from '../../validators/walls';
 import type { FogState } from '../../types/walls';
 import logger from '../../utils/logger';
 import { emitToMapReaders } from '../utils';
-import { explorationRevealLimiter, limiterKey, stateRequestAllowed, withinCeiling, loadFogState, applyWsFogOperation, revealedCellIndices, broadcastExplorationState, fogFits, FogTooLargeError } from '../shared';
+import { explorationRevealLimiter, limiterKey, stateRequestAllowed, withinCeiling, loadFogState, applyWsFogOperation, revealedCellIndices, broadcastExplorationState, broadcastPartyVisionMerge, fogFits, FogTooLargeError } from '../shared';
 import { toJson } from '../../utils/prisma-json';
 import { canReadMap } from '../../services/permissions';
 
@@ -112,7 +112,11 @@ async function writeQueuedReveal(io: Server, key: string, queued: QueuedReveal):
       });
       return after;
     });
-    if (cellsNow) await broadcastExplorationState(io, campaignId, mapId, userId, cellsNow);
+    if (cellsNow) {
+      await broadcastExplorationState(io, campaignId, mapId, userId, cellsNow);
+      // Also broadcast party vision merge if enabled
+      await broadcastPartyVisionMerge(io, campaignId, mapId);
+    }
   } catch (error) {
     logger.error('exploration:reveal failed', { err: error });
   } finally {
@@ -272,6 +276,8 @@ export function registerExplorationHandlers(io: Server, socket: AuthenticatedSoc
         await tx.mapExploration.deleteMany({ where: { mapId } });
       });
       await emitToMapReaders(io, socket.campaignId, mapId, 'exploration:state', { mapId, userId: null, cells: [] });
+      // Also broadcast party vision merge if enabled (will now be empty)
+      await broadcastPartyVisionMerge(io, socket.campaignId, mapId);
     } catch (error) {
       logger.error('exploration:reset failed', { err: error });
       socket.emit('error', { message: 'Failed to reset explored areas' });

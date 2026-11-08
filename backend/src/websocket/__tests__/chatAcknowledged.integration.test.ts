@@ -42,7 +42,7 @@ const messages = () => prisma.message.findMany({ where: { campaignId, type: { no
 beforeAll(async () => {
   const [dm, player] = await Promise.all(
     ['dm', 'player'].map((name) =>
-      prisma.user.create({ data: { email: `chatack-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Chat ${name}` } })
+      prisma.user.create({ data: { email: `chatack-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Chat ${name}` } })
     )
   );
   dmId = dm.id;

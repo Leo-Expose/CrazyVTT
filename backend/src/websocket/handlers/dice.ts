@@ -1,5 +1,7 @@
 // ============================================
-// Dice handlers: dice.roll, dice.clearHistory
+// Dice handlers: dice.roll, dice.clearHistory,
+//                dice.setMode, dice.audit, dice.reshuffleDeck
+// Phase 12: Dual-Mode Dice System
 // ============================================
 
 import { Server } from 'socket.io';
@@ -13,6 +15,10 @@ import { canRollDice } from '../../services/permissions';
 import { campaignSockets } from '../utils';
 import { DiceRollSchema } from '../../validators/dice';
 import { ackFrom, refuseRequest } from '../ack';
+import { DiceMode } from '@prisma/client';
+import { diceRollService } from '../../services/diceRollService';
+import { diceAuditService } from '../../services/diceAuditService';
+import { diceDeckService } from '../../services/diceDeckService';
 
 export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
@@ -199,4 +205,187 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
       refuse('Failed to clear dice history');
     }
   });
+
+  /**
+   * DICE.SET_MODE — DM switches between TRUE_RANDOM and WEIGHTED_DECK.
+   * Broadcasts the new mode to all campaign members so UIs update live.
+   */
+  socket.on('dice.setMode', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    const refuse = (message: string) => refuseRequest(socket, ack, message);
+    try {
+      if (!socket.campaignId) { refuse('Not authenticated to a campaign'); return; }
+      if (socket.role !== 'DM') { refuse('Only the DM can change dice mode'); return; }
+
+      const parsed = (() => {
+        if (typeof data !== 'object' || data === null || !('mode' in data)) return null;
+        const m = (data as Record<string, unknown>).mode;
+        if (m !== DiceMode.TRUE_RANDOM && m !== DiceMode.WEIGHTED_DECK) return null;
+        return { mode: m as DiceMode };
+      })();
+
+      if (!parsed) { refuse('Invalid dice mode. Expected TRUE_RANDOM or WEIGHTED_DECK'); return; }
+
+      await diceRollService.setCampaignMode(socket.campaignId, parsed.mode);
+      io.to(socket.campaignId).emit('dice.modeChanged', { mode: parsed.mode });
+      ack?.({ ok: true, mode: parsed.mode });
+
+      logger.info('dice.setMode', { campaignId: socket.campaignId, mode: parsed.mode, userId: socket.userId });
+    } catch (error) {
+      logger.error('dice.setMode failed', { err: error });
+      refuse('Failed to set dice mode');
+    }
+  });
+
+  /**
+   * DICE.AUDIT — Generate a statistical audit report for the campaign.
+   * DM-only. Returns chi-squared results per expression.
+   */
+  socket.on('dice.audit', async (ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    const refuse = (message: string) => refuseRequest(socket, ack, message);
+    try {
+      if (!socket.campaignId) { refuse('Not authenticated to a campaign'); return; }
+      if (socket.role !== 'DM') { refuse('Only the DM can run a dice audit'); return; }
+
+      const report = await diceAuditService.generateAuditReport(socket.campaignId);
+
+      // Serialise Maps → plain objects for JSON transport
+      const serialised = {
+        ...report,
+        expressions: report.expressions.map((r) => ({
+          ...r,
+          expectedDistribution: Object.fromEntries(r.expectedDistribution),
+          actualDistribution: Object.fromEntries(r.actualDistribution),
+        })),
+      };
+
+      ack?.({ ok: true, report: serialised });
+
+      logger.debug('dice.audit', { campaignId: socket.campaignId, userId: socket.userId });
+    } catch (error) {
+      logger.error('dice.audit failed', { err: error });
+      refuse('Failed to generate dice audit report');
+    }
+  });
+
+  /**
+   * DICE.RESHUFFLE_DECK — DM manually reshuffles the deck for an expression.
+   * Useful after changing campaign mode or as a dramatic table moment.
+   */
+  socket.on('dice.reshuffleDeck', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    const refuse = (message: string) => refuseRequest(socket, ack, message);
+    try {
+      if (!socket.campaignId) { refuse('Not authenticated to a campaign'); return; }
+      if (socket.role !== 'DM') { refuse('Only the DM can reshuffle a deck'); return; }
+
+      const expr = (() => {
+        if (typeof data !== 'object' || data === null || !('expression' in data)) return null;
+        const e = (data as Record<string, unknown>).expression;
+        return typeof e === 'string' ? e : null;
+      })();
+
+      if (!expr) { refuse('expression required'); return; }
+
+      await diceDeckService.reshuffle(socket.campaignId, expr);
+      io.to(socket.campaignId).emit('dice.deckReshuffled', { expression: expr });
+      ack?.({ ok: true });
+
+      logger.info('dice.reshuffleDeck', { campaignId: socket.campaignId, expression: expr, userId: socket.userId });
+    } catch (error) {
+      logger.error('dice.reshuffleDeck failed', { err: error });
+      refuse('Failed to reshuffle deck');
+    }
+  });
+
+  /**
+   * DICE.ROLL (enhanced) — now also saves mode + deck metadata.
+   * The original handler still works; we add mode metadata via diceRollService
+   * for new rolls. The existing path is preserved to avoid breaking changes.
+   *
+   * NOTE: The existing dice.roll handler above handles the common case.
+   * The new dice.roll.v2 handler below uses diceRollService for full metadata.
+   */
+  socket.on('dice.roll.v2', async (data: unknown, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    const refuse = (message: string) => refuseRequest(socket, ack, message);
+    try {
+      if (!socket.campaignId) { refuse('Not authenticated to a campaign'); return; }
+      if (!withinCeiling(socket, 'dice.roll', ack)) return;
+      if (!canRollDice(socket.role)) { refuse('Spectators cannot roll dice'); return; }
+
+      const parsed = (() => {
+        if (typeof data !== 'object' || data === null) return null;
+        const d = data as Record<string, unknown>;
+        if (typeof d.expression !== 'string') return null;
+        return {
+          expression: d.expression as string,
+          characterName: typeof d.characterName === 'string' ? d.characterName : undefined,
+          purpose: typeof d.purpose === 'string' ? d.purpose : undefined,
+          secret: d.secret === true,
+          rerollOf: typeof d.rerollOf === 'string' ? d.rerollOf : undefined,
+        };
+      })();
+
+      if (!parsed) { refuse('Dice expression required'); return; }
+
+      const user = await prisma.user.findUnique({
+        where: { id: socket.userId },
+        select: { displayName: true },
+      });
+      if (!user) { refuse('User not found'); return; }
+
+      const diceRoll = await diceRollService.roll({
+        campaignId: socket.campaignId,
+        expression: parsed.expression,
+        userId: socket.userId!,
+        characterName: parsed.characterName,
+        purpose: parsed.purpose,
+        secret: parsed.secret,
+        rerollOf: parsed.rerollOf,
+      });
+
+      const rollData = {
+        id: diceRoll.id,
+        userId: socket.userId,
+        userName: user.displayName,
+        characterName: parsed.characterName ?? null,
+        expression: parsed.expression,
+        result: diceRoll.result,
+        breakdown: diceRoll.breakdown,
+        purpose: parsed.purpose ?? null,
+        timestamp: diceRoll.rolledAt.toISOString(),
+        secret: parsed.secret,
+        mode: diceRoll.mode,
+        deckPosition: diceRoll.deckPosition,
+        deckSize: diceRoll.deckSize,
+        isReroll: diceRoll.isReroll,
+        rerollReason: diceRoll.rerollReason,
+      };
+
+      if (parsed.secret) {
+        socket.emit('dice.rolled', rollData);
+        for (const s of await campaignSockets(io, socket.campaignId)) {
+          const authedSocket = s as unknown as AuthenticatedSocket;
+          if (authedSocket.role === 'DM' && authedSocket.userId !== socket.userId) {
+            s.emit('dice.rolled.secret', { ...rollData, originalRoller: socket.userId, isAuditView: true });
+          }
+        }
+      } else {
+        io.to(socket.campaignId).emit('dice.rolled', rollData);
+      }
+      ack?.({ ok: true, id: diceRoll.id });
+
+      logger.debug('dice.roll.v2', { expression: parsed.expression, result: diceRoll.result, mode: diceRoll.mode, userId: socket.userId });
+    } catch (error) {
+      logger.error('dice.roll.v2 failed', { err: error });
+      refuse(error instanceof Error ? error.message : 'Failed to roll dice');
+    }
+  });
 }
+
+// Keep existing imports used by old dice.roll handler (rollDice, toJson) in scope
+// by referencing them here — they are used in the original handler above.
+void (rollDice as unknown);
+void (toJson as unknown);

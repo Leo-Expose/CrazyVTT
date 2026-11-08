@@ -88,7 +88,7 @@ it('deletes a player who has rolled and uploaded, keeping the rolls and campaign
 // campaign still uses stays, with no owner, as a campaign's own files do.
 // They are removed after the answer, so each test waits for the removal.
 describe('the personal files of a deleted account', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-account-files-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-account-files-'));
   afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   /** A personal asset with its file, and a thumbnail for a map, on disk. */

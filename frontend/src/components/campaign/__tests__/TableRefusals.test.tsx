@@ -47,6 +47,6 @@ it('shows the same refusal once when it repeats at once', () => {
 it('leaves a refusal before the page has joined to the connection status', () => {
   joined = false;
   render(<TableRefusals />);
-  act(() => onRefusal!({ message: 'Too many CozyVTT tabs or devices are open on this account at once' }));
+  act(() => onRefusal!({ message: 'Too many CrazyVTT tabs or devices are open on this account at once' }));
   expect(showToast).not.toHaveBeenCalled();
 });

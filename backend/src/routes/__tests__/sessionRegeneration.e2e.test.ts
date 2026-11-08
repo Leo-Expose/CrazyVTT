@@ -19,12 +19,12 @@ let email: string;
 
 const sidOf = (res: request.Response): string | undefined => {
   const set = res.headers['set-cookie'] as unknown as string[] | undefined;
-  const cookie = set?.find((c) => c.startsWith('cozyvtt.sid='));
+  const cookie = set?.find((c) => c.startsWith('crazyvtt.sid='));
   return cookie?.split(';')[0].split('=')[1];
 };
 
 beforeAll(async () => {
-  const u = await createTestUser({ email: `regen-${Date.now()}@test.cozyvtt.local`, displayName: 'Regen' });
+  const u = await createTestUser({ email: `regen-${Date.now()}@test.crazyvtt.local`, displayName: 'Regen' });
   userId = u.id;
   email = u.email;
 });

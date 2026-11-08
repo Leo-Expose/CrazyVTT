@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { handleUnauthorized } from '@/services/unsavedWork';
 import { loadPage } from '@/services/pageLoad';
 import { rememberSignInNotice } from '@/services/signInNotice';
@@ -40,6 +40,15 @@ import type {
   TokenTemplate,
   CampaignImportPreview,
   CampaignImportResult,
+  Rulebook,
+  RulebookChunk,
+  RulebookActivation,
+  RulebookProcessingStatus,
+  RulebookUploadMetadata,
+  CreateRulebookActivationInput,
+  CharacterChange,
+  CharacterConflict,
+  CharacterLock,
 
   MessageHistoryPage,
   DiceRolledEvent,
@@ -190,6 +199,31 @@ class ApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * Low-level HTTP helpers for feature modules that do not need a bespoke
+   * service method. Keeping these behind the configured client preserves the
+   * shared auth, error, and base-URL behavior.
+   */
+  get<T = unknown>(url: string, config?: AxiosRequestConfig) {
+    return this.client.get<T>(url, config);
+  }
+
+  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+    return this.client.post<T>(url, data, config);
+  }
+
+  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+    return this.client.put<T>(url, data, config);
+  }
+
+  patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+    return this.client.patch<T>(url, data, config);
+  }
+
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig) {
+    return this.client.delete<T>(url, config);
   }
 
   // ============================================
@@ -909,6 +943,69 @@ class ApiClient {
   }
 
   // ============================================
+  // Character Drafts (Collaborative Editing)
+  // ============================================
+
+  async getCharacterDraft(id: string): Promise<{
+    draft: { data: Record<string, unknown>; version: number };
+    locks: CharacterLock[];
+    conflicts: CharacterConflict[];
+  }> {
+    const response = await this.client.get(`/api/characters/${id}/draft`);
+    return response.data;
+  }
+
+  async patchCharacterDraft(id: string, data: { patches: Array<{ op: string; path: string; value?: unknown; from?: string }>; version: number; note?: string }): Promise<{
+    draft: { data: Record<string, unknown>; version: number };
+    changes: CharacterChange[];
+    conflicts: CharacterConflict[];
+    locks: CharacterLock[];
+  }> {
+    const response = await this.client.post(`/api/characters/${id}/draft/patch`, data);
+    return response.data;
+  }
+
+  async lockCharacterField(id: string, fieldPath: string, reason?: string): Promise<{ lock: CharacterLock; conflicts: CharacterConflict[] }> {
+    const response = await this.client.post(`/api/characters/${id}/draft/lock`, { fieldPath, reason });
+    return response.data;
+  }
+
+  async unlockCharacterField(id: string, fieldPath: string): Promise<{ success: boolean; conflicts: CharacterConflict[] }> {
+    const response = await this.client.post(`/api/characters/${id}/draft/unlock`, { fieldPath });
+    return response.data;
+  }
+
+  async suggestCharacterChange(id: string, fieldPath: string, suggestedValue: unknown, note?: string): Promise<{ change: CharacterChange; conflicts: CharacterConflict[] }> {
+    const response = await this.client.post(`/api/characters/${id}/draft/suggest`, { fieldPath, suggestedValue, note });
+    return response.data;
+  }
+
+  async overrideCharacterField(id: string, fieldPath: string, value: unknown, note?: string): Promise<{ change: CharacterChange; conflicts: CharacterConflict[] }> {
+    const response = await this.client.post(`/api/characters/${id}/draft/override`, { fieldPath, value, note });
+    return response.data;
+  }
+
+  async resolveCharacterConflict(id: string, conflictId: string, resolution: 'accept' | 'reject' | 'force', note?: string): Promise<{ conflict: CharacterConflict; change: CharacterChange | null; conflicts: CharacterConflict[] }> {
+    const response = await this.client.post(`/api/characters/${id}/draft/resolve`, { conflictId, resolution, note });
+    return response.data;
+  }
+
+  async getCharacterChangeHistory(id: string, limit = 50, offset = 0): Promise<{ changes: CharacterChange[]; total: number }> {
+    const response = await this.client.get(`/api/characters/${id}/draft/history`, { params: { limit, offset } });
+    return response.data;
+  }
+
+  async getCharacterLocks(id: string): Promise<{ locks: CharacterLock[] }> {
+    const response = await this.client.get(`/api/characters/${id}/draft/locks`);
+    return response.data;
+  }
+
+  async getCharacterConflicts(id: string, includeResolved = false): Promise<{ conflicts: CharacterConflict[] }> {
+    const response = await this.client.get(`/api/characters/${id}/draft/conflicts`, { params: { includeResolved } });
+    return response.data;
+  }
+
+  // ============================================
   // Assets
   // ============================================
 
@@ -1297,6 +1394,125 @@ class ApiClient {
   }
 
   // ============================================
+  // Rulebooks
+  // ============================================
+
+  /**
+   * Upload a rulebook PDF/EPUB file.
+   * DM only in the target campaign.
+   */
+  async uploadRulebook(
+    file: File,
+    metadata: RulebookUploadMetadata,
+    onProgress?: (percent: number) => void
+  ): Promise<{ message: string; rulebook: Rulebook }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', metadata.title);
+    formData.append('sourceId', metadata.sourceId);
+    formData.append('edition', metadata.edition);
+    formData.append('campaignId', metadata.campaignId);
+
+    const response = await this.client.post('/api/rulebooks/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: onProgress
+        ? (event) => {
+            if (event.total) onProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        : undefined,
+      timeout: 0, // No client-side timeout for large uploads
+    });
+    return response.data;
+  }
+
+  /**
+   * List rulebooks with optional filtering.
+   */
+  async listRulebooks(params?: {
+    campaignId?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Rulebook[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    const response = await this.client.get('/api/rulebooks', { params });
+    return response.data;
+  }
+
+  /**
+   * Get a single rulebook with details.
+   */
+  async getRulebook(id: string): Promise<Rulebook> {
+    const response = await this.client.get(`/api/rulebooks/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Get rulebook chunks with pagination.
+   */
+  async getRulebookChunks(params: {
+    rulebookId: string;
+    contentType?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: RulebookChunk[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    const response = await this.client.get('/api/rulebooks/:id/chunks', { params });
+    return response.data;
+  }
+
+  /**
+   * Start processing a rulebook (extract text, chunk, LLM extraction).
+   * DM only.
+   */
+  async processRulebook(rulebookId: string): Promise<{ message: string; rulebookId: string }> {
+    const response = await this.client.post(`/api/rulebooks/${rulebookId}/process`);
+    return response.data;
+  }
+
+  /**
+   * Get processing status for a rulebook.
+   */
+  async getRulebookProcessingStatus(rulebookId: string): Promise<RulebookProcessingStatus> {
+    const response = await this.client.get(`/api/rulebooks/${rulebookId}/processing-status`);
+    return response.data;
+  }
+
+  /**
+   * Activate rulebook content for a campaign.
+   * DM only.
+   */
+  async activateRulebook(data: CreateRulebookActivationInput): Promise<RulebookActivation> {
+    const response = await this.client.post(`/api/rulebooks/${data.rulebookId}/activate`, data);
+    return response.data;
+  }
+
+  /**
+   * Get all activations for a rulebook in a campaign.
+   */
+  async getRulebookActivations(rulebookId: string): Promise<RulebookActivation[]> {
+    const response = await this.client.get(`/api/rulebooks/${rulebookId}/activations`);
+    return response.data;
+  }
+
+  /**
+   * Deactivate rulebook content.
+   * DM only.
+   */
+  async deactivateRulebook(rulebookId: string, activationId: string): Promise<{ message: string }> {
+    const response = await this.client.delete(`/api/rulebooks/${rulebookId}/activations/${activationId}`);
+    return response.data;
+  }
+
+  /**
+   * Delete a rulebook (DM only).
+   */
+  async deleteRulebook(rulebookId: string): Promise<{ message: string }> {
+    const response = await this.client.delete(`/api/rulebooks/${rulebookId}`);
+    return response.data;
+  }
+
+  // ============================================
   // Campaign Export/Import
   // ============================================
 
@@ -1334,7 +1550,7 @@ class ApiClient {
       try {
         target = await pick({
           suggestedName: fileName,
-          types: [{ description: 'CozyVTT campaign archive', accept: { 'application/zip': ['.cozyvtt'] } }],
+          types: [{ description: 'CrazyVTT campaign archive', accept: { 'application/zip': ['.cozyvtt'] } }],
         });
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {

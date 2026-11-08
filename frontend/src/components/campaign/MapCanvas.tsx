@@ -25,8 +25,9 @@ import type {
   VibeUpdatedBroadcast,
   Character,
   MapPingedBroadcast,
+  MapLayer,
 } from '@/types';
-import { GameSystem, TokenLayer, TokenType } from '@/types';
+import { GameSystem, MovementMode, OverrideTargetType, TokenLayer, TokenType } from '@/types';
 import type { WallSegment, FogState, WallType, LightSource } from '@/types/walls';
 import {
   drawMapImage,
@@ -58,11 +59,16 @@ import { cachedTokenImage, placeholderColor } from './map/layers/drawTokens';
 import { revealedSetFromFogState } from './map/fogSelection';
 import { exploredCellsFromCoverage, diffNew } from './map/exploration';
 import { useFogTool } from './map/tools/useFogTool';
+import { useFogShapeTool, type FogShapeToolMode } from './map/tools/useFogShapeTool';
 import { useLightTool } from './map/tools/useLightTool';
 import { useMeasureTools } from './map/tools/useMeasureTools';
 import { useDoorTool } from './map/tools/useDoorTool';
 import { useWallTool } from './map/tools/useWallTool';
 import type { MapTool, PointerAt } from './map/tools/types';
+import TileStampTool from './map/TileStampTool';
+import RoomTool from './map/RoomTool';
+import CorridorTool from './map/CorridorTool';
+import LayerPanel from './map/LayerPanel';
 import {
   previewOwnFor, previewControlsFor, previewMemoryUser, previewOptions, defaultPreviewSelection, reconcilePreviewSelection, previewPlane,
   encodePreviewSelection, decodePreviewSelection, type PreviewSelection,
@@ -91,7 +97,8 @@ import { ROTATION_STEP, turned } from '@/utils/tokenRotation';
 import { dmTokenControls } from '@/utils/dmTokenMenu';
 import { tokenCopyRequest, clampTokenPosition, copyController } from '@/utils/tokenCopy';
 import { apiErrorMessage, errorSummary } from '@/utils/errors';
-import { useRenderLoop, type MapLayer } from './map/useRenderLoop';
+import { getQualitativeHealth, getHealthTooltip } from '@/utils/rules/qualitativeHealth';
+import { useRenderLoop, type MapLayer as RenderLoopLayer } from './map/useRenderLoop';
 import api from '@/services/api';
 import CharacterSheetViewerModal from '@/components/character/CharacterSheetViewerModal';
 import CharacterRollPicker from '@/components/campaign/CharacterRollPicker';
@@ -104,6 +111,8 @@ import DmFogControls, { type FogToolMode } from '@/components/campaign/DmFogCont
 import DmWallControls, { type WallToolMode } from '@/components/campaign/DmWallControls';
 import DmLightControls, { type LightToolMode } from '@/components/campaign/DmLightControls';
 import DmToolPanelContainer from '@/components/campaign/DmToolPanelContainer';
+import { MovementModeSelector } from '@/components/campaign/map/MovementModeSelector';
+import { DMOverrideMenu } from '@/components/campaign/DMOverrideMenu';
 import { useWallHistory } from '@/hooks/useWallHistory';
 import Toast, { useToast } from '@/components/Toast';
 import Button from '@/components/ui/Button';
@@ -121,11 +130,14 @@ function getSpiritAccentColor(style: string | null | undefined): string {
   return '#9370DB'; // wispy default = spirit-purple
 }
 
-/** The DM's editing tool, from the wall, fog or light panel. */
+/** The DM's editing tool, from the wall, fog, light, tile, room, or corridor panel. */
 type DmTool =
   | { kind: 'wall'; mode: NonNullable<WallToolMode> }
   | { kind: 'fog'; mode: NonNullable<FogToolMode> }
-  | { kind: 'light'; mode: NonNullable<LightToolMode> };
+  | { kind: 'light'; mode: NonNullable<LightToolMode> }
+  | { kind: 'tile'; mode: 'stamp' | 'rectangle' | 'brush' }
+  | { kind: 'room' }
+  | { kind: 'corridor' };
 
 interface MapCanvasProps {
   onEditToken?: (token: Token) => void;
@@ -181,12 +193,38 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
   const [mapImage, setMapImage] = useState<HTMLImageElement | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  // Fog animation configuration
+  const [fogAnimationConfig, setFogAnimationConfig] = useState({ duration: 300, respectReducedMotion: true });
   const imageState = mapImageState(currentMap, imageLoaded, imageError);
 
   // Spirit layer image
   const [spiritLayerImage, setSpiritLayerImage] = useState<HTMLImageElement | null>(null);
   // Fade-in transition state for spirit layer toggle
   const [spiritLayerOpacity, setSpiritLayerOpacity] = useState(1);
+
+  // Map Layers state
+  const [mapLayers, setMapLayers] = useState<MapLayer[]>([]);
+  const [_layersLoading, setLayersLoading] = useState(false);
+
+  // Fetch layers when map changes
+  useEffect(() => {
+    if (!currentMap || !campaign) return;
+    let cancelled = false;
+    setLayersLoading(true);
+    api.get<{ layers: MapLayer[] }>(`/campaigns/${campaign.id}/maps/${currentMap.id}/layers`)
+      .then(res => {
+        if (!cancelled) {
+          setMapLayers(res.data.layers || []);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch layers:', errorSummary(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLayersLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [currentMap, campaign]);
 
   // Token state
   // Token pictures by token id, as they load (map/useTokenImages.ts).
@@ -214,6 +252,16 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [isMovingTokenLayer, setIsMovingTokenLayer] = useState(false);
   const [contextMenuMoveToMapOpen, setContextMenuMoveToMapOpen] = useState(false);
+  const [movementModeMenu, setMovementModeMenu] = useState<{
+    token: Token;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [overrideMenuToken, setOverrideMenuToken] = useState<{
+    token: Token;
+    x: number;
+    y: number;
+  } | null>(null);
   // The token whose Remove from Map is waiting for confirmation.
   const [removingToken, setRemovingToken] = useState<Token | null>(null);
   const [isMoveToMapLoading, setIsMoveToMapLoading] = useState(false);
@@ -236,7 +284,7 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
   // Latest-ref to the per-layer draw dispatcher — assigned right after the
   // draw callbacks are defined below. The render loop and the animation hooks
   // call the newest closure through it.
-  const drawLayerRef = useRef<(layer: MapLayer) => void>(() => {});
+  const drawLayerRef = useRef<(layer: RenderLoopLayer) => void>(() => {});
   const { markDirty } = useRenderLoop(drawLayerRef);
 
   // The ruler and the AoE template (map/tools/useMeasureTools.ts).
@@ -262,7 +310,8 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
   const revealOpacityRef = useFogRevealAnimation(
     () => markDirty(isDM && !previewing ? 'terrain' : 'overlay'),
     fogState,
-    revealedCells
+    revealedCells,
+    fogAnimationConfig
   );
 
   // Tokens this viewer controls, by the server's definition (utils/tokenOwnership.ts).
@@ -296,6 +345,18 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
   const setLightMode = useCallback((mode: LightToolMode) => {
     setDmTool((prev) => (mode ? { kind: 'light', mode } : prev?.kind === 'light' ? null : prev));
   }, []);
+  const setTileMode = useCallback((mode: 'stamp' | 'rectangle' | 'brush' | null) => {
+    setDmTool((prev) => (mode ? { kind: 'tile', mode } : prev?.kind === 'tile' ? null : prev));
+  }, []);
+  const setRoomMode = useCallback(() => {
+    setDmTool((prev) => (prev?.kind === 'room' ? null : { kind: 'room' }));
+  }, []);
+  const setCorridorMode = useCallback(() => {
+    setDmTool((prev) => (prev?.kind === 'corridor' ? null : { kind: 'corridor' }));
+  }, []);
+
+  // UI state for panels
+  const [showLayerPanel, setShowLayerPanel] = useState(false);
 
   // Right-mouse button panning while a DM tool is active (left-click is reserved for tools)
   const rightPanActiveRef = useRef(false);
@@ -432,7 +493,30 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
 
   // The fog boxes (map/tools/useFogTool.ts).
   const { tool: fogTool, fogDragAnchorRef, fogDragCurrent, cancelFogDrag } = useFogTool({
-    isDM, mapId: currentMap?.id, fogMode, fogState, setFogState, socket, mapControls, rightPanActiveRef, markDirty,
+    isDM, mapId: currentMap?.id, fogMode: fogMode === 'fog-reveal' || fogMode === 'fog-hide' ? fogMode : null, fogState, setFogState, socket, mapControls, rightPanActiveRef, markDirty,
+  });
+
+  // The fog shapes (map/tools/useFogShapeTool.ts).
+  const { tool: fogShapeTool, shapeState, cancelShape: cancelFogShape } = useFogShapeTool({
+    isDM,
+    mapId: currentMap?.id,
+    fogMode: fogMode?.startsWith('fog-shape-') ? fogMode as FogShapeToolMode : null,
+    fogState,
+    setFogState,
+    socket,
+    mapControls,
+    rightPanActiveRef,
+    markDirty,
+    onShapeConfirm: (_cells, operation) => {
+      const socketInstance = socket?.getSocket();
+      if (socketInstance && currentMap) {
+        socketInstance.emit('fog:reveal_shape', {
+          mapId: currentMap.id,
+          shape: { type: fogMode?.replace('fog-shape-', ''), params: shapeState.config },
+          operation,
+        });
+      }
+    },
   });
 
   // ============================================
@@ -1440,10 +1524,11 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
       // Held at mid-breath under reduced motion, where no pulse loop runs.
       pulsePhase: prefersReducedMotion ? 0.5 : pulsePhaseAt(Date.now()),
       peekTokenId,
+      gameSystem: campaign?.gameSystem ?? undefined,
     }, viewport);
 
     ctx.restore();
-  }, [currentMap, imageLoaded, mapImage, mapControls.panOffset, mapControls.zoom, campaign?.spiritLayerStyle, tokens, tokenImages, animatingTokens, heldAt, draggedToken, dragOffset, hoverCoords, hoverToken, viewerRevealed, viewerOwn, previewing, previewedPlane, ruleFor, dmShowSpiritTokens, dmViewBothPlanes, characterHpCache, currentTurnTokenId, prefersReducedMotion, peekTokenId, isDM, previewControls]);
+  }, [currentMap, imageLoaded, mapImage, mapControls.panOffset, mapControls.zoom, campaign?.spiritLayerStyle, campaign?.gameSystem, tokens, tokenImages, animatingTokens, heldAt, draggedToken, dragOffset, hoverCoords, hoverToken, viewerRevealed, viewerOwn, previewing, previewedPlane, ruleFor, dmShowSpiritTokens, dmViewBothPlanes, characterHpCache, currentTurnTokenId, prefersReducedMotion, peekTokenId, isDM, previewControls]);
 
   /**
    * Draw the OVERLAY layer (top canvas): dynamic-lighting darkness, DM light
@@ -1613,9 +1698,10 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
 
     // 11. Fog selection box — world space, so the snapped rectangle stays
     //     locked to the grid through pan and zoom.
-    if (fogMode && isDM && fogState) {
+    const boxFogMode = fogMode === 'fog-reveal' || fogMode === 'fog-hide' ? fogMode : null;
+    if (boxFogMode && isDM && fogState) {
       drawFogSelection(ctx, {
-        mode: fogMode,
+        mode: boxFogMode,
         fog: fogState,
         anchor: fogDragAnchorRef.current,
         cursor: fogDragCurrent,
@@ -1663,7 +1749,7 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
   // A single rAF coalesces every repaint request; only the dirty layers
   // redraw, at most once each per frame. Replaces the old
   // `useEffect(() => render())` + ~25 imperative `render()` calls.
-  const drawLayer = useCallback((layer: MapLayer) => {
+  const drawLayer = useCallback((layer: RenderLoopLayer) => {
     if (layer === 'terrain') drawTerrain();
     else if (layer === 'tokens') drawTokensLayer();
     else drawOverlay();
@@ -1991,11 +2077,11 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
 
   /**
    * The tools a click or a move is offered to, in this order, until one takes
-   * it: a DM tool first, then doors, the fog boxes, the measuring tools, and
+   * it: a DM tool first, then doors, the fog boxes, the fog shapes, the measuring tools, and
    * tokens and panning last. The order is what decides a click when two tools
    * are up at once. On mouse up each finishes what it holds, in the same order.
    */
-  const pointerTools: MapTool[] = [wallTool, lightTool, doorTool, fogTool, measuring, tokenTool];
+  const pointerTools: MapTool[] = [wallTool, lightTool, doorTool, fogTool, fogShapeTool, measuring, tokenTool];
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || !currentMap) return;
@@ -2004,6 +2090,7 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
     // In normal pan mode, right-click is the context menu — handled by handleContextMenu.
     if (e.button === 2 && (wallMode || fogMode || lightMode) && isDM) {
       cancelFogDrag(); // Panning away mid-drag must not reveal anything
+      cancelFogShape();
       rightPanActiveRef.current = true;
       mapControls.startDrag(e);
       return;
@@ -2339,6 +2426,15 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
 
   // (Token tween + fog reveal rAF loops live in ./map/useMapAnimations)
 
+  // Viewport for tool components
+  const toolViewport = useMemo(() => ({
+    x: mapControls.panOffset.x,
+    y: mapControls.panOffset.y,
+    zoom: mapControls.zoom,
+  }), [mapControls.zoom, mapControls.panOffset]);
+  const toolScreenToGrid = useCallback((x: number, y: number) => mapControls.screenToGrid({ x, y }), [mapControls]);
+  const toolGridToScreen = useCallback((x: number, y: number) => mapControls.gridToScreen({ x, y }), [mapControls]);
+
   // ============================================
   // Render
   // ============================================
@@ -2569,6 +2665,59 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
             >
               <Zap className={`w-4 h-4 ${showAoE ? 'text-brand-ink' : ''}`} />
             </Button>
+
+            {/* DM-only: Advanced Map Drawing Tools */}
+            {userRole === 'DM' && currentMap && (
+              <>
+                <div className="w-px h-6 bg-moss-green/20" />
+                
+                {/* Tile Stamp Tool */}
+                <Button
+                  onClick={() => setTileMode(dmTool?.kind === 'tile' ? null : 'stamp')}
+                  variant="secondary" className={`p-2 ${dmTool?.kind === 'tile' ? 'bg-moss-green/20' : ''}`}
+                  title="Tile Stamp — place tiles (click), fill rectangle (drag), or brush paint"
+                >
+                  <Palette className="w-4 h-4" />
+                </Button>
+
+                {/* Room Tool */}
+                <Button
+                  onClick={setRoomMode}
+                  variant="secondary" className={`p-2 ${dmTool?.kind === 'room' ? 'bg-moss-green/20' : ''}`}
+                  title="Room Tool — click-drag to create rooms with walls and doors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" stroke="currentColor" strokeWidth="2" rx="1" />
+                    <path d="M3 12h18M12 3v18" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                </Button>
+
+                {/* Corridor Tool */}
+                <Button
+                  onClick={setCorridorMode}
+                  variant="secondary" className={`p-2 ${dmTool?.kind === 'corridor' ? 'bg-moss-green/20' : ''}`}
+                  title="Corridor Tool — click start, click end to create corridors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 12h4M17 12h4M3 12c0-4 4-4 4-4s4 0 4 4M17 12c0-4 4-4 4-4s4 0 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </Button>
+
+                {/* Layer Panel Toggle */}
+                <Button
+                  onClick={() => setShowLayerPanel(!showLayerPanel)}
+                  variant="secondary" className={`p-2 ${showLayerPanel ? 'bg-moss-green/20' : ''}`}
+                  title="Layer Panel — manage map layers"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" />
+                    <rect x="14" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" />
+                    <rect x="3" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" />
+                    <rect x="14" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                </Button>
+              </>
+            )}
           </>
         )}
 
@@ -2615,6 +2764,7 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
             onCollapse={() => {
               setFogMode(null);
               cancelFogDrag();
+              cancelFogShape();
             }}
             onFogModeChange={(mode) => {
               setFogMode(mode);
@@ -2640,6 +2790,28 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
               }
               setFogState((prev) => prev ? { ...prev, revealed: new Array(prev.revealed.length).fill(false) } : prev);
             }}
+            // Party Vision Merge
+            fogShareExploredWithParty={campaign?.fogShareExploredWithParty ?? false}
+            onFogShareExploredWithPartyChange={async (enabled) => {
+              const socketInstance = socket?.getSocket();
+              if (socketInstance && currentMap) {
+                socketInstance.emit('fog:toggle_party_vision', {
+                  mapId: currentMap.id,
+                  enabled,
+                  excludedCharacterIds: campaign?.fogShareExcludedCharacterIds ?? [],
+                });
+              }
+              // Optimistic update
+              if (campaign) {
+                // The campaign context doesn't have a direct setter for these fields,
+                // but the server will broadcast the update
+              }
+            }}
+            excludedCharacterIds={campaign?.fogShareExcludedCharacterIds ?? []}
+            currentMap={currentMap}
+            explorationEnabled={explorationEnabled}
+            fogAnimationConfig={fogAnimationConfig}
+            onFogAnimationConfigChange={(config) => setFogAnimationConfig((prev) => ({ ...prev, ...config }))}
           />
           <DmWallControls
             {...wallPanel}
@@ -2706,6 +2878,75 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
             placementDefaults={lightPlacementDefaults}
             onDefaultsChange={setLightPlacementDefaults}
           />
+          {/* Tile Stamp Tool */}
+          <div className="border-t border-border pt-3">
+            <TileStampTool
+              mapId={currentMap.id}
+              isDM={isDM}
+              active={dmTool?.kind === 'tile'}
+              onDeactivate={() => setTileMode(null)}
+              mapWidth={currentMap.width}
+              mapHeight={currentMap.height}
+              gridSize={currentMap.gridSize}
+              viewport={toolViewport}
+              screenToGrid={toolScreenToGrid}
+              gridToScreen={toolGridToScreen}
+              layers={mapLayers}
+              setLayers={(layers) => setMapLayers(layers as unknown as MapLayer[])}
+              snapToGrid={snapToGrid}
+            />
+          </div>
+          {/* Room Tool */}
+          <div className="border-t border-border pt-3">
+            <RoomTool
+              mapId={currentMap.id}
+              isDM={isDM}
+              active={dmTool?.kind === 'room'}
+              onDeactivate={() => setRoomMode()}
+              mapWidth={currentMap.width}
+              mapHeight={currentMap.height}
+              gridSize={currentMap.gridSize}
+              viewport={toolViewport}
+              screenToGrid={toolScreenToGrid}
+              gridToScreen={toolGridToScreen}
+              wallSegments={wallSegments}
+              setWallSegments={pushWallHistory}
+              layers={mapLayers}
+              setLayers={(layers) => setMapLayers(layers as unknown as MapLayer[])}
+              snapToGrid={snapToGrid}
+              defaultWallThickness={1}
+              defaultDoorWidth={1}
+            />
+          </div>
+          {/* Corridor Tool */}
+          <div className="border-t border-border pt-3">
+            <CorridorTool
+              mapId={currentMap.id}
+              isDM={isDM}
+              active={dmTool?.kind === 'corridor'}
+              onDeactivate={() => setCorridorMode()}
+              mapWidth={currentMap.width}
+              mapHeight={currentMap.height}
+              gridSize={currentMap.gridSize}
+              viewport={toolViewport}
+              screenToGrid={toolScreenToGrid}
+              gridToScreen={toolGridToScreen}
+              wallSegments={wallSegments}
+              setWallSegments={pushWallHistory}
+              layers={mapLayers}
+              setLayers={(layers) => setMapLayers(layers as unknown as MapLayer[])}
+              snapToGrid={snapToGrid}
+              corridorWidth={2}
+            />
+          </div>
+          {/* Layer Panel */}
+          <div className="border-t border-border pt-3">
+            <LayerPanel
+              mapId={currentMap.id}
+              isDM={isDM}
+              onClose={() => setShowLayerPanel(false)}
+            />
+          </div>
         </DmToolPanelContainer>
       )}
 
@@ -2928,14 +3169,36 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
                 </div>
 
                 <div className="space-y-1">
-                  {hp && (
-                    <Row label="HP">
-                      <span className="font-mono">
-                        {hp.current}/{hp.max}
-                        {hp.temp > 0 && <span className="text-info-ink"> +{hp.temp}</span>}
-                      </span>
-                    </Row>
-                  )}
+                  {hp && (() => {
+                    const effectivelyDM = isDM && !previewing;
+                    const isOwn = viewerOwn(hoverToken);
+                    if (effectivelyDM || isOwn) {
+                      return (
+                        <Row label="HP">
+                          <span className="font-mono">
+                            {hp.current}/{hp.max}
+                            {hp.temp > 0 && <span className="text-info-ink"> +{hp.temp}</span>}
+                          </span>
+                        </Row>
+                      );
+                    }
+                    const qHealth = getQualitativeHealth(
+                      {
+                        current: hp.current,
+                        max: hp.max,
+                        temp: hp.temp,
+                        conditions: hoverToken.conditions,
+                      },
+                      campaign?.gameSystem ?? 'DND_5E',
+                    );
+                    return (
+                      <Row label="Health">
+                        <span className="capitalize text-stone-gray">
+                          {getHealthTooltip(qHealth, false)}
+                        </span>
+                      </Row>
+                    );
+                  })()}
 
                   {conditions.length > 0 && (
                     <Row label="Conditions">
@@ -3109,7 +3372,30 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
               >
                 Rotate Right
               </button>
+              <button
+                className="w-full px-4 py-2 text-left text-sm text-stone-gray hover:bg-moss-green/10 transition-colors"
+                onClick={() => {
+                  const token = contextMenu.token;
+                  setMovementModeMenu({ token, x: contextMenu.x, y: contextMenu.y });
+                  setContextMenu(null);
+                }}
+              >
+                Movement Mode
+              </button>
             </>
+          )}
+
+          {isDM && (
+            <button
+              className="w-full px-4 py-2 text-left text-sm text-accent-ink hover:bg-warm-amber/10 transition-colors"
+              onClick={() => {
+                const token = contextMenu.token;
+                setOverrideMenuToken({ token, x: contextMenu.x, y: contextMenu.y });
+                setContextMenu(null);
+              }}
+            >
+              DM Override
+            </button>
           )}
 
           {userRole === 'DM' && (() => {
@@ -3386,6 +3672,57 @@ export default function MapCanvas({ onEditToken }: MapCanvasProps) {
             );
           })()}
         </div>
+      )}
+
+      {movementModeMenu && (
+        <MovementModeSelector
+          token={movementModeMenu.token}
+          currentMode={movementModeMenu.token.movement?.movementMode ?? MovementMode.WALK}
+          isDM={isDM}
+          position={{ x: movementModeMenu.x, y: movementModeMenu.y }}
+          onClose={() => setMovementModeMenu(null)}
+          onModeChange={(movementMode) => {
+            if (!currentMap?.id) return;
+            const token = movementModeMenu.token;
+            useGameStore.getState().patchToken(token.id, {
+              movement: token.movement
+                ? { ...token.movement, movementMode }
+                : {
+                    speed: 30,
+                    movementMode,
+                    remainingThisTurn: 30,
+                    usedThisTurn: 0,
+                    difficultTerrainMultiplier: 1,
+                    threatenedSquares: [],
+                    reach: 5,
+                  },
+            });
+            socket?.emit('movement:mode_change', {
+              tokenId: token.id,
+              mapId: currentMap.id,
+              movementMode,
+            });
+          }}
+        />
+      )}
+
+      {overrideMenuToken && campaign && (
+        <DMOverrideMenu
+          isOpen
+          targetType={OverrideTargetType.MOVEMENT}
+          targetId={overrideMenuToken.token.id}
+          targetName={tokenDisplayName(overrideMenuToken.token)}
+          fieldPath="movement.remainingThisTurn"
+          currentValue={overrideMenuToken.token.movement?.remainingThisTurn ?? 0}
+          position={{ x: overrideMenuToken.x, y: overrideMenuToken.y }}
+          onClose={() => setOverrideMenuToken(null)}
+          onApplyOverride={(data) => {
+            socket?.emit('override:issue', {
+              campaignId: campaign.id,
+              ...data,
+            });
+          }}
+        />
       )}
 
       <RemoveTokenDialog

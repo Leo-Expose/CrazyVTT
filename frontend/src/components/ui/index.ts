@@ -5,3 +5,5 @@ export { default as SlideOver, SlideOverTitle, SlideOverClose, type SlideOverPro
 export { Input, Textarea, Select, type InputProps } from './Input';
 export { default as Field, type FieldProps, type FieldControlProps } from './Field';
 export { default as Tooltip, type TooltipProps } from './Tooltip';
+
+export { Checkbox, Tabs, TabList, Tab, TabPanel } from './FeaturePrimitives';

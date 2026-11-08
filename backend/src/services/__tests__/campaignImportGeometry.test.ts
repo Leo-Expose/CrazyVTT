@@ -53,9 +53,9 @@ function archive(maps: object[]): Promise<Buffer> {
 }
 
 /** The importer reads an archive from disk, as the import route saves it. */
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-geometry-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-geometry-'));
 function onDisk(zip: Buffer): string {
-  const file = path.join(SCRATCH, `${randomUUID()}.cozyvtt`);
+  const file = path.join(SCRATCH, `${randomUUID()}.crazyvtt`);
   fs.writeFileSync(file, zip);
   return file;
 }
@@ -64,7 +64,7 @@ let userId: string;
 const campaigns: string[] = [];
 
 beforeAll(async () => {
-  userId = (await createTestUser({ email: `import-geometry-${Date.now()}@test.cozyvtt.local` })).id;
+  userId = (await createTestUser({ email: `import-geometry-${Date.now()}@test.crazyvtt.local` })).id;
 });
 
 afterAll(async () => {

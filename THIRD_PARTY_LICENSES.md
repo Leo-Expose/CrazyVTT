@@ -2,7 +2,7 @@
 
 ## Fonts
 
-CozyVTT bundles the open-source fonts its font choices use, and each instance serves them itself: visitors' browsers do not fetch them from another site. The files are the [Google Fonts](https://fonts.google.com/) builds of each family, kept in `frontend/src/assets/fonts/`. All of them are licensed under the **SIL Open Font License 1.1** (OFL-1.1); each family's copyright notice and the full licence text are in [`frontend/src/assets/fonts/OFL.txt`](frontend/src/assets/fonts/OFL.txt) and in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
+CrazyVTT bundles the open-source fonts its font choices use, and each instance serves them itself: visitors' browsers do not fetch them from another site. The files are the [Google Fonts](https://fonts.google.com/) builds of each family, kept in `frontend/src/assets/fonts/`. All of them are licensed under the **SIL Open Font License 1.1** (OFL-1.1); each family's copyright notice and the full licence text are in [`frontend/src/assets/fonts/OFL.txt`](frontend/src/assets/fonts/OFL.txt) and in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
 
 | Font | Designer | License |
 |------|----------|---------|
@@ -34,7 +34,7 @@ The SIL Open Font License (OFL) allows fonts to be used, studied, modified, and 
 
 ## Game Content
 
-CozyVTT ships no game content. An administrator can import creature data from the [Open5e](https://open5e.com/) SRD API into an instance's own database; it comes from the System Reference Document 5.1, published by Wizards of the Coast under the Creative Commons Attribution 4.0 International License (CC BY 4.0). See [SRD_ATTRIBUTION.md](SRD_ATTRIBUTION.md).
+CrazyVTT ships no game content. An administrator can import creature data from the [Open5e](https://open5e.com/) SRD API into an instance's own database; it comes from the System Reference Document 5.1, published by Wizards of the Coast under the Creative Commons Attribution 4.0 International License (CC BY 4.0). See [SRD_ATTRIBUTION.md](SRD_ATTRIBUTION.md).
 
 ## Icons
 
@@ -50,7 +50,7 @@ UI icons are provided by [Lucide](https://lucide.dev/), licensed under the ISC L
 
 ## Core Application Libraries
 
-CozyVTT is built on widely-used open-source libraries distributed under permissive licenses (MIT, ISC, and Apache-2.0). Two sets of packages come with other licences, unmodified: libvips, the image library inside the prebuilt binaries that sharp loads (LGPL-3.0-or-later), and a few packages the Prisma command-line tool brings into the backend image (EPL-2.0 and the Unlicense). [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) names them. This is not an exhaustive list: the complete dependency tree and each package's license are recorded in `backend/package-lock.json` and `frontend/package-lock.json`.
+CrazyVTT is built on widely-used open-source libraries distributed under permissive licenses (MIT, ISC, and Apache-2.0). Two sets of packages come with other licences, unmodified: libvips, the image library inside the prebuilt binaries that sharp loads (LGPL-3.0-or-later), and a few packages the Prisma command-line tool brings into the backend image (EPL-2.0 and the Unlicense). [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) names them. This is not an exhaustive list: the complete dependency tree and each package's license are recorded in `backend/package-lock.json` and `frontend/package-lock.json`.
 
 | Package | Purpose | License |
 |---------|---------|---------|

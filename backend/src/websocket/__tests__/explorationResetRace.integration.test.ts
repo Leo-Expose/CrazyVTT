@@ -33,7 +33,7 @@ const memory = (cells: number[]) => ({ cellPx: 50, cols: 4, rows: 4, revealed: A
 
 beforeAll(async () => {
   const [dm, player] = await Promise.all(['dm', 'player'].map((name) =>
-    prisma.user.create({ data: { email: `explorerace-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Race ${name}` } })));
+    prisma.user.create({ data: { email: `explorerace-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Race ${name}` } })));
   dmId = dm.id;
   playerId = player.id;
   campaignId = (await prisma.campaign.create({ data: { name: `Explore race ${runId}`, ownerId: dmId, vibeSettings: {} } })).id;

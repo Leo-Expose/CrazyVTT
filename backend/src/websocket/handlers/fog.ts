@@ -1,18 +1,19 @@
 // ============================================
-// Fog of war handlers: fog:operation / fog:request_state
+// Fog of war handlers: fog:operation / fog:request_state / fog:reveal_shape
 // ============================================
 
 import { Server } from 'socket.io';
 import { AuthenticatedSocket } from '../auth';
 import { prisma } from '../../config/database';
-import { FogOperationSchema } from '../../validators/walls';
+import { FogOperationSchema, FogShapeRevealSchema } from '../../validators/walls';
 import type { FogState } from '../../types/walls';
 import logger from '../../utils/logger';
-import { fogOperationLimiter, limiterKey, stateRequestAllowed, loadFogState, applyWsFogOperation, revealedCellIndices, broadcastFogState, FogTooLargeError } from '../shared';
+import { fogOperationLimiter, limiterKey, stateRequestAllowed, loadFogState, applyWsFogOperation, revealedCellIndices, broadcastFogState, FogTooLargeError, campaignSockets, broadcastPartyVisionMerge } from '../shared';
 import { toJson } from '../../utils/prisma-json';
 import { canReadMap } from '../../services/permissions';
 import { bestEffort } from '../utils';
 import { withMapsLocked } from '../../utils/mapTokens';
+import { calculateFogShapeCells, validateShapeParams } from '../../services/fog/shapes';
 
 export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
@@ -80,6 +81,77 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
   });
 
   /**
+   * fog:reveal_shape — DM applies a fog shape operation (reveal/hide using spell shapes).
+   * Throttled to 10 operations/second per user, across all their sockets.
+   * DM receives full fogState; players receive only revealed cell indices.
+   */
+  socket.on('fog:reveal_shape', async (data: { mapId: string; shape: unknown; operation?: 'reveal' | 'hide' }) => {
+    try {
+      if (!socket.campaignId) return;
+      if (socket.role !== 'DM') {
+        socket.emit('error', { message: 'Only DMs can modify fog of war' });
+        return;
+      }
+
+      // Throttle: max 10 fog ops/second per user
+      if (!fogOperationLimiter.check(limiterKey(socket), 10, 1000)) {
+        return; // Silently drop — brush strokes fire fast, flooding is expected
+      }
+
+      const { mapId, shape, operation = 'reveal' } = data;
+      if (!mapId) { socket.emit('error', { message: 'mapId required' }); return; }
+
+      const parsed = FogShapeRevealSchema.safeParse({ mapId, shape, operation });
+      if (!parsed.success) {
+        socket.emit('error', { message: parsed.error.issues[0]?.message ?? 'Invalid fog shape operation' });
+        return;
+      }
+
+      const campaignId = socket.campaignId;
+      const { shape: shapeData, operation: op } = parsed.data;
+      const outcome = await withMapsLocked([mapId], async (tx): Promise<{ refused: string } | { fog: FogState }> => {
+        const map = await tx.map.findUnique({
+          where: { id: mapId },
+          select: { campaignId: true, fogData: true, fogEnabled: true, width: true, height: true, gridSize: true },
+        });
+        if (!map || map.campaignId !== campaignId) return { refused: 'Map not found' };
+        if (!map.fogEnabled) return { refused: 'Fog of war is off for this map' };
+
+        const fog: FogState = loadFogState(map, map.fogData as FogState | null);
+
+        // Validate shape parameters
+        const validation = validateShapeParams(fog, shapeData);
+        if (!validation.valid) {
+          return { refused: validation.error ?? 'Invalid shape parameters' };
+        }
+
+        // Calculate cells for the shape
+        const { cells } = calculateFogShapeCells(fog, shapeData);
+
+        // Apply the operation
+        applyWsFogOperation(fog, { op, cells });
+
+        await tx.map.update({ where: { id: mapId }, data: { fogData: toJson(fog) } });
+        return { fog };
+      });
+      if ('refused' in outcome) {
+        socket.emit('error', { message: outcome.refused });
+        return;
+      }
+
+      // Saved: failing to tell the table is logged, not reported as failed.
+      await bestEffort('fog:cells', () => broadcastFogState(io, campaignId, mapId, outcome.fog));
+    } catch (error) {
+      if (error instanceof FogTooLargeError) {
+        socket.emit('error', { message: error.message });
+        return;
+      }
+      logger.error('fog:reveal_shape failed', { err: error });
+      socket.emit('error', { message: 'Failed to apply fog shape operation' });
+    }
+  });
+
+  /**
    * fog:request_state — Any campaign member requests current fog state on (re)join.
    * DM receives full fogState; players receive revealed-cell list.
    */
@@ -123,6 +195,73 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
         return;
       }
       logger.error('fog:request_state failed', { err: error });
+    }
+  });
+
+  /**
+   * fog:toggle_party_vision — DM toggles the "Share Explored Areas with Party" setting.
+   * When enabled, broadcasts the union of all party members' explored cells.
+   */
+  socket.on('fog:toggle_party_vision', async (data: { mapId: string; enabled: boolean; excludedCharacterIds?: string[] }) => {
+    try {
+      if (!socket.campaignId) return;
+      if (socket.role !== 'DM') {
+        socket.emit('error', { message: 'Only DMs can change fog party vision settings' });
+        return;
+      }
+      const { mapId, enabled, excludedCharacterIds = [] } = data;
+      if (!mapId) { socket.emit('error', { message: 'mapId required' }); return; }
+
+      // Update campaign settings
+      await prisma.campaign.update({
+        where: { id: socket.campaignId },
+        data: {
+          fogShareExploredWithParty: enabled,
+          fogShareExcludedCharacterIds: excludedCharacterIds,
+        },
+      });
+
+      // Broadcast the party vision merge if enabled
+      if (enabled) {
+        await broadcastPartyVisionMerge(io, socket.campaignId, mapId);
+      } else {
+        // When disabled, send empty party merge to clear shared areas
+        const sockets = await campaignSockets(io, socket.campaignId);
+        for (const s of sockets) {
+          const member = s as unknown as AuthenticatedSocket;
+          if (member.role === 'PLAYER') {
+            s.emit('exploration:party_merge', { mapId, cells: [] });
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('fog:toggle_party_vision failed', { err: error });
+      socket.emit('error', { message: 'Failed to toggle party vision merge' });
+    }
+  });
+
+  /**
+   * fog:request_party_vision — Request current party vision merge state for a map.
+   */
+  socket.on('fog:request_party_vision', async (data: { mapId: string }) => {
+    try {
+      if (!socket.campaignId) return;
+      const { mapId } = data;
+      if (!mapId) return;
+
+      const campaign = await prisma.campaign.findUnique({
+        where: { id: socket.campaignId },
+        select: { fogShareExploredWithParty: true, fogShareExcludedCharacterIds: true },
+      });
+      if (!campaign || !campaign.fogShareExploredWithParty) {
+        socket.emit('exploration:party_merge', { mapId, cells: [] });
+        return;
+      }
+
+      // Compute and send the party vision merge
+      await broadcastPartyVisionMerge(io, socket.campaignId, mapId);
+    } catch (error) {
+      logger.error('fog:request_party_vision failed', { err: error });
     }
   });
 }

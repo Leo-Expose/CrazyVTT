@@ -36,7 +36,7 @@ const rolls = () => prisma.diceRoll.count({ where: { campaignId } });
 beforeAll(async () => {
   const [dm, player] = await Promise.all(
     ['dm', 'player'].map((name) =>
-      prisma.user.create({ data: { email: `dicepayload-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Dice ${name}` } })
+      prisma.user.create({ data: { email: `dicepayload-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Dice ${name}` } })
     )
   );
   dmId = dm.id;

@@ -12,7 +12,7 @@ change with upgrades.
   `nginx/conf.d/https.conf` from "SSL/TLS with Let's Encrypt" in
   [docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md#ssltls-with-lets-encrypt). It
   sends the same paths to the backend and the frontend as the plain-HTTP
-  server, by including `/etc/nginx/cozyvtt/locations.conf`, so upgrades reach
+  server, by including `/etc/nginx/templates/locations.conf`, so upgrades reach
   it too.
 - **Let's Encrypt** writes its check files into `nginx/conf.d/acme/`, a folder
   the same guide has you make. nginx reads only the `.conf` files directly in

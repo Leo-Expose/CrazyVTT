@@ -15,7 +15,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-archive-audio-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-archive-audio-'));
 const UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
@@ -63,7 +63,7 @@ async function track(name: string): Promise<string> {
 
 /** Export the source campaign to a file and return its path. */
 async function exportSource(includeAudio: boolean): Promise<string> {
-  const file = path.join(SCRATCH, `export-${includeAudio}.cozyvtt`);
+  const file = path.join(SCRATCH, `export-${includeAudio}.crazyvtt`);
   const prepared = await prepareCampaignExport(sourceId, { userId, isAdmin: false }, { includeAudio });
   await prepared.writeTo(fs.createWriteStream(file));
   return file;

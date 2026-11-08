@@ -34,7 +34,7 @@ const mapData = (campaign: string, name: string) => ({
 
 beforeAll(async () => {
   const [dm, player] = await Promise.all(['dm', 'player'].map((name) =>
-    prisma.user.create({ data: { email: `pingmap-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Ping ${name}` } })));
+    prisma.user.create({ data: { email: `pingmap-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Ping ${name}` } })));
   dmId = dm.id;
   playerId = player.id;
   campaignId = (await prisma.campaign.create({ data: { name: `Ping ${runId}`, ownerId: dmId, vibeSettings: {} } })).id;

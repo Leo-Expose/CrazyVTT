@@ -1,8 +1,8 @@
-# CozyVTT — Adding a Game System
+# CrazyVTT — Adding a Game System
 
-This guide explains how to add a new tabletop game system to CozyVTT end to end. It reflects the code as it actually ships — file names, the exact functions you extend, and the reference systems to copy from.
+This guide explains how to add a new tabletop game system to CrazyVTT end to end. It reflects the code as it actually ships — file names, the exact functions you extend, and the reference systems to copy from.
 
-CozyVTT currently ships three systems you can choose: **D&D 5e**, **Pathfinder 2e** and **Call of Cthulhu 7e**. A fourth, **Shadowrun 6e**, is in the code as groundwork: its backend is complete and its sheet is a placeholder, so it is left out of the lists a game system is chosen from (see [Reference systems](#reference-systems)). Adding another system means touching a fixed set of registration points, all of which are plain `switch` statements and enums — no dynamic plugin loader, no config file. If you add your system to every switch the compiler and tests point you at, it works.
+CrazyVTT currently ships three systems you can choose: **D&D 5e**, **Pathfinder 2e** and **Call of Cthulhu 7e**. A fourth, **Shadowrun 6e**, is in the code as groundwork: its backend is complete and its sheet is a placeholder, so it is left out of the lists a game system is chosen from (see [Reference systems](#reference-systems)). Adding another system means touching a fixed set of registration points, all of which are plain `switch` statements and enums — no dynamic plugin loader, no config file. If you add your system to every switch the compiler and tests point you at, it works.
 
 ---
 
@@ -33,7 +33,7 @@ CozyVTT currently ships three systems you can choose: **D&D 5e**, **Pathfinder 2
 
 A character's data is stored as an unstructured JSON blob on the `Character.data` column. The `Character.gameSystem` column (a Prisma enum) tells the rest of the app how to interpret that blob. Nothing about the JSON is enforced by the database — **the Zod schema is the single enforcement point** and runs on every character create/update.
 
-So a "game system" in CozyVTT is really six coordinated pieces:
+So a "game system" in CrazyVTT is really six coordinated pieces:
 
 | # | Piece | Location |
 |---|-------|----------|
@@ -815,6 +815,6 @@ The exhaustive `switch`/`Record` types mean a missed backend registration point 
 
 ## Legal / content note
 
-CozyVTT ships **rules-reference scaffolding** (attribute names, skill lists, sheet structure), not publisher rulebooks. When you add a system, keep it that way: include the mechanical framework a player needs to fill in their own character, not copyrighted prose, adventures, stat blocks, or artwork.
+CrazyVTT ships **rules-reference scaffolding** (attribute names, skill lists, sheet structure), not publisher rulebooks. When you add a system, keep it that way: include the mechanical framework a player needs to fill in their own character, not copyrighted prose, adventures, stat blocks, or artwork.
 
 If the system you're adding is published under an open license (OGL, ORC, Creative Commons, a fan-content policy, etc.), add the required attribution to `SRD_ATTRIBUTION.md` (or a sibling attribution file) and note the source in your PR. If it isn't openly licensed, restrict your contribution to the generic sheet structure and user-entered data. When in doubt, open an issue before writing code — it's easier to sort licensing up front than to unwind it later.

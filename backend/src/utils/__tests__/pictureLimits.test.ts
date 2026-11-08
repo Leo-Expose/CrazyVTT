@@ -16,7 +16,7 @@ import { craftedGif, craftedAnimatedWebp, plainPng, pngHeader } from '../../__te
 let dir: string;
 
 beforeAll(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-picture-limits-'));
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-picture-limits-'));
 });
 
 afterAll(() => {
@@ -169,7 +169,7 @@ describe('an animated WebP', () => {
   it('is refused when its size cannot be read', async () => {
     const webp = await craftedAnimatedWebp({ width: 10, height: 10, frames: 2 });
     expect(await pictureLimitProblem(webp.subarray(0, 40), 'MAP')).toBe(
-      'CozyVTT could not read the size of this picture, so it cannot be checked. Save it again in an image editor and try once more.'
+      'CrazyVTT could not read the size of this picture, so it cannot be checked. Save it again in an image editor and try once more.'
     );
   });
 });

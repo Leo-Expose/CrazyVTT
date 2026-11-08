@@ -20,8 +20,8 @@ afterEach(() => {
 });
 
 it('refuses a database without test in its name', async () => {
-  process.env.DATABASE_URL = 'postgresql://cozyvtt:cozyvtt@localhost:5432/cozyvtt';
-  await expect(globalSetup()).rejects.toThrow('The test suite will not run against the database "cozyvtt"');
+  process.env.DATABASE_URL = 'postgresql://crazyvtt:crazyvtt@localhost:5432/crazyvtt';
+  await expect(globalSetup()).rejects.toThrow('The test suite will not run against the database "crazyvtt"');
 });
 
 it('lets the test database through, with its sign-in table and the rows in it untouched', async () => {

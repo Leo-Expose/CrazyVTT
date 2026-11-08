@@ -61,8 +61,8 @@ async function newMap(lightingEnabled: boolean, fog?: Fog): Promise<string> {
 }
 
 beforeAll(async () => {
-  const dm = await prisma.user.create({ data: { email: `doors-dm-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'Door DM' } });
-  const player = await prisma.user.create({ data: { email: `doors-pl-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'Door Player' } });
+  const dm = await prisma.user.create({ data: { email: `doors-dm-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'Door DM' } });
+  const player = await prisma.user.create({ data: { email: `doors-pl-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'Door Player' } });
   dmId = dm.id;
   playerId = player.id;
   campaignId = (await prisma.campaign.create({ data: { name: `Doors ${runId}`, ownerId: dmId, vibeSettings: {}, status: 'ACTIVE' } })).id;

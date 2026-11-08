@@ -34,7 +34,7 @@ import { createIsolatedSchema, type IsolatedSchema } from '../../__tests__/helpe
 jest.setTimeout(60000);
 
 const sharedUrl = process.env.DATABASE_URL;
-const emails = Array.from({ length: 8 }, (_, i) => `race-${i}@test.cozyvtt.local`);
+const emails = Array.from({ length: 8 }, (_, i) => `race-${i}@test.crazyvtt.local`);
 
 let schema: IsolatedSchema;
 let db: PrismaClient;

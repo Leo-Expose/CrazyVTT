@@ -45,9 +45,9 @@ async function signIn(email: string): Promise<request.Agent> {
 }
 
 beforeAll(async () => {
-  const a = await createTestUser({ email: `userroutes-admin-${stamp}@test.cozyvtt.local`, role: 'ADMIN' });
-  const u = await createTestUser({ email: `userroutes-user-${stamp}@test.cozyvtt.local` });
-  const o = await createTestUser({ email: `userroutes-other-${stamp}@test.cozyvtt.local` });
+  const a = await createTestUser({ email: `userroutes-admin-${stamp}@test.crazyvtt.local`, role: 'ADMIN' });
+  const u = await createTestUser({ email: `userroutes-user-${stamp}@test.crazyvtt.local` });
+  const o = await createTestUser({ email: `userroutes-other-${stamp}@test.crazyvtt.local` });
   adminId = a.id;
   userId = u.id;
   otherId = o.id;
@@ -109,7 +109,7 @@ describe('GET /api/users/:id', () => {
   it('answers an admin about anyone, without secrets', async () => {
     const res = await admin.get(`/api/users/${otherId}`);
     expect(res.status).toBe(200);
-    expect(res.body.user.email).toBe(`userroutes-other-${stamp}@test.cozyvtt.local`);
+    expect(res.body.user.email).toBe(`userroutes-other-${stamp}@test.crazyvtt.local`);
     for (const field of SECRET_FIELDS) expect(res.body.user).not.toHaveProperty(field);
   });
 
@@ -187,7 +187,7 @@ describe('POST /api/users/:id/send-reset-link', () => {
     expect(res.status).toBe(200);
     expect(sentResetEmail).toHaveBeenCalledTimes(1);
     const [to, token] = sentResetEmail.mock.calls[0];
-    expect(to).toBe(`userroutes-other-${stamp}@test.cozyvtt.local`);
+    expect(to).toBe(`userroutes-other-${stamp}@test.crazyvtt.local`);
     // The row holds the hash of the token the email carries.
     const live = await prisma.passwordResetToken.findMany({ where: { userId: otherId, used: false } });
     expect(live.map((t) => t.token)).toEqual([hashResetToken(token as string)]);

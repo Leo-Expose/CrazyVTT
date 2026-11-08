@@ -17,7 +17,7 @@ import path from 'path';
 
 // Before anything reads the working directory or UPLOAD_DIR.
 const STARTED_IN = process.cwd();
-const SCRATCH = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-relative-uploads-')));
+const SCRATCH = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-relative-uploads-')));
 process.chdir(SCRATCH);
 process.env.UPLOAD_DIR = 'uploads';
 

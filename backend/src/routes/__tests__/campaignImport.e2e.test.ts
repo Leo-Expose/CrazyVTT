@@ -15,7 +15,7 @@ import os from 'os';
 import path from 'path';
 import type { AddressInfo } from 'net';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-e2e-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-e2e-'));
 const UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 process.env.UPLOAD_DIR = UPLOAD_DIR;
 
@@ -34,7 +34,7 @@ const IMPORT_TEMP = path.join(UPLOAD_DIR, 'temp', 'campaign-imports');
 const manifest = JSON.stringify({
   formatVersion: 1,
   exportedAt: '2026-10-06T00:00:00.000Z',
-  exportedFrom: 'CozyVTT test',
+  exportedFrom: 'CrazyVTT test',
   campaignName: 'Crafted',
   gameSystem: 'DND_5E',
   mapCount: 0,
@@ -98,7 +98,7 @@ beforeAll(async () => {
     r.on('end', () => done(null, Buffer.concat(chunks)));
   });
   expect(res.status).toBe(200);
-  exported = path.join(SCRATCH, 'round-trip.cozyvtt');
+  exported = path.join(SCRATCH, 'round-trip.crazyvtt');
   fs.writeFileSync(exported, res.body as Buffer);
 }, 60_000);
 
@@ -127,7 +127,7 @@ describe('POST /api/campaigns/import/preview', () => {
   });
 
   it('refuses an archive with no manifest', async () => {
-    const file = path.join(SCRATCH, 'no-manifest.cozyvtt');
+    const file = path.join(SCRATCH, 'no-manifest.crazyvtt');
     await writeZip(file, [{ name: 'campaign.json', data: '{"name":"x"}' }]);
     const res = await player.post('/api/campaigns/import/preview').attach('file', file);
     expect(res.status).toBe(400);
@@ -135,7 +135,7 @@ describe('POST /api/campaigns/import/preview', () => {
   });
 
   it('refuses a file that is not an archive, saying so', async () => {
-    const file = path.join(SCRATCH, 'not-a-zip.cozyvtt');
+    const file = path.join(SCRATCH, 'not-a-zip.crazyvtt');
     fs.writeFileSync(file, 'this is not a zip file at all, just text');
     const res = await player.post('/api/campaigns/import/preview').attach('file', file);
     expect(res.status).toBe(400);
@@ -173,7 +173,7 @@ describe('POST /api/campaigns/import', () => {
   });
 
   it('refuses an archive with an entry that leaves its folder, creating nothing', async () => {
-    const file = path.join(SCRATCH, 'slip.cozyvtt');
+    const file = path.join(SCRATCH, 'slip.crazyvtt');
     await writeZip(file, [
       { name: 'manifest.json', data: manifest },
       { name: 'campaign.json', data: '{"name":"Slip"}' },
@@ -200,7 +200,7 @@ describe('POST /api/campaigns/import', () => {
     const cookie = (login.headers['set-cookie'] as unknown as string[])[0].split(';')[0];
     const boundary = '----CozyTooLarge';
     const head = Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="huge.cozyvtt"\r\nContent-Type: application/zip\r\n\r\n`
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="huge.crazyvtt"\r\nContent-Type: application/zip\r\n\r\n`
     );
     const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
     const fileBytes = 500 * 1024 * 1024 + 1024;
@@ -250,9 +250,9 @@ describe('POST /api/campaigns/import', () => {
 
   it('clears archives and staging folders a stopped server left in its temporary folder', async () => {
     fs.mkdirSync(IMPORT_TEMP, { recursive: true });
-    const stale = path.join(IMPORT_TEMP, 'left-behind.cozyvtt');
+    const stale = path.join(IMPORT_TEMP, 'left-behind.crazyvtt');
     const staleStaging = path.join(IMPORT_TEMP, 'left-behind.staging');
-    const recent = path.join(IMPORT_TEMP, 'in-progress.cozyvtt');
+    const recent = path.join(IMPORT_TEMP, 'in-progress.crazyvtt');
     fs.writeFileSync(stale, 'old');
     fs.mkdirSync(staleStaging);
     fs.writeFileSync(path.join(staleStaging, 'picture.png'), PNG);
@@ -277,7 +277,7 @@ describe('POST /api/campaigns/import', () => {
   // PostgreSQL cannot store a NUL character, so this map's row is refused by
   // the database itself once the campaign and the map before it are written.
   it('answers 500 with no database detail when a campaign cannot be saved, and keeps none of it', async () => {
-    const file = path.join(SCRATCH, 'nul.cozyvtt');
+    const file = path.join(SCRATCH, 'nul.crazyvtt');
     const map = (name: string) => JSON.stringify({ name, width: 5, height: 5, gridSize: 50, feetPerSquare: 5, tokens: [] });
     await writeZip(file, [
       { name: 'manifest.json', data: manifest.replace('"mapCount":0', '"mapCount":2') },
@@ -299,7 +299,7 @@ describe('POST /api/campaigns/import', () => {
   });
 
   it('refuses an archive whose data cannot be unpacked, saying it is damaged', async () => {
-    const file = path.join(SCRATCH, 'damaged.cozyvtt');
+    const file = path.join(SCRATCH, 'damaged.crazyvtt');
     await writeZip(file, [
       { name: 'manifest.json', data: manifest },
       { name: 'campaign.json', data: JSON.stringify({ name: 'Damaged', description: 'x'.repeat(2000) }) },

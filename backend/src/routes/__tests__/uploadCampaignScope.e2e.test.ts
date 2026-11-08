@@ -70,9 +70,9 @@ beforeAll(async () => {
   const stamp = Date.now();
   // Not platform admins: an admin is allowed more, which would hide the bug.
   const [d, p, o] = await Promise.all([
-    createTestUser({ email: `scope-dm-${stamp}@test.cozyvtt.local`, displayName: 'Scope DM' }),
-    createTestUser({ email: `scope-player-${stamp}@test.cozyvtt.local`, displayName: 'Scope Player' }),
-    createTestUser({ email: `scope-outsider-${stamp}@test.cozyvtt.local`, displayName: 'Scope Outsider' }),
+    createTestUser({ email: `scope-dm-${stamp}@test.crazyvtt.local`, displayName: 'Scope DM' }),
+    createTestUser({ email: `scope-player-${stamp}@test.crazyvtt.local`, displayName: 'Scope Player' }),
+    createTestUser({ email: `scope-outsider-${stamp}@test.crazyvtt.local`, displayName: 'Scope Outsider' }),
   ]);
   dmId = d.id; playerId = p.id; outsiderId = o.id;
 

@@ -43,7 +43,7 @@ async function remembered(): Promise<number[]> {
 beforeAll(async () => {
   const [dm, player] = await Promise.all(
     ['dm', 'player'].map((name) =>
-      prisma.user.create({ data: { email: `explorewrites-${name}-${runId}@test.cozyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Explore ${name}` } })
+      prisma.user.create({ data: { email: `explorewrites-${name}-${runId}@test.crazyvtt.local`, passwordHash: 'not-used-by-socket-auth', displayName: `Explore ${name}` } })
     )
   );
   dmId = dm.id;

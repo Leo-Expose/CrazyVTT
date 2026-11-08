@@ -30,7 +30,7 @@ import {
 jest.setTimeout(20000);
 
 const runId = randomUUID().slice(0, 8);
-const email = (name: string) => `switch-${name}-${runId}@test.cozyvtt.local`;
+const email = (name: string) => `switch-${name}-${runId}@test.crazyvtt.local`;
 
 const SEEN_TOKEN = 'aaaaaaaa-0000-4000-8000-00000000c0de';
 const HIDDEN_TOKEN = 'aaaaaaaa-0000-4000-8000-00000000d00d';

@@ -17,7 +17,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-archive-counts-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-archive-counts-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 import request from 'supertest';
@@ -74,7 +74,7 @@ it('imports again a campaign of 60 maps and 250 creatures', async () => {
   const campaignId = await campaignOf('Sprawling', 60, 250);
   const exported = await exportOf(campaignId);
   expect(exported.status).toBe(200);
-  const file = path.join(SCRATCH, 'sprawling.cozyvtt');
+  const file = path.join(SCRATCH, 'sprawling.crazyvtt');
   fs.writeFileSync(file, exported.body as Buffer);
 
   const imported = await dm.post('/api/campaigns/import').attach('file', file);

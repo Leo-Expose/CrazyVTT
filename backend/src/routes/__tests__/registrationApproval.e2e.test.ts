@@ -21,7 +21,7 @@ jest.mock('../../services/systemSettings', () => ({
   getSystemSettings: jest.fn().mockResolvedValue({
     id: 'test-settings',
     setupCompleted: true,
-    instanceName: 'CozyVTT Test',
+    instanceName: 'CrazyVTT Test',
     timezone: 'UTC',
     allowRegistration: true,
     requireAdminApproval: true,
@@ -45,7 +45,7 @@ const created: string[] = [];
 
 beforeAll(async () => {
   // Registration only asks about approval once the instance has a user.
-  const anchor = await createTestUser({ email: `approval-anchor-${stamp}@test.cozyvtt.local` });
+  const anchor = await createTestUser({ email: `approval-anchor-${stamp}@test.crazyvtt.local` });
   created.push(anchor.id);
 });
 
@@ -59,7 +59,7 @@ afterAll(async () => {
 });
 
 it('creates the account unapproved even if nothing else is written after it', async () => {
-  const email = `approval-fail-${stamp}@test.cozyvtt.local`;
+  const email = `approval-fail-${stamp}@test.crazyvtt.local`;
   // A write after the create fails. The account must not be left approved.
   const update = jest.spyOn(appPrisma.user, 'update').mockRejectedValueOnce(new Error('database blip'));
   try {
@@ -73,7 +73,7 @@ it('creates the account unapproved even if nothing else is written after it', as
 });
 
 it('answers that the account is pending, and refuses to sign it in', async () => {
-  const email = `approval-pending-${stamp}@test.cozyvtt.local`;
+  const email = `approval-pending-${stamp}@test.crazyvtt.local`;
   const res = await request(app).post('/api/auth/register').send({ email, password: TEST_PASSWORD, displayName: 'Pending' });
   expect(res.status).toBe(201);
   expect(res.body.pendingApproval).toBe(true);

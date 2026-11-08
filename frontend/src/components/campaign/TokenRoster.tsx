@@ -5,7 +5,6 @@
 // Actions: Edit (NPC/Object), Duplicate, Remove
 // ============================================
 
-import { hpTier } from '@/utils/tokenColours';
 import { useState, useCallback } from 'react';
 import {
   ChevronDown,
@@ -28,6 +27,11 @@ import { TokenType } from '@/types';
 import { tokenCopyRequest, clampTokenPosition, copyController } from '@/utils/tokenCopy';
 import { apiErrorMessage } from '@/utils/errors';
 import RemoveTokenDialog from './RemoveTokenDialog';
+import {
+  getQualitativeHealth,
+  getHealthDisplayName,
+  HEALTH_BADGE_EMOJI,
+} from '@/utils/rules/qualitativeHealth';
 
 // ============================================
 // Props
@@ -46,12 +50,29 @@ function getEffectiveType(token: Token): TokenType {
   return token.characterId ? TokenType.PLAYER : TokenType.NPC;
 }
 
+/**
+ * HP label for the DM's token roster row.
+ *
+ * Shows the qualitative status emoji + name alongside the exact number so the
+ * DM sees both at a glance: "💛 Wounded — 24/60".  Returns an empty string
+ * when the token has no HP data (objects, tokens without a max HP).
+ */
 function hpLabel(token: Token): string {
   if (!token.hp || token.hp.max === 0) return '';
-  const pct = token.hp.current / token.hp.max;
-  const color = { full: '🟢', good: '🟡', low: '🟠', critical: '🔴' }[hpTier(pct)];
-  return `${color} ${token.hp.current}/${token.hp.max}`;
+  const qs = getQualitativeHealth(
+    {
+      current: token.hp.current,
+      max: token.hp.max,
+      temp: token.hp.temp,
+      conditions: token.conditions,
+    },
+    'DND_5E', // The roster has no game system context; DND_5E thresholds match all current systems
+  );
+  const emoji = HEALTH_BADGE_EMOJI[qs];
+  const name  = getHealthDisplayName(qs);
+  return `${emoji} ${name} — ${token.hp.current}/${token.hp.max}`;
 }
+
 
 // ============================================
 // Sub-component: Token Row

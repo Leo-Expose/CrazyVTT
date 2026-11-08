@@ -187,7 +187,7 @@ describe('the database password rule', () => {
   // itself: Docker Compose reads it there as the start of a variable name.
   // Both texts listed it with the characters that break the address.
   it('does not list $ among the characters that break the database address', () => {
-    const url = new URL('postgresql://cozyvtt:pass$word@database:5432/cozyvtt');
+    const url = new URL('postgresql://crazyvtt:pass$word@database:5432/crazyvtt');
     expect(url.hostname).toBe('database');
     expect(decodeURIComponent(url.password)).toBe('pass$word');
 
@@ -274,7 +274,7 @@ describe('the game systems named in the guides', () => {
   // number of systems counted it.
   it('are counted in GAME_SYSTEMS.md as the ones that can be chosen', () => {
     expect(selectable).not.toContain('SHADOWRUN_6E');
-    expect(read('docs/GAME_SYSTEMS.md')).toContain(`CozyVTT currently ships ${words[selectable.length]} systems you can choose`);
+    expect(read('docs/GAME_SYSTEMS.md')).toContain(`CrazyVTT currently ships ${words[selectable.length]} systems you can choose`);
   });
 });
 
@@ -563,13 +563,13 @@ describe('backend/DATABASE_MIGRATIONS.md', () => {
 describe('what a reader is asked to send, and where', () => {
   const template = read('.github/ISSUE_TEMPLATE/bug_report.md').toLowerCase();
 
-  // CONTRIBUTING.md asks for the CozyVTT version and more; the template was
+  // CONTRIBUTING.md asks for the CrazyVTT version and more; the template was
   // GitHub's stock one, which asks for the browser's version and nothing about
   // the install, and says nothing about secrets in a pasted .env or log.
   it('the bug report template asks for what CONTRIBUTING.md asks for', () => {
-    const asked = [...read('docs/CONTRIBUTING.md').matchAll(/^- (CozyVTT version|Browser and OS|Steps to reproduce|Expected vs actual behavior|Console output)/gm)].map((m) => m[1]);
+    const asked = [...read('docs/CONTRIBUTING.md').matchAll(/^- (CrazyVTT version|Browser and OS|Steps to reproduce|Expected vs actual behavior|Console output)/gm)].map((m) => m[1]);
     expect(asked).toHaveLength(5);
-    for (const key of ['cozyvtt version', 'browser', 'steps to reproduce', 'expected', 'console']) expect(template).toContain(key);
+    for (const key of ['crazyvtt version', 'browser', 'steps to reproduce', 'expected', 'console']) expect(template).toContain(key);
   });
 
   it('the bug report template asks how it is installed and warns against pasting secrets', () => {

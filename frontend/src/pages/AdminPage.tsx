@@ -1992,7 +1992,7 @@ export default function AdminPage() {
                     maxLength={100}
                     onChange={e => setSettingsForm(f => ({ ...f, instanceName: e.target.value }))}
                     className="input-cozy w-full"
-                    placeholder="CozyVTT"
+                    placeholder="CrazyVTT"
                   />
                   <p className="text-xs text-warm-gray mt-1">
                     Shown in the browser tab and in the emails the instance sends.

@@ -1,5 +1,5 @@
 /**
- * Archives exported by CozyVTT 1.4.0 and 1.5.0 still import whole.
+ * Archives exported by CrazyVTT 1.4.0 and 1.5.0 still import whole.
  *
  * Each archive here is built the way that version's exporter wrote one,
  * from what that version stored: 1.4.0 kept token notes and names of any
@@ -15,7 +15,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'cozyvtt-import-older-'));
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'crazyvtt-import-older-'));
 process.env.UPLOAD_DIR = path.join(SCRATCH, 'uploads');
 
 import { importCampaign } from '../campaignImporter';
@@ -57,7 +57,7 @@ const lights = [{ x: 350, y: 350, id: randomUUID(), color: '#88aaff', enabled: t
 const fogData = { fogCols: 24, fogRows: 24, cellPx: 70, revealed: Array.from({ length: 576 }, (_, i) => i < 48) };
 
 async function archive(version: '1.4.0' | '1.5.0', map: Record<string, unknown>, vibeSettings: unknown): Promise<string> {
-  const file = path.join(SCRATCH, `${version}-${randomUUID()}.cozyvtt`);
+  const file = path.join(SCRATCH, `${version}-${randomUUID()}.crazyvtt`);
   const manifestEntry = (id: string, originalName: string, type: string) => [
     id, { originalName, mimeType: 'text/plain', type, fileSize: PNG.length },
   ];
@@ -65,7 +65,7 @@ async function archive(version: '1.4.0' | '1.5.0', map: Record<string, unknown>,
     {
       name: 'manifest.json',
       data: JSON.stringify({
-        formatVersion: 1, exportedAt: '2026-09-14T12:00:00.000Z', exportedFrom: `CozyVTT v${version}`, campaignName: 'The Sunken Crown',
+        formatVersion: 1, exportedAt: '2026-09-14T12:00:00.000Z', exportedFrom: `CrazyVTT v${version}`, campaignName: 'The Sunken Crown',
         gameSystem: 'DND_5E', mapCount: 1, tokenCount: (map.tokens as unknown[]).length, creatureCount: 1, tokenTemplateCount: 1,
         assetCount: 2, includesAudio: version === '1.5.0', totalSizeBytes: PNG.length * 2,
       }, null, 2),

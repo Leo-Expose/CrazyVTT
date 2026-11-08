@@ -14,7 +14,7 @@ import { zipFixture } from '@/test/zipFixture';
 const manifest = {
   formatVersion: 1,
   exportedAt: '2026-10-18T00:00:00.000Z',
-  exportedFrom: 'CozyVTT v1.5.3',
+  exportedFrom: 'CrazyVTT v1.5.3',
   campaignName: 'The Sunken Keep',
   gameSystem: 'DND_5E',
   mapCount: 3,

@@ -91,7 +91,7 @@ describe('the session secret', () => {
     ['the example value the deployment guide used to show', 'your-64-char-random-string'],
     ['the deployment guide\'s example line, pasted as written', '<paste the 64 characters that command prints>'],
     ['the development guide\'s example value', 'dev-session-secret-change-in-production-please'],
-    ['shorter than 32 characters', 'cozyvtt-secret-1234567890123456'],
+    ['shorter than 32 characters', 'crazyvtt-secret-1234567890123456'],
   ])('stops a production server when it is %s', (_label, secret) => {
     expect(() => loadWith({ NODE_ENV: 'production', SESSION_SECRET: secret })).toThrow(Exited);
     expect(exit).toHaveBeenCalledWith(1);
@@ -168,12 +168,12 @@ describe('the cookie, as a browser receives it', () => {
 
   const cookieOf = (res: request.Response): string => {
     const raw = res.headers['set-cookie'] as unknown as string[] | undefined;
-    const cookie = raw?.find((c) => c.startsWith('cozyvtt.sid='));
-    if (!cookie) throw new Error(`no cozyvtt.sid cookie in ${JSON.stringify(raw)}`);
+    const cookie = raw?.find((c) => c.startsWith('crazyvtt.sid='));
+    if (!cookie) throw new Error(`no crazyvtt.sid cookie in ${JSON.stringify(raw)}`);
     return cookie;
   };
 
-  it('is named cozyvtt.sid, kept from scripts, and sent on same-site requests and links from elsewhere', async () => {
+  it('is named crazyvtt.sid, kept from scripts, and sent on same-site requests and links from elsewhere', async () => {
     const app = appWith(loadWith({}).sessionConfig);
     const cookie = cookieOf(await request(app).get('/sign-in'));
     expect(cookie).toMatch(/; HttpOnly/i);

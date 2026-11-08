@@ -42,7 +42,7 @@ async function newMap(data: { wallSegments?: unknown[]; lights?: unknown[] } = {
 const stored = (mapId: string) => prisma.map.findUniqueOrThrow({ where: { id: mapId }, select: { wallSegments: true, lights: true } });
 
 beforeAll(async () => {
-  const dm = await prisma.user.create({ data: { email: `wlb-dm-${runId}@test.cozyvtt.local`, passwordHash: 'x', displayName: 'Bounds DM' } });
+  const dm = await prisma.user.create({ data: { email: `wlb-dm-${runId}@test.crazyvtt.local`, passwordHash: 'x', displayName: 'Bounds DM' } });
   dmId = dm.id;
   campaignId = (await prisma.campaign.create({ data: { name: `Socket bounds ${runId}`, ownerId: dmId, vibeSettings: {} } })).id;
   await prisma.campaignMembership.create({ data: { userId: dmId, campaignId, role: 'DM', characterIds: [] } });
