@@ -33,7 +33,7 @@ async function archive(contents: { campaign?: Record<string, unknown>; maps?: ob
   const maps = contents.maps ?? [];
   const files: Record<string, string> = {
     'manifest.json': JSON.stringify({
-      formatVersion: 1, exportedAt: '2026-11-01T00:00:00.000Z', exportedFrom: 'CozyVTT test', campaignName: 'Nul',
+      formatVersion: 1, exportedAt: '2026-11-01T00:00:00.000Z', exportedFrom: 'CrazyVTT test', campaignName: 'Nul',
       gameSystem: 'DND_5E', mapCount: maps.length, tokenCount: 0, creatureCount: contents.creatures?.length ?? 0,
       tokenTemplateCount: contents.templates?.length ?? 0, assetCount: 0, includesAudio: false, totalSizeBytes: 0,
     }),

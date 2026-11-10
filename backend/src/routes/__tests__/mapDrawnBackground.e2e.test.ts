@@ -1,5 +1,5 @@
 /**
- * The colour a map drawn in CozyVTT was made in, kept with the map.
+ * The colour a map drawn in CrazyVTT was made in, kept with the map.
  *
  * Mapmaker's eraser paints it. It was read off the picture's top-left pixel,
  * which a room or a stamp in that corner changed. Create Map sends it; the

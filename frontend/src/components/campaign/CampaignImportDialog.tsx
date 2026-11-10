@@ -190,7 +190,7 @@ export default function CampaignImportDialog({
                 <>
                   <Upload className="w-10 h-10 text-brand-ink/50 mx-auto mb-3" />
                   <p className="text-sm font-medium text-stone-gray mb-1">
-                    Drop a <span className="font-mono text-brand-ink">.cozyvtt</span> file here
+                    Drop a <span className="font-mono text-brand-ink">.crazyvtt</span> or legacy <span className="font-mono text-brand-ink">.cozyvtt</span> file here
                   </p>
                   <p className="text-xs text-warm-gray">or click to browse</p>
                 </>
@@ -199,7 +199,7 @@ export default function CampaignImportDialog({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".cozyvtt,.zip"
+              accept=".crazyvtt,.cozyvtt,.zip"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];

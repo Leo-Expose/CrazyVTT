@@ -2,7 +2,7 @@
 
 ## Overview
 
-CozyVTT uses Prisma 7 for database management and migrations. Database migrations are automatically run when the backend container starts.
+CrazyVTT uses Prisma 7 for database management and migrations. Database migrations are automatically run when the backend container starts.
 
 The `prisma` commands below read their settings from `backend/prisma.config.ts`:
 where the schema and the migrations are, and the database address, taken from
@@ -12,7 +12,7 @@ Docker). The app itself connects through the `pg` driver, with the same
 
 ## Automatic Migrations (Default)
 
-When you start CozyVTT with Docker Compose, the backend container will automatically:
+When you start CrazyVTT with Docker Compose, the backend container will automatically:
 
 1. Wait for the PostgreSQL database to be ready
 2. Run all pending migrations with `prisma migrate deploy`
@@ -189,7 +189,7 @@ about; the list is not exhaustive.
   column. A document saved by 1.5.4 keeps the rows of its earlier text until
   it is next saved on this version.
 - `20261108215941_add_map_drawn_background` - `Map.drawnBackground`, the
-  colour a map drawn in CozyVTT is made in, written `#rrggbb`, which
+  colour a map drawn in CrazyVTT is made in, written `#rrggbb`, which
   Mapmaker's eraser paints. One `ALTER TABLE ... ADD COLUMN` with no default,
   so every existing map gets null; Mapmaker then reads the colour off the
   picture's top-left pixel, as before. No existing row is changed or removed.
@@ -294,7 +294,7 @@ the fields the sheet declares.
 
 ### `migrate:characters`
 
-Written for characters stored before CozyVTT recorded a game system. On any
+Written for characters stored before CrazyVTT recorded a game system. On any
 current instance a character with no game system is a **Flexible** character
 on purpose, and giving it one would stop it fitting its Flexible campaign, so
 the script previews by default and is careful when told to apply:
@@ -335,7 +335,7 @@ field.
 
 If you see errors like "The table `public.SystemSettings` does not exist", it means migrations haven't been run. This can happen if:
 
-1. You're setting up CozyVTT for the first time
+1. You're setting up CrazyVTT for the first time
 2. You manually created the database without running migrations
 3. The migration script failed
 

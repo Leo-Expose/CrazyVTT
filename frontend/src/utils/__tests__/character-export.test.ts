@@ -1,6 +1,6 @@
 /**
  * Checking a character file before it is imported. The file comes off the
- * user's disk, possibly from another CozyVTT instance, so its game system may
+ * user's disk, possibly from another CrazyVTT instance, so its game system may
  * be one this instance does not have.
  */
 import { describe, it, expect } from 'vitest';
@@ -21,11 +21,11 @@ describe('validateImportedCharacter', () => {
   it('refuses a file for a system this instance does not have, and says which', () => {
     expect(validateImportedCharacter(file('MY_SYSTEM'))).toEqual({
       valid: false,
-      error: 'This character is for a game system this CozyVTT does not have: MY_SYSTEM',
+      error: 'This character is for a game system this CrazyVTT does not have: MY_SYSTEM',
     });
     expect(validateImportedCharacter(file(5))).toEqual({
       valid: false,
-      error: 'This character is for a game system this CozyVTT does not have: 5',
+      error: 'This character is for a game system this CrazyVTT does not have: 5',
     });
   });
 });

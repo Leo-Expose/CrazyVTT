@@ -779,7 +779,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   });
 
   // Paint (map/paint/usePaintSurface.ts): the DM painting the picture of a
-  // map drawn in CozyVTT, or of a map with no picture, which it gives one.
+  // map drawn in CrazyVTT, or of a map with no picture, which it gives one.
   // Never offered on an uploaded picture.
   const pictureKind = useMapPictureKind(currentMap, campaign?.id, isDM);
   // The other maps of the campaign whose picture is the one at `address`:
@@ -4239,7 +4239,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     </Button>
   );
 
-  // Paint, for the DM, on a map drawn in CozyVTT or one with no picture.
+  // Paint, for the DM, on a map drawn in CrazyVTT or one with no picture.
   const paintButton = paintOffered && (
     <Button
       onClick={togglePaint}

@@ -1374,12 +1374,12 @@ live refresh.
 
 ### `PUT /api/assets/:id/picture`
 
-Write a new picture over a picture drawn in CozyVTT, as **Save** in Mapmaker
+Write a new picture over a picture drawn in CrazyVTT, as **Save** in Mapmaker
 does: a campaign map picture tagged `cozyvtt-drawn-map`. The asset keeps its
 id, so every address naming it shows the new picture; no earlier version is
 kept. **Only the DM of the asset's campaign**, a platform admin included in
 the refusal (`403`). An asset the caller may not read answers `404`; any other
-picture answers `400` with `Only a picture drawn in CozyVTT can be saved over.
+picture answers `400` with `Only a picture drawn in CrazyVTT can be saved over.
 Upload a new picture instead.` The multipart body carries one `file`, checked
 as a map upload is (`MAX_MAP_SIZE_MB`, the type from its bytes, the picture
 limits), and of the same format as the picture it replaces. A refused save

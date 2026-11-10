@@ -7,11 +7,11 @@ https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is
 licensed under the Creative Commons Attribution 4.0 International License,
 available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
-The SRD creature data reaches CozyVTT through the Open5e API
+The SRD creature data reaches CrazyVTT through the Open5e API
 (https://open5e.com), a community project that serves the SRD in a structured
 form. Our thanks to the people who maintain it.
 
 Dungeons & Dragons and D&D are trademarks of Wizards of the Coast LLC. No
-trademarked names, logos or Product Identity are included in CozyVTT.
+trademarked names, logos or Product Identity are included in CrazyVTT.
 
 See SRD_ATTRIBUTION.md for what this covers and why.

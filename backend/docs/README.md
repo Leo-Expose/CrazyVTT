@@ -1,9 +1,9 @@
 # Backend Docs
 
-Reference material for the CozyVTT backend, for people working on CozyVTT
+Reference material for the CrazyVTT backend, for people working on CrazyVTT
 itself.
 
-> **This is not a public API.** The routes described here are the ones CozyVTT's
+> **This is not a public API.** The routes described here are the ones CrazyVTT's
 > own web client calls. They are not versioned, carry no compatibility promise,
 > and may change shape or disappear in a point release.
 >

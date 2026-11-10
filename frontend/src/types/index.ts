@@ -1174,7 +1174,7 @@ export interface CampaignMap {
   gridSize: number;
   feetPerSquare: number;
   diagonalRule: 'flat' | 'alternating';
-  /** The colour a map drawn in CozyVTT was made in, as #rrggbb; null for one made from a picture. */
+  /** The colour a map drawn in CrazyVTT was made in, as #rrggbb; null for one made from a picture. */
   drawnBackground: string | null;
   tokens: Token[];
   annotations: Annotation[];
@@ -1568,7 +1568,7 @@ export interface CreateMapRequest {
   gridSize?: number;
   feetPerSquare?: number;
   diagonalRule?: 'flat' | 'alternating';
-  /** For a map drawn in CozyVTT: the colour it is made in, as #rrggbb. */
+  /** For a map drawn in CrazyVTT: the colour it is made in, as #rrggbb. */
   drawnBackground?: string;
   spiritLayerUrl?: string;
 }

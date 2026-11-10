@@ -1,5 +1,5 @@
 #!/bin/bash
-# CozyVTT Database Restore Script
+# CrazyVTT Database Restore Script
 #
 # Usage (Docker):
 #   ./backend/scripts/restore.sh ./backups/cozyvtt_20260101_030000.sql.gz
@@ -51,7 +51,7 @@ fi
 #
 # The prepared file opens with psql's restricted mode under a key the backup
 # cannot know, so psql refuses every backslash command in it, then replaces
-# the public schema so a backup from an older CozyVTT applies cleanly. The
+# the public schema so a backup from an older CrazyVTT applies cleanly. The
 # dump follows, without the lines this server would reject or that name the
 # database user of the instance the backup came from (SET transaction_timeout,
 # ALTER ... OWNER TO, GRANT, REVOKE) and without the dump's own \restrict
@@ -129,7 +129,7 @@ gunzip -c "$BACKUP_FILE" | LC_ALL=C awk -v key="$RESTRICT_KEY" -v trailer="$REST
     if (refused == "") {
       if (in_copy) refused = "it stops partway through a table'"'"'s rows, so it was cut short"
       else if (!complete) refused = "it does not end the way a complete pg_dump backup does, so it was cut short or is not a pg_dump backup"
-      else if (!has_user || !has_migrations) refused = "it does not create the User and _prisma_migrations tables, so it is not a CozyVTT backup"
+      else if (!has_user || !has_migrations) refused = "it does not create the User and _prisma_migrations tables, so it is not a CrazyVTT backup"
     }
     if (refused != "") {
       print "❌ This file cannot be restored because " refused ". Nothing was changed." > "/dev/stderr"
@@ -189,7 +189,7 @@ if [[ -z "${DATABASE_URL:-}" ]] && command -v docker >/dev/null 2>&1; then
     DB_NAME="${DATABASE_NAME:-cozyvtt}"
 
     echo "================================================"
-    echo "CozyVTT Database Restore"
+    echo "CrazyVTT Database Restore"
     echo "================================================"
     echo "  Target: docker compose service '$DB_SERVICE'"
     echo "  DB:     $DB_NAME"
@@ -252,7 +252,7 @@ if [[ -n "${DATABASE_URL:-}" ]]; then
   DB_PORT=5432
   if [[ "$HOST_PORT" == *:* ]]; then DB_PORT="${HOST_PORT##*:}"; fi
   # This script backs up and restores the public schema. An address ending in
-  # ?schema=<name> keeps CozyVTT's data in a schema of its own, which the
+  # ?schema=<name> keeps CrazyVTT's data in a schema of its own, which the
   # Admin Panel's Create Backup and Restore handle.
   DB_SCHEMA=public
   if [[ "$DATABASE_URL" == *\?* ]]; then
@@ -276,7 +276,7 @@ else
 fi
 
 echo "================================================"
-echo "CozyVTT Database Restore"
+echo "CrazyVTT Database Restore"
 echo "================================================"
 echo "  Host:   $DB_HOST:$DB_PORT"
 echo "  DB:     $DB_NAME"

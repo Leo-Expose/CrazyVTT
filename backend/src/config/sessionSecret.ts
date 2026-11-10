@@ -38,7 +38,7 @@ export function sessionSecretProblem(secret: string | undefined): string | null 
 /**
  * What a server outside production logs about a secret it would refuse in
  * production, `problem` being sessionSecretProblem's clause. The Docker
- * stacks pass SESSION_SECRET from the .env file at the top of the CozyVTT
+ * stacks pass SESSION_SECRET from the .env file at the top of the CrazyVTT
  * folder, as an empty value when it is unset, and a variable already set is
  * never replaced from backend/.env, so the message names the file each way
  * of running reads.
@@ -46,7 +46,7 @@ export function sessionSecretProblem(secret: string | undefined): string | null 
 export function sessionSecretWarning(problem: string): string {
   return (
     `[WARN] SESSION_SECRET ${problem}. ` +
-    'Before deploying, set a real secret in the .env file at the top of the CozyVTT folder when you run CozyVTT with Docker, ' +
+    'Before deploying, set a real secret in the .env file at the top of the CrazyVTT folder when you run CrazyVTT with Docker, ' +
     'or in backend/.env when you run the backend without Docker; generate one with: openssl rand -hex 32'
   );
 }

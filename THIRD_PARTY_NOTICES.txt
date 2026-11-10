@@ -412,7 +412,7 @@ Two Apache-2.0 packages come with a NOTICE file, both brought by the Prisma
 command-line tool: @prisma/studio-core, whose notice says Prisma Studio may be
 used in production under the Apache License 2.0 as long as Prisma's branding
 is left in place, and @prisma/streams-local, whose notice says its xxhash
-files are copied from hash-wasm (MIT, Copyright (c) 2020 Dani Biró). CozyVTT
+files are copied from hash-wasm (MIT, Copyright (c) 2020 Dani Biró). CrazyVTT
 changes neither, and each notice stays with its package.
 
 CrazyVTT itself is licensed under AGPL-3.0-only (see LICENSE).

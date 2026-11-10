@@ -1,5 +1,5 @@
 /**
- * The colour a map drawn in CozyVTT was made in.
+ * The colour a map drawn in CrazyVTT was made in.
  *
  * It is optional, so a map from before the column, and one made from a
  * picture, has none. The migration that makes it only adds: an instance

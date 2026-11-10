@@ -1,6 +1,6 @@
 /**
  * Campaign Export Service
- * Builds a .cozyvtt ZIP archive containing all campaign data:
+ * Builds a .crazyvtt ZIP archive containing all campaign data:
  * maps, tokens, creatures (custom only), token templates, and asset files.
  *
  * The archive is written to the response as it is made, never held whole:
@@ -292,7 +292,7 @@ export async function prepareCampaignExport(
   const manifest = {
     formatVersion: 1,
     exportedAt: new Date().toISOString(),
-    exportedFrom: `CozyVTT v${process.env.npm_package_version || '1.6.0'}`,
+    exportedFrom: `CrazyVTT v${process.env.npm_package_version || '1.6.0'}`,
     campaignName: campaign.name,
     gameSystem: campaign.gameSystem || 'NONE',
     mapCount: mapDataArray.length,
@@ -376,7 +376,7 @@ export async function prepareCampaignExport(
   }
 
   const safeName = campaign.name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
-  const filename = `${safeName}-export.cozyvtt`;
+  const filename = `${safeName}-export.crazyvtt`;
 
   return {
     filename,

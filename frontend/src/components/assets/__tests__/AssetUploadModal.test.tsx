@@ -185,14 +185,14 @@ describe('the name, description and tags', () => {
 
   // A picture tagged DRAWN_MAP_TAG is one Paint may change and a save may
   // delete, so a picture uploaded here never carries the tag, whatever its case.
-  it(`keeps the ${DRAWN_MAP_TAG} tag for maps drawn in CozyVTT`, async () => {
+  it(`keeps the ${DRAWN_MAP_TAG} tag for maps drawn in CrazyVTT`, async () => {
     open();
     const tagBox = await screen.findByPlaceholderText('Type a tag and press Enter...');
-    for (const tag of [DRAWN_MAP_TAG, 'CozyVTT-Drawn-Map', ` ${DRAWN_MAP_TAG.toUpperCase()} `]) {
+    for (const tag of [DRAWN_MAP_TAG, 'CrazyVTT-Drawn-Map', ` ${DRAWN_MAP_TAG.toUpperCase()} `]) {
       fireEvent.change(tagBox, { target: { value: tag } });
       fireEvent.keyDown(tagBox, { key: 'Enter' });
     }
-    expect(screen.getByText(`The tag ${DRAWN_MAP_TAG} is kept for maps drawn in CozyVTT.`)).toBeInTheDocument();
+    expect(screen.getByText(`The tag ${DRAWN_MAP_TAG} is kept for maps drawn in CrazyVTT.`)).toBeInTheDocument();
     fireEvent.change(tagBox, { target: { value: 'dungeon' } });
     fireEvent.keyDown(tagBox, { key: 'Enter' });
     expect(screen.queryByText(new RegExp(`^${DRAWN_MAP_TAG}$`, 'i'))).not.toBeInTheDocument();
@@ -206,7 +206,7 @@ describe('the name, description and tags', () => {
     fireEvent.change(tagBox, { target: { value: 'drawn-map' } });
     fireEvent.keyDown(tagBox, { key: 'Enter' });
     expect(screen.getByText('drawn-map')).toBeInTheDocument();
-    expect(screen.queryByText(/is kept for maps drawn in CozyVTT/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/is kept for maps drawn in CrazyVTT/)).not.toBeInTheDocument();
   });
 
   // The server splits tags at their commas, so a piece of a typed list is
@@ -223,7 +223,7 @@ describe('the name, description and tags', () => {
     expect(screen.getByText('dungeon')).toBeInTheDocument();
     expect(screen.getByText('cave')).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(`${DRAWN_MAP_TAG},|,\\s*${DRAWN_MAP_TAG}|^${DRAWN_MAP_TAG}$`, 'i'))).not.toBeInTheDocument();
-    expect(screen.getByText(`The tag ${DRAWN_MAP_TAG} is kept for maps drawn in CozyVTT.`)).toBeInTheDocument();
+    expect(screen.getByText(`The tag ${DRAWN_MAP_TAG} is kept for maps drawn in CrazyVTT.`)).toBeInTheDocument();
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['png'], 'Cave.png', { type: 'image/png' })] } });
     fireEvent.click(screen.getByRole('button', { name: /^upload$/i }));

@@ -111,10 +111,10 @@ const importUpload = multer({
       'application/x-zip-compressed',
       'application/octet-stream',
     ];
-    if (allowed.includes(file.mimetype) || file.originalname.endsWith('.cozyvtt')) {
+    if (allowed.includes(file.mimetype) || file.originalname.endsWith('.cozyvtt') || file.originalname.endsWith('.crazyvtt')) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only .cozyvtt archives are accepted.'));
+      cb(new Error('Invalid file type. Only CrazyVTT campaign archives are accepted.'));
     }
   },
 });
@@ -2174,7 +2174,7 @@ router.put('/:campaignId/resume', campaignDM, async (req: AuthenticatedRequest, 
 
 /**
  * GET /api/campaigns/:campaignId/export
- * Export campaign as a .cozyvtt ZIP archive.
+ * Export campaign as a .crazyvtt ZIP archive.
  * Query params:
  *   includeAudio (boolean, default false)
  *   includeTokens (boolean, default true)
@@ -2279,7 +2279,7 @@ async function answerAfterRemovingArchive(
 
 /**
  * POST /api/campaigns/import/preview
- * Upload a .cozyvtt archive and return its manifest preview.
+ * Upload a .crazyvtt or legacy .cozyvtt archive and return its manifest preview.
  * Does NOT create anything — just reads manifest.json.
  * Requires: Authentication. Per user: CAMPAIGN_ARCHIVE_RATE_LIMIT an hour
  * (20 by default), and one archive operation at a time.
@@ -2303,7 +2303,7 @@ router.post('/import/preview', authenticated, oneCampaignArchiveAtATime, campaig
 
 /**
  * POST /api/campaigns/import
- * Upload a .cozyvtt archive and create a new campaign from it.
+ * Upload a .crazyvtt or legacy .cozyvtt archive and create a new campaign from it.
  * Body (multipart): file + optional JSON fields:
  *   campaignName (string) — override campaign name
  *   importTokens (boolean, default true)

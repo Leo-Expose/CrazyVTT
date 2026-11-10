@@ -1,5 +1,5 @@
 /**
- * The tag that marks a picture drawn in CozyVTT.
+ * The tag that marks a picture drawn in CrazyVTT.
  *
  * Paint takes a campaign map picture carrying the tag as one it made: the DM
  * is offered Paint on it, and a later Save writes over it. Any uploader could
@@ -51,7 +51,7 @@ function upload(agent: Agent, fields: { type: string; scope: string; campaignId?
   return req.attach('file', PNG, 'picture.png');
 }
 
-const REFUSAL = `The tag ${DRAWN_MAP_TAG} is kept for maps drawn in CozyVTT.`;
+const REFUSAL = `The tag ${DRAWN_MAP_TAG} is kept for maps drawn in CrazyVTT.`;
 
 beforeAll(async () => {
   const stamp = Date.now();

@@ -1,6 +1,6 @@
 {
-  "name": "CozyVTT",
-  "short_name": "CozyVTT",
+  "name": "CrazyVTT",
+  "short_name": "CrazyVTT",
   "description": "A self-hosted virtual tabletop",
   "start_url": "/dashboard",
   "scope": "/",

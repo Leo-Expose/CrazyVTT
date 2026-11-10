@@ -300,21 +300,6 @@ const ROTATE = ['Rotate Left [Turn 45 degrees anticlockwise]', 'Rotate Right [Tu
 const MOVEMENT_MODE = 'Movement Mode…';
 const DM_MOVEMENT_OVERRIDE = 'DM Movement Override…';
 
-/** The DM's items after any Roll... of the creature's, for a creature on the material plane. */
-const DM_ITEMS = [
-  'Edit Token (brand, bold)',
-  'Add to Initiative (accent)',
-  'Duplicate Token',
-  'Save as Template',
-  'Hide from Players',
-  'Obscure Identity',
-  'Send to Spirit Realm (spirit, dims)',
-  '---',
-  'Move to Map…▶ (accent, opens a submenu)',
-  '---',
-  'Remove from Map (danger)',
-];
-
 /** DM items for a movable creature (has Movement Mode… and DM Movement Override…) */
 const DM_MOVABLE_ITEMS = [
   ...ROTATE,

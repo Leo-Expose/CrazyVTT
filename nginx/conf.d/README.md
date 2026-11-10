@@ -1,11 +1,11 @@
 # Your own nginx settings
 
 Every file in this folder whose name ends in `.conf` is read by the bundled
-nginx, after CozyVTT's own configuration. git ignores everything here except
+nginx, after CrazyVTT's own configuration. git ignores everything here except
 this README, so a `git pull` never stops at your files and never changes them.
 
 Put here what is particular to your server, such as **HTTPS**. Do not edit
-`nginx/nginx.conf` or `nginx/locations.conf`: those belong to CozyVTT and
+`nginx/nginx.conf` or `nginx/locations.conf`: those belong to CrazyVTT and
 change with upgrades.
 
 - **HTTPS with your own certificate:** copy the complete

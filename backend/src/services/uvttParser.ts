@@ -1,6 +1,6 @@
 /**
  * uvttParser.ts
- * Parse Universal VTT (.uvtt / .dd2vtt) files into CozyVTT map + wall + light data.
+ * Parse Universal VTT (.uvtt / .dd2vtt) files into CrazyVTT map + wall + light data.
  *
  * The UVTT format is JSON containing:
  *   - resolution  : grid dimensions and pixels-per-grid
@@ -10,7 +10,7 @@
  *   - lights      : array of light sources in grid-square units
  *
  * All coordinates in UVTT are in grid-square units. We convert to pixel coords
- * by multiplying by CozyVTT's gridSizePx (default 70).
+ * by multiplying by CrazyVTT's gridSizePx (default 70).
  *
  * Supported by: Dungeondraft (.dd2vtt), DunGen, Dungeon Alchemist, Arkenforge, etc.
  */
@@ -46,9 +46,9 @@ interface UVTTLight {
   range: number;          // radius in grid squares
   intensity?: number;     // 0.0–1.0
   color?: string;         // hex color string (may or may not have #)
-  /** Written by CozyVTT: the bright radius, in grid squares. Other tools omit it. */
+  /** Written by CrazyVTT: the bright radius, in grid squares. Other tools omit it. */
   bright_range?: number;
-  /** Written by CozyVTT: false for a light that is switched off. */
+  /** Written by CrazyVTT: false for a light that is switched off. */
   enabled?: boolean;
 }
 
@@ -135,7 +135,7 @@ const ARGB_COLOR_RE = /^#?[0-9a-fA-F]{2}([0-9a-fA-F]{6})$/;
 /**
  * Normalize a color string to #rrggbb, or return the default.
  *
- * CozyVTT lights carry no alpha of their own, so an alpha channel is read and
+ * CrazyVTT lights carry no alpha of their own, so an alpha channel is read and
  * discarded rather than folded into the colour.
  */
 function normalizeColor(raw: unknown, fallback: string): string {
@@ -309,10 +309,10 @@ function decodePicture(bytes: Buffer, range: ByteRange, maxImageBytes: number | 
 // ── Parser ─────────────────────────────────────────────────────────────────────
 
 /**
- * Parse a UVTT/DD2VTT file buffer into CozyVTT map data.
+ * Parse a UVTT/DD2VTT file buffer into CrazyVTT map data.
  *
  * @param fileBuffer  The raw file contents (JSON text)
- * @param gridSizePx  CozyVTT grid size in pixels (default 70)
+ * @param gridSizePx  CrazyVTT grid size in pixels (default 70)
  */
 export function parseUVTT(
   fileBuffer: Buffer,
@@ -532,7 +532,7 @@ export function parseUVTT(
       // UVTT files provide a single range — treat as dim (total) radius,
       // bright is half that (matching D&D 5e torch pattern: 20ft bright / 40ft dim).
       const dimR = light.range;
-      // CozyVTT's own export carries the real bright radius and whether the
+      // CrazyVTT's own export carries the real bright radius and whether the
       // light was on. Files from other tools have neither.
       const brightR =
         typeof light.bright_range === 'number' && light.bright_range >= 0

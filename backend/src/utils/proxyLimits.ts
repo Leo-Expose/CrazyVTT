@@ -1,6 +1,6 @@
 /**
  * Helpers for reasoning about the request-body cap of whatever proxy sits in
- * front of CozyVTT.
+ * front of CrazyVTT.
  *
  * Upload limits are enforced by the app (MAX_<TYPE>_SIZE_MB), but a reverse
  * proxy can reject a large upload with a 413 long before Express sees it. The
@@ -90,7 +90,7 @@ export function getProxyLimitWarnings(env: NodeJS.ProcessEnv = process.env): str
     );
   } else if (configured === null && MAX_UPLOAD_BYTES > 50 * MB) {
     warnings.push(
-      `Largest upload limit is ${largest}. Any reverse proxy in front of CozyVTT must allow request bodies ` +
+      `Largest upload limit is ${largest}. Any reverse proxy in front of CrazyVTT must allow request bodies ` +
         `of at least ${requiredMB} MB (Nginx: client_max_body_size ${requiredMB}M) or uploads will fail with HTTP 413.`
     );
   }
@@ -101,7 +101,7 @@ export function getProxyLimitWarnings(env: NodeJS.ProcessEnv = process.env): str
   if (configured === null && env.NODE_ENV === 'production') {
     const importMB = toMB(getRequiredImportProxyBodyBytes());
     warnings.push(
-      `Campaign imports accept archives up to ${toMB(CAMPAIGN_ARCHIVE_MAX_BYTES)} MB. Any reverse proxy in front of CozyVTT ` +
+      `Campaign imports accept archives up to ${toMB(CAMPAIGN_ARCHIVE_MAX_BYTES)} MB. Any reverse proxy in front of CrazyVTT ` +
         `must allow request bodies of at least ${importMB} MB on /api/campaigns/import, and wait ` +
         `${IMPORT_PROXY_TIMEOUT_SECONDS} seconds there for an answer (Nginx: a location /api/campaigns/import with ` +
         `client_max_body_size ${importMB}M and proxy_read_timeout ${IMPORT_PROXY_TIMEOUT_SECONDS}s), or larger imports fail ` +
@@ -112,7 +112,7 @@ export function getProxyLimitWarnings(env: NodeJS.ProcessEnv = process.env): str
   if (MAX_UPLOAD_BYTES > CLOUDFLARE_BODY_LIMIT_BYTES) {
     warnings.push(
       `Largest upload limit is ${largest}, above Cloudflare's 100 MB request-body cap on Free/Pro plans. ` +
-        `If you serve CozyVTT through a Cloudflare Tunnel or the Cloudflare proxy, uploads above 100 MB will be ` +
+        `If you serve CrazyVTT through a Cloudflare Tunnel or the Cloudflare proxy, uploads above 100 MB will be ` +
         `rejected at Cloudflare's edge regardless of this setting.`
     );
   }

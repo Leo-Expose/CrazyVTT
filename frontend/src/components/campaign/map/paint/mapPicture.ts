@@ -1,7 +1,7 @@
 // ============================================
 // Whether a map's picture is one Paint may change.
 //
-// Paint is offered on a map drawn in CozyVTT and on a map with no picture,
+// Paint is offered on a map drawn in CrazyVTT and on a map with no picture,
 // never on an uploaded one. The map names only its picture's address, so
 // the picture's asset is asked for, once a session (an asset's tags do not
 // change after it is uploaded): a map picture of this campaign tagged
@@ -17,7 +17,7 @@ import { apiErrorStatus, errorSummary } from '@/utils/errors';
 import { DRAWN_MAP_TAG } from '@/constants/assetLimits';
 
 /**
- * What a map's picture is, for Paint: none at all; drawn in CozyVTT;
+ * What a map's picture is, for Paint: none at all; drawn in CrazyVTT;
  * uploaded; gone from the server; or not known yet.
  */
 export type MapPictureKind = 'none' | 'drawn' | 'uploaded' | 'gone' | 'unknown';

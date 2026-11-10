@@ -1,5 +1,5 @@
 #!/bin/bash
-# CozyVTT Backend Startup Script
+# CrazyVTT Backend Startup Script
 # Runs database migrations before starting the application
 
 set -e
@@ -39,7 +39,7 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 echo "================================================"
-echo "🏰 CozyVTT Backend Startup"
+echo "🏰 CrazyVTT Backend Startup"
 echo "================================================"
 
 # A backup or restore that was stopped part-way leaves its working copy of
@@ -107,7 +107,7 @@ else
 fi
 
 echo ""
-echo "🚀 Starting CozyVTT backend..."
+echo "🚀 Starting CrazyVTT backend..."
 echo "================================================"
 echo ""
 

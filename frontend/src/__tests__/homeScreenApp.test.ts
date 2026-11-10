@@ -1,5 +1,5 @@
 /**
- * CozyVTT added to a phone's or a tablet's home screen opens as an app of
+ * CrazyVTT added to a phone's or a tablet's home screen opens as an app of
  * its own: full screen, at the dashboard, with its name and icon. The
  * manifest is all it takes; there is no service worker, so nothing is kept
  * offline and every page is the server's latest.
@@ -19,8 +19,8 @@ const manifest = JSON.parse(manifestText) as {
 };
 
 describe('the home-screen app', () => {
-  it('opens full screen at the dashboard, named CozyVTT, in the app\'s colours', () => {
-    expect(manifest).toMatchObject({ name: 'CozyVTT', short_name: 'CozyVTT', start_url: '/dashboard', scope: '/', display: 'standalone' });
+  it('opens full screen at the dashboard, named CrazyVTT, in the app\'s colours', () => {
+    expect(manifest).toMatchObject({ name: 'CrazyVTT', short_name: 'CrazyVTT', start_url: '/dashboard', scope: '/', display: 'standalone' });
     const themeColour = /<meta name="theme-color" content="([^"]+)"/.exec(indexHtml)?.[1];
     expect(manifest.theme_color).toBe(themeColour);
   });
@@ -28,6 +28,13 @@ describe('the home-screen app', () => {
   it('names a 192 and a 512 pixel icon that are in the public folder', () => {
     expect(manifest.icons.map((i) => i.sizes)).toEqual(['192x192', '512x512']);
     for (const icon of manifest.icons) expect(publicPictures, icon.src).toContain(icon.src);
+  });
+
+  it('uses existing CrazyVTT icons for browser tabs and the home screen', () => {
+    const iconPaths = [...indexHtml.matchAll(/rel="(?:icon|apple-touch-icon)"[^>]*href="([^"]+)"/g)]
+      .map((match) => match[1]);
+    expect(iconPaths).toEqual(['/favicon-32.png', '/favicon-192.png', '/apple-touch-icon.png']);
+    for (const icon of iconPaths) expect(publicPictures).toContain(`/${icon.split('/').pop()}`);
   });
 
   it('is served as a manifest, which the image\'s nginx types do not name', () => {

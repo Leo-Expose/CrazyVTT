@@ -146,7 +146,7 @@ Before you can use a map in your campaign, it needs to live in the **Asset Libra
 4. Set the type to **Map**
 5. Set the scope to **Campaign** (shared with the campaign: its players and spectators see a map picture in the asset library only while the table is on a map using it) or **Personal** (private to you until the players are shown something that uses it)
 6. Give it a descriptive name — you'll thank yourself later when you have twenty maps
-7. Add tags if you like (e.g., "dungeon", "outdoor", "tavern"). The tag `cozyvtt-drawn-map` is kept for maps drawn in CozyVTT, and the window does not add it
+7. Add tags if you like (e.g., "dungeon", "outdoor", "tavern"). The tag `cozyvtt-drawn-map` is kept for maps drawn in CrazyVTT, and the window does not add it
 8. Click **Upload**
 
 *GIF pending — Uploading a map to the asset library.*
@@ -157,7 +157,7 @@ Once your map is in the asset library:
 
 1. Inside your campaign, click **Map Library** (the map icon) in the header
 2. The Map Library panel opens
-3. Click **Create Map**, pick your uploaded image (or click **Upload New** to add one, choosing where it goes as below) and check the grid settings. Or click **Draw a map** at the top of that window to draw one in CozyVTT (see [Drawing a map](#drawing-a-map))
+3. Click **Create Map**, pick your uploaded image (or click **Upload New** to add one, choosing where it goes as below) and check the grid settings. Or click **Draw a map** at the top of that window to draw one in CrazyVTT (see [Drawing a map](#drawing-a-map))
 4. The map is now available to switch to at any time
 
 **Where an Upload New picture goes.** The upload window offers two places for the map picture, and for the spirit layer picture, with a line under each saying what it means. **Personal** is selected at first.
@@ -179,7 +179,7 @@ You can change a map's **Width**, **Height** and **Grid Size** later with the **
 | Grid Size (pixels per square) | 10 | 500 |
 | Feet per square (**Grid Scale**) | 1 | 100 |
 
-Create Map and Edit Map offer nothing outside these, and applying a **Grid detected** suggestion keeps it inside them. A Universal VTT file whose map is more than 500 squares on a side is refused when you import it. A map you draw in CozyVTT has a limit of its own besides (see [Drawing a map](#drawing-a-map)).
+Create Map and Edit Map offer nothing outside these, and applying a **Grid detected** suggestion keeps it inside them. A Universal VTT file whose map is more than 500 squares on a side is refused when you import it. A map you draw in CrazyVTT has a limit of its own besides (see [Drawing a map](#drawing-a-map)).
 
 A map holds up to **1,000 tokens**. Adding one more, or moving tokens onto a map that would take it past 1,000, is refused with a message; a map that already had more before version 1.5.1 keeps them, and you can still move, edit and remove them.
 
@@ -189,14 +189,14 @@ A map made before version 1.5.1 may be larger than this. It still opens, and Edi
 
 ### Drawing a map
 
-No map ready for the scene? Draw one in CozyVTT: a room or a clearing sketched while your players wait, or a dungeon drawn with care before the session. A drawn map is a map like any other: tokens, walls, lights, fog of war, export and import work on it as on an uploaded one.
+No map ready for the scene? Draw one in CrazyVTT: a room or a clearing sketched while your players wait, or a dungeon drawn with care before the session. A drawn map is a map like any other: tokens, walls, lights, fog of war, export and import work on it as on an uploaded one.
 
 **Making one**
 
 1. Open the **Map Library** and click **Create Map**.
 2. Click **Draw a map** at the top of the window.
 3. Fill in the map's name, its **Width** and **Height** in grid squares, its **Detail (pixels per square)** (70 at first), the **Grid Settings**, and a **Background colour**: parchment at first, one of the colours offered, or any colour with **Another colour**.
-4. Click **Create Map**. CozyVTT puts a blank picture of that colour in the campaign's Asset Library, and opens the new map on your screen only, as **Open to prepare** does (see [Preparing a map while the table plays](#preparing-a-map-while-the-table-plays)), with **Mapmaker** on (below). Your players stay where they are. When it is ready, click **Bring everyone here** on the banner, or **Set Active** in the Map Library.
+4. Click **Create Map**. CrazyVTT puts a blank picture of that colour in the campaign's Asset Library, and opens the new map on your screen only, as **Open to prepare** does (see [Preparing a map while the table plays](#preparing-a-map-while-the-table-plays)), with **Mapmaker** on (below). Your players stay where they are. When it is ready, click **Bring everyone here** on the banner, or **Set Active** in the Map Library.
 
 If the picture cannot be made, the window says so and nothing is created: "This browser could not make the map's picture" means the device ran short, so choose fewer squares and try again.
 
@@ -282,9 +282,9 @@ A draft is kept in that browser only, for you and that map, and for each tab: tw
 
 Deleting the map in the Map Library asks "Discard your painting?" with **Discard my painting** and **Not now** only: a picture saved then would go with the map. **Bring everyone here**, and **Set Active** on the map you are on, ask nothing: the map stays on your screen and your paint with it, not yet saved, so your players see the picture as it was last saved until you click **Save** (if a save is under way, they are brought once it has landed).
 
-Reloading the page, closing the tab or typing another address gets your browser's own question instead, in the browser's words; if the browser does not ask, the draft keeps your painting. While you have paint not saved, CozyVTT keeps you signed in, and if you are signed out anyway the page stays where it is and the Mapmaker panel says so: sign in again in a new tab, then click **Save**.
+Reloading the page, closing the tab or typing another address gets your browser's own question instead, in the browser's words; if the browser does not ask, the draft keeps your painting. While you have paint not saved, CrazyVTT keeps you signed in, and if you are signed out anyway the page stays where it is and the Mapmaker panel says so: sign in again in a new tab, then click **Save**.
 
-If the table is moved to another map from somewhere else (another tab of yours, say) while you have paint not saved on its map, your screen stays on that map, as a map you are preparing, with your paint. If the map leaves your screen without asking (it is deleted from another tab or device, or someone else becomes the DM), CozyVTT says "Your painting was not saved" and offers **Download my painting**, which saves it on your device as a PNG picture, or **Discard my painting**; until you choose, leaving the page is asked about as with paint not saved.
+If the table is moved to another map from somewhere else (another tab of yours, say) while you have paint not saved on its map, your screen stays on that map, as a map you are preparing, with your paint. If the map leaves your screen without asking (it is deleted from another tab or device, or someone else becomes the DM), CrazyVTT says "Your painting was not saved" and offers **Download my painting**, which saves it on your device as a PNG picture, or **Discard my painting**; until you choose, leaving the page is asked about as with paint not saved.
 
 **Download picture**, in the Mapmaker panel, saves the picture as it is now on your device, as a PNG named after the map, with what you painted and whether or not it is saved. It is the way to keep paint that cannot be saved: a picture over the server's size limit, a campaign deleted while you paint, or a sign-in that must be changed before anything else is saved.
 
@@ -1804,7 +1804,7 @@ If you're on a shared CrazyVTT instance, coordinate with your platform administr
 
 ### Dual-Mode Dice System
 
-CozyVTT supports two mathematically distinct dice rolling modes, selectable per-campaign from the **Dice Panel** settings (DM-only):
+CrazyVTT supports two mathematically distinct dice rolling modes, selectable per-campaign from the **Dice Panel** settings (DM-only):
 
 #### 🎲 True Random
 Standard cryptographic randomness — each roll is entirely independent. Over thousands of rolls the distribution converges toward the theoretical average, but short sequences can cluster (streak of high or low results) exactly like a real physical die.

@@ -1,7 +1,7 @@
 /**
  * Dnd5eStatBlock
  * D&D 5e-styled NPC stat block with the classic parchment/red-accent look,
- * adapted to fit CozyVTT's warm aesthetic.
+ * adapted to fit CrazyVTT's warm aesthetic.
  */
 
 import type { NpcStatBlock } from '@/types';

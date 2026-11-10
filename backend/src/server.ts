@@ -58,7 +58,7 @@ applyRequestTimeouts(httpServer);
 void makeDummyPasswordHash();
 
 httpServer.listen(PORT, () => {
-  logger.info(`CozyVTT Backend running on port ${PORT}`);
+  logger.info(`CrazyVTT Backend running on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
 

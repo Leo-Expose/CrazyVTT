@@ -54,7 +54,7 @@ describe('Export Campaign', () => {
     fireEvent.click(exportButton());
 
     await waitFor(() => expect(showToast).toHaveBeenCalledWith('Campaign exported successfully', 'success'));
-    expect(downloadCampaignExport).toHaveBeenCalledWith('c1', { includeAudio: true }, 'The_Keep-export.cozyvtt');
+    expect(downloadCampaignExport).toHaveBeenCalledWith('c1', { includeAudio: true }, 'The_Keep-export.crazyvtt');
   });
 
   it('says nothing when the DM cancels the save dialog', async () => {

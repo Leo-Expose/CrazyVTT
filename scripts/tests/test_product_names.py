@@ -2,7 +2,7 @@
 
 Paint is described in its own words; naming the commercial program it
 resembles invites a trademark question for no gain. The same names are refused
-in commit messages by the local commit check. CozyVTT's look is described in
+in commit messages by the local commit check. CrazyVTT's look is described in
 its own words too, never as inspired by an animation studio's films, and a
 planned feature by what it is, never by what another tabletop program calls
 it. The patterns are kept encoded, so the repository carries no product name

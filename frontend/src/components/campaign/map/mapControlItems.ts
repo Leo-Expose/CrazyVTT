@@ -6,7 +6,7 @@
 // opens the rest of what the toolbar holds for the viewer as an action
 // sheet: Fit to Screen, the grid and its colour, and on a map the ruler and
 // its colour and the AoE shape; for the DM also, on a map, Paint where it is
-// offered (on a map drawn in CozyVTT or one with no picture), Tools, which
+// offered (on a map drawn in CrazyVTT or one with no picture), Tools, which
 // shows and hides the DM's tool stack (Fog, Walls and Lights), and the spirit
 // tokens. Each row says what pressing it does now, since a row has no
 // pressed state to show. A colour's row keeps the sheet open, so presses go

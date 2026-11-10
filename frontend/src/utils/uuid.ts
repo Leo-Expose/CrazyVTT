@@ -2,7 +2,7 @@
  * A random version 4 UUID, on any page.
  *
  * `crypto.randomUUID` exists only in a secure context: a page served over
- * HTTPS or from localhost. CozyVTT is often opened over plain HTTP by its
+ * HTTPS or from localhost. CrazyVTT is often opened over plain HTTP by its
  * address on a home network, where it is missing, so this builds the same
  * format from `crypto.getRandomValues`, which every page has.
  */

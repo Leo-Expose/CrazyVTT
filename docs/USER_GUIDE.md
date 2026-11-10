@@ -196,7 +196,7 @@ You can **drag the dividers** between the columns to resize them, and collapse t
 
 ### Adding Maps
 
-Maps are the battlegrounds, taverns, and dungeons your players will explore. Before a session, upload your map images to the **Asset Library** (see [The Asset Library](#the-asset-library)), then add them to your campaign, or draw a map in CozyVTT.
+Maps are the battlegrounds, taverns, and dungeons your players will explore. Before a session, upload your map images to the **Asset Library** (see [The Asset Library](#the-asset-library)), then add them to your campaign, or draw a map in CrazyVTT.
 
 As the DM, click **Map Library** (the map icon) in the campaign header.
 
@@ -438,7 +438,7 @@ The Asset Library is where all your campaign media lives — maps, token images,
 
 A PNG that is animated is refused for now, for every kind of picture.
 
-A map drawn in CozyVTT keeps its picture in the campaign's library too, named **Drawn map** and tagged `cozyvtt-drawn-map`, one for each drawn map: each save writes over it, and no earlier version is kept (see [Drawing a map](DM_GUIDE.md#drawing-a-map)).
+A map drawn in CrazyVTT keeps its picture in the campaign's library too, named **Drawn map** and tagged `cozyvtt-drawn-map`, one for each drawn map: each save writes over it, and no earlier version is kept (see [Drawing a map](DM_GUIDE.md#drawing-a-map)).
 
 A map, token or avatar picture can be at most 16,384 pixels wide and 16,384 pixels tall (a WebP at most 16,383, the most the format allows). An animated GIF or WebP also has limits, because every player's browser unpacks every frame of it:
 
@@ -698,7 +698,7 @@ The toolbar at the top left of the map holds the controls for your own view; poi
 | **Ruler**, **AoE Shape** | Measure a distance and lay a spell area over the map (see [Measuring and Spell Areas](PLAYER_GUIDE.md#measuring-and-spell-areas)) |
 | **Ping** | The next click or tap on the map shows everyone that spot, as **Tab** does over the map (see [Pointing at the Map](PLAYER_GUIDE.md#pointing-at-the-map)). Click it again, or press **Esc**, to put it away without pinging. On a touch screen, two quick taps on empty ground ping too, while no tool is up |
 | **Draw** | Opens the drawing tools: a pen, lines, arrows, rectangles, ellipses, polygons, text labels, an eraser and a laser pointer, in a colour and width you choose. The table sees what you draw as you draw it. The DM always has it; a player has it while the DM lets players draw, except while the session is paused or has ended; while they may not draw, it offers only the **Eraser** and **Clear mine**, and only while the map holds drawings of theirs; a spectator does not have it, and nobody has it on a map with no picture or one whose picture failed to load (see [Drawing and pointing](PLAYER_GUIDE.md#drawing-and-pointing) and, for the DM, [Drawing on the map](DM_GUIDE.md#drawing-on-the-map)) |
-| **Mapmaker** | The DM's, on a map drawn in CozyVTT or one with no picture: paints the map's picture with brushes and textures, shapes, rooms that add their own walls, stamps, a fill bucket, text and more, on the DM's screen until **Save** makes it the map's picture (see [Drawing a map](DM_GUIDE.md#drawing-a-map)) |
+| **Mapmaker** | The DM's, on a map drawn in CrazyVTT or one with no picture: paints the map's picture with brushes and textures, shapes, rooms that add their own walls, stamps, a fill bucket, text and more, on the DM's screen until **Save** makes it the map's picture (see [Drawing a map](DM_GUIDE.md#drawing-a-map)) |
 
 To move the view, drag an empty part of the map; on a touch screen, drag it with one finger.
 

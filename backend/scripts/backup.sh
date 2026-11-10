@@ -1,5 +1,5 @@
 #!/bin/bash
-# CozyVTT Database Backup Script
+# CrazyVTT Database Backup Script
 #
 # Usage (Docker):
 #   ./backend/scripts/backup.sh
@@ -53,7 +53,7 @@ if [[ -z "${DATABASE_URL:-}" ]] && command -v docker >/dev/null 2>&1; then
     DB_NAME="${DATABASE_NAME:-cozyvtt}"
 
     echo "================================================"
-    echo "CozyVTT Database Backup"
+    echo "CrazyVTT Database Backup"
     echo "================================================"
     echo "  Source: docker compose service '$DB_SERVICE'"
     echo "  DB:     $DB_NAME"
@@ -112,7 +112,7 @@ if [[ -n "${DATABASE_URL:-}" ]]; then
   DB_PORT=5432
   if [[ "$HOST_PORT" == *:* ]]; then DB_PORT="${HOST_PORT##*:}"; fi
   # This script backs up and restores the public schema. An address ending in
-  # ?schema=<name> keeps CozyVTT's data in a schema of its own, which the
+  # ?schema=<name> keeps CrazyVTT's data in a schema of its own, which the
   # Admin Panel's Create Backup and Restore handle.
   DB_SCHEMA=public
   if [[ "$DATABASE_URL" == *\?* ]]; then
@@ -136,7 +136,7 @@ else
 fi
 
 echo "================================================"
-echo "CozyVTT Database Backup"
+echo "CrazyVTT Database Backup"
 echo "================================================"
 echo "  Host:   $DB_HOST:$DB_PORT"
 echo "  DB:     $DB_NAME"

@@ -1,8 +1,8 @@
-# CozyVTT WebSocket Documentation
+# CrazyVTT WebSocket Documentation
 
 **Last Updated:** 2026-10-31
 
-> **This is not a public API.** These events are the ones CozyVTT's own web
+> **This is not a public API.** These events are the ones CrazyVTT's own web
 > client sends and receives. They are not versioned, carry no compatibility
 > promise, and may change shape or disappear in a point release. A program
 > *can* use them: signing in with `POST /api/auth/login` returns a session
@@ -27,7 +27,7 @@
 
 ## Overview
 
-CozyVTT uses Socket.io for real-time bidirectional communication between clients and server. WebSocket connections enable features like:
+CrazyVTT uses Socket.io for real-time bidirectional communication between clients and server. WebSocket connections enable features like:
 
 - Real-time token movement
 - Dice roll synchronization (public and secret rolls)
@@ -83,7 +83,7 @@ Four things people expect on the socket are not there:
 ```
 ┌─────────────────┐         WebSocket         ┌─────────────────┐
 │                 │ ◄─────────────────────────► │                 │
-│  Client A (DM)  │         Socket.io          │  CozyVTT Server │
+│  Client A (DM)  │         Socket.io          │  CrazyVTT Server │
 │                 │ ◄─────────────────────────► │                 │
 └─────────────────┘                             └─────────────────┘
                                                          ▲
@@ -474,7 +474,7 @@ The web client relies on Socket.io's own heartbeat and does not send `ping`. A s
 - "Map not found" - Invalid map ID
 - "Too many … at once. …" - A flood ceiling was reached; sent once, then further refusals are silent for ten seconds (see [Flood ceilings](#fog-lighting-and-explored-memory))
 - "Rate limit exceeded: too many dice rolls at once. Wait a few seconds, then roll again." - The `dice.roll` ceiling was reached; sent once in the same way
-- "Too many CozyVTT tabs or devices are open on this account at once (the most is 40). Close one, then reload this page." - The user already holds 40 open sockets; the server then closes this connection
+- "Too many CrazyVTT tabs or devices are open on this account at once (the most is 40). Close one, then reload this page." - The user already holds 40 open sockets; the server then closes this connection
 - "The instance is being restored from a backup. Try again in a minute; …" - A new connection made while a backup is being restored; the server closes it (see [Prerequisites](#prerequisites)). Connections already open are sent `campaign.access.revoked` instead
 - "Text cannot contain the null character (U+0000)." - The event's payload holds U+0000 somewhere, in any text or key, which the database cannot store. Every event is checked before its handler reads it, and one holding the character is not carried out. An event sent with an acknowledgement is answered `{ ok: false, error }` with this message through it every time, and sends no `error`; without one, `error` is sent once in ten seconds for the connection, and further refusals are silent until then, as for a flood ceiling
 
@@ -804,7 +804,7 @@ Three things decide what a player's map shows, and each has one source of truth.
 
 An `initiative.request_state` while nothing is in the order is answered from memory without any database work.
 
-**Connections per user.** One user may hold at most 40 sockets open at once, in every campaign together; each campaign page is one, and a connection that dropped without closing counts until its heartbeat times out, up to 85 seconds later. The next one is answered with `error` ("Too many CozyVTT tabs or devices are open on this account at once …") and closed before it can join anything. Every fan-out to a campaign is worked out per socket, so this bounds how far one account can multiply what everyone else's events cost.
+**Connections per user.** One user may hold at most 40 sockets open at once, in every campaign together; each campaign page is one, and a connection that dropped without closing counts until its heartbeat times out, up to 85 seconds later. The next one is answered with `error` ("Too many CrazyVTT tabs or devices are open on this account at once …") and closed before it can join anything. Every fan-out to a campaign is worked out per socket, so this bounds how far one account can multiply what everyone else's events cost.
 
 **Every event from one socket.** Besides each event's own ceiling, one socket may send at most 500 events a second, every event together, those no handler takes included; a page at a fast table sends under 80. Past that, an event is dropped before any handler reads it, and one sent with an acknowledgement is not answered; the socket gets one `error` ("Too many messages at once from this page, so some were dropped. …") and any further ones in the next ten seconds are silent. This is counted per socket, and the ceilings above per user. `authenticate` and the requests a page sends to load a map (`walls:request`, `lights:request`, `fog:request_state`, `exploration:request`, `drawings:request`, `presence.request`, `initiative.request_state`) are neither counted nor dropped, since socket.io sends them after whatever a page queued while its connection was down; their own ceilings bound them.
 

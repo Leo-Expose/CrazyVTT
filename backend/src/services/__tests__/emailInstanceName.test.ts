@@ -81,7 +81,7 @@ describe('the instance name in emails', () => {
 describe('the test email', () => {
   // The page an administrator sends it from, by the name the app gives it.
   it('says it was sent from the Admin Panel', async () => {
-    getSystemSettings.mockResolvedValue({ instanceName: 'CozyVTT' });
+    getSystemSettings.mockResolvedValue({ instanceName: 'CrazyVTT' });
 
     await sendTestEmail('p@x.test', 'Pat');
 

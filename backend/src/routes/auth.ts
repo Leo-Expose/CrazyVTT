@@ -1201,7 +1201,7 @@ router.get('/appearance', async (_req: Request, res: Response) => {
     return res.status(200).json(appearance);
   } catch {
     return res.status(200).json({
-      instanceName: 'CozyVTT',
+      instanceName: 'CrazyVTT',
       themeId: 'cozy-default',
       customThemeColors: null,
       fontId: 'default',

@@ -192,14 +192,14 @@ function parseEntryText(text: string, entry: ArchiveEntry, report?: ImportReport
 }
 
 /** Why a map holding more values than an export ever writes is left out. */
-const TOO_MANY_VALUES_REASON = `It holds more than ${IMPORT_LIMITS.MAX_MAP_VALUES.toLocaleString('en-US')} values, far more than CozyVTT ever writes for one map.`;
+const TOO_MANY_VALUES_REASON = `It holds more than ${IMPORT_LIMITS.MAX_MAP_VALUES.toLocaleString('en-US')} values, far more than CrazyVTT ever writes for one map.`;
 
 async function readJsonEntry(archivePath: string, entry: ArchiveEntry, total: UnpackedTotal, report?: ImportReport): Promise<unknown> {
   return parseEntryText(await readEntryText(archivePath, entry, total), entry, report);
 }
 
 /** Why an item whose data nests too deeply is left out. */
-const NESTED_TOO_DEEP_REASON = `Its data nests more than ${IMPORT_LIMITS.MAX_JSON_DEPTH} levels deep, far deeper than CozyVTT ever writes.`;
+const NESTED_TOO_DEEP_REASON = `Its data nests more than ${IMPORT_LIMITS.MAX_JSON_DEPTH} levels deep, far deeper than CrazyVTT ever writes.`;
 
 /**
  * A data file nests deeper than an export ever writes. Refuses the archive,
@@ -209,8 +209,8 @@ const NESTED_TOO_DEEP_REASON = `Its data nests more than ${IMPORT_LIMITS.MAX_JSO
 class NestedTooDeepError extends ArchiveRefusedError {
   constructor(file: string) {
     super(
-      `${file} in the archive nests more than ${IMPORT_LIMITS.MAX_JSON_DEPTH} levels deep, far deeper than CozyVTT ever writes. ` +
-        'It may be damaged, or not a CozyVTT export.'
+      `${file} in the archive nests more than ${IMPORT_LIMITS.MAX_JSON_DEPTH} levels deep, far deeper than CrazyVTT ever writes. ` +
+        'It may be damaged, or not a CrazyVTT export.'
     );
     this.name = 'NestedTooDeepError';
   }
@@ -347,12 +347,12 @@ function describeLimit(error: unknown, entry: ArchiveEntry, total: UnpackedTotal
   if (error.limit === 'total') {
     return new ArchiveRefusedError(
       `The archive unpacks to more than ${megabytes(total.maxBytes)}, the most this server accepts for one campaign. ` +
-        'It may be damaged, or not a CozyVTT export.'
+        'It may be damaged, or not a CrazyVTT export.'
     );
   }
   return new ArchiveRefusedError(
     `${entry.path} in the archive unpacks to more than ${megabytes(IMPORT_LIMITS.MAX_JSON_SIZE_BYTES)}, ` +
-      'more than a campaign archive ever holds there. It may be damaged, or not a CozyVTT export.'
+      'more than a campaign archive ever holds there. It may be damaged, or not a CrazyVTT export.'
   );
 }
 
@@ -362,7 +362,7 @@ function parseArchiveFile<T>(schema: z.ZodType<T>, value: unknown, file: string)
   if (parsed.success) return parsed.data;
   const issue = parsed.error.issues[0];
   const where = issue?.path.length ? ` (${issue.path.join('.')})` : '';
-  throw new ArchiveRefusedError(`${file} in the archive is not one CozyVTT can read${where}: ${issue?.message ?? 'invalid'}`);
+  throw new ArchiveRefusedError(`${file} in the archive is not one CrazyVTT can read${where}: ${issue?.message ?? 'invalid'}`);
 }
 
 /** The archive's size on disk, refused when it is over the limit. */

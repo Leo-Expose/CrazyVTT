@@ -1,5 +1,5 @@
 // ============================================
-// A map drawn in CozyVTT: the colour it starts as, and how large it is
+// A map drawn in CrazyVTT: the colour it starts as, and how large it is
 // made. What its picture is tagged is DRAWN_MAP_TAG, in the asset limits
 // the server shares (constants/assetLimits.ts).
 //

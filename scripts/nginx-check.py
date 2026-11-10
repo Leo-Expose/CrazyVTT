@@ -1,5 +1,5 @@
 """
-Does the bundled nginx start with the configuration CozyVTT ships?
+Does the bundled nginx start with the configuration CrazyVTT ships?
 
 nginx refuses to start on a mistake in its configuration, and the site is down
 until someone reads its log. This renders the configuration the way the nginx
@@ -153,7 +153,7 @@ def main():
         for folder in (empty, conf_d, certs):
             os.chmod(folder, 0o755)
         # The guide copies the key in with sudo and gives it to the account
-        # that runs CozyVTT: readable by that account alone. nginx reads it as
+        # that runs CrazyVTT: readable by that account alone. nginx reads it as
         # root, and only the capability the compose file gives it lets it.
         os.chmod(os.path.join(certs, 'server.crt'), 0o644)
         os.chmod(os.path.join(certs, 'server.key'), 0o600)

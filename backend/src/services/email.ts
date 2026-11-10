@@ -38,7 +38,7 @@ function getAppUrl(): string {
   return (process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 }
 
-const DEFAULT_INSTANCE_NAME = 'CozyVTT';
+const DEFAULT_INSTANCE_NAME = 'CrazyVTT';
 
 /**
  * The instance's name, as emails show it: the name set in the setup wizard
@@ -63,7 +63,7 @@ async function getInstanceName(): Promise<string> {
 // ============================================
 
 /**
- * Wrap content in a styled CozyVTT email shell.
+ * Wrap content in a styled CrazyVTT email shell.
  * All styles are inlined for broad email client compatibility.
  */
 function emailLayout(name: string, content: string, previewText?: string): string {
@@ -90,7 +90,7 @@ ${preview}
         <!-- Header -->
         <tr>
           <td style="background-color:#3D6B4F;border-radius:12px 12px 0 0;padding:28px 40px;text-align:center;">
-            <div style="font-size:26px;font-weight:bold;color:#FDFAF4;letter-spacing:1px;">&#x2665; CozyVTT</div>
+            <div style="font-size:26px;font-weight:bold;color:#FDFAF4;letter-spacing:1px;">&#x2665; CrazyVTT</div>
             ${name !== DEFAULT_INSTANCE_NAME ? `<div style="font-size:11px;color:#A8C8B0;margin-top:6px;letter-spacing:2px;text-transform:uppercase;">${instanceName}</div>` : ''}
           </td>
         </tr>

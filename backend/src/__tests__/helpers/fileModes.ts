@@ -5,7 +5,7 @@
  * 0o666 or 0o777 whatever was asked, so a test of a mode could only fail
  * there. The modes these tests check are what keep a backup, and the working
  * copies of one, readable by the backend's user alone on the Linux hosts
- * CozyVTT runs on. The rest of each test still runs everywhere.
+ * CrazyVTT runs on. The rest of each test still runs everywhere.
  */
 import fs from 'fs/promises';
 

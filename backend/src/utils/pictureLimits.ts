@@ -37,7 +37,7 @@ const ANIMATION_WORDS: Record<PictureAssetType, string> = {
 };
 
 export const UNREADABLE_PICTURE_MESSAGE =
-  'CozyVTT could not read the size of this picture, so it cannot be checked. Save it again in an image editor and try once more.';
+  'CrazyVTT could not read the size of this picture, so it cannot be checked. Save it again in an image editor and try once more.';
 
 const count = (n: number) => n.toLocaleString('en-US');
 

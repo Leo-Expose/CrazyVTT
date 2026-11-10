@@ -111,7 +111,7 @@ export function validateImportedCharacter(data: unknown): {
   // store the character, so it is refused here, before the preview.
   const gameSystem = candidate.character.gameSystem || null;
   if (gameSystem !== null && !isGameSystem(gameSystem)) {
-    return { valid: false, error: `This character is for a game system this CozyVTT does not have: ${String(gameSystem)}` };
+    return { valid: false, error: `This character is for a game system this CrazyVTT does not have: ${String(gameSystem)}` };
   }
 
   // Return validated character data

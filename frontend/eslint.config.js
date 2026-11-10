@@ -49,7 +49,7 @@ export default [
 
       // TODO(ratchet): four of the React Compiler rules that came with
       // eslint-plugin-react-hooks 7. They ask for code the React Compiler can
-      // rewrite, and CozyVTT does not use the compiler. They find 119 places
+      // rewrite, and CrazyVTT does not use the compiler. They find 119 places
       // on React 19 (set-state-in-effect 78, refs 28, immutability 6,
       // preserve-manual-memoization 7), and each fix changes when an effect
       // or a render runs, so each needs its own review. They come on one at a

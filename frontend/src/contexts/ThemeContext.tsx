@@ -277,7 +277,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // The browser tab shows the instance's name.
   useEffect(() => {
     if (!appearance) return;
-    document.title = appearance.instanceName?.trim() || 'CozyVTT';
+    document.title = appearance.instanceName?.trim() || 'CrazyVTT';
   }, [appearance]);
 
   const mascotUrl = appearance?.customMascotUrl || '/mascot.png';

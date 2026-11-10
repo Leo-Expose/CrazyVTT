@@ -1,5 +1,5 @@
 #!/bin/sh
-# CozyVTT: which addresses may tell the bundled nginx who the visitor is
+# CrazyVTT: which addresses may tell the bundled nginx who the visitor is
 # (X-Forwarded-For) and whether they arrived over HTTPS (X-Forwarded-Proto).
 #
 # The nginx image's entrypoint sources this file before it renders

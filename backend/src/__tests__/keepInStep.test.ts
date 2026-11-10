@@ -637,7 +637,7 @@ describe('sight on the map', () => {
   });
 });
 
-// A map drawn in CozyVTT is made no wider or taller than the server keeps,
+// A map drawn in CrazyVTT is made no wider or taller than the server keeps,
 // so its picture is never refused on Save.
 describe('the largest side a picture may have', () => {
   it('is the same file in the browser and on the server', () => {
@@ -762,7 +762,7 @@ describe('the refusal of the tag kept for drawn maps', () => {
   ])('is the mirrored asset limits file\'s in %s, with no wording of its own', (file) => {
     const source = read(file);
     expect(source).toContain('DRAWN_MAP_TAG_REFUSAL');
-    expect(source).not.toMatch(/is kept for maps drawn in CozyVTT/);
+    expect(source).not.toMatch(/is kept for maps drawn in CrazyVTT/);
   });
 });
 

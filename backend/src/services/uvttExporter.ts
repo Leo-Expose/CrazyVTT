@@ -1,6 +1,6 @@
 /**
  * uvttExporter.ts
- * Export a CozyVTT map to Universal VTT (.uvtt) format.
+ * Export a CrazyVTT map to Universal VTT (.uvtt) format.
  *
  * The UVTT format is JSON containing:
  *   - format       : version number (0.3)
@@ -10,7 +10,7 @@
  *   - portals      : door/window segments in grid-square units
  *   - lights       : light sources in grid-square units
  *
- * All CozyVTT coordinates are in pixels. We convert to grid-square units
+ * All CrazyVTT coordinates are in pixels. We convert to grid-square units
  * by dividing by gridSizePx.
  */
 
@@ -36,7 +36,7 @@ interface UVTTLight {
   range: number;
   intensity: number;
   color: string;
-  /** Not part of the format: other tools skip it, CozyVTT reads it back. */
+  /** Not part of the format: other tools skip it, CrazyVTT reads it back. */
   bright_range: number;
   /** Not part of the format: false for a light that is switched off. */
   enabled: boolean;
@@ -150,7 +150,7 @@ function mergeWallPolylines(segments: WallSegment[]): UVTTPoint[][] {
 // ── Exporter ──────────────────────────────────────────────────────────────────
 
 /**
- * Build a UVTT file buffer from CozyVTT map data.
+ * Build a UVTT file buffer from CrazyVTT map data.
  *
  * @returns Buffer containing the JSON UVTT file content
  */
@@ -200,7 +200,7 @@ export function buildUVTT(input: UVTTExportInput): Buffer {
   // Convert light sources to UVTT format. The format has one range and an
   // intensity: range is the dim radius, and a switched-off light gets
   // intensity 0 so other tools show it dark. The bright radius and the on/off
-  // state are also written under their own keys so that CozyVTT can read them
+  // state are also written under their own keys so that CrazyVTT can read them
   // back; every light is kept, on or off.
   const uvttLights: UVTTLight[] = lights.map((l) => ({
     position: {

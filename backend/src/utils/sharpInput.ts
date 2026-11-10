@@ -2,7 +2,7 @@
  * The one way into sharp.
  *
  * sharp hands its input to whichever libvips reader claims it, and libvips
- * has readers for far more than the pictures CozyVTT stores: SVG through
+ * has readers for far more than the pictures CrazyVTT stores: SVG through
  * librsvg, TIFF, HEIF and others, each a parser of its own. An upload's
  * bytes are checked when it arrives, but what reaches sharp is whatever file
  * a stored row names. Two things keep it to PNG, JPEG, WebP and GIF:

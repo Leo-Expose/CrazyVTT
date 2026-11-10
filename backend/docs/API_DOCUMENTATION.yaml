@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: CozyVTT Backend Route Reference
+  title: CrazyVTT Backend Route Reference
   description: |
-    The HTTP routes CozyVTT's own web client calls, described for people working
-    on CozyVTT itself.
+    The HTTP routes CrazyVTT's own web client calls, described for people working
+    on CrazyVTT itself.
 
     ## No stability guarantee
     This is an internal surface, not a public API. It is **not versioned**, it
@@ -16,7 +16,7 @@ info:
     password to `/api/auth/login` and keeping the cookie it returns. That cookie
     also authenticates the Socket.io connection, which shares the same session.
 
-    So scripting CozyVTT is possible, and people have done it. What it does not
+    So scripting CrazyVTT is possible, and people have done it. What it does not
     come with is a promise: a script authenticates **as a specific user** and can
     do only what that user could do in the browser, the session expires after an
     hour of inactivity by default (`SESSION_MAX_AGE`; 30 days when signing in
@@ -242,7 +242,7 @@ info:
 
   version: 1.6.0
   contact:
-    name: CozyVTT
+    name: CrazyVTT
     url: https://cozyvtt.com
   license:
     name: AGPL-3.0
@@ -502,7 +502,7 @@ paths:
                     empty is refused with 400 `Display name is required`.
                 instanceName:
                   type: string
-                  default: CozyVTT
+                  default: CrazyVTT
                   description: >-
                     Shown in the browser tab and in the emails the instance
                     sends. Angle brackets are removed, the value is trimmed,
@@ -5973,7 +5973,7 @@ paths:
             more than 1,000 frames. An animated picture can have at most
             1,000.", "This animation is 400
             million pixels across its frames. An animated map can be at most
-            200 million.") or whose size cannot be read ("CozyVTT could not
+            200 million.") or whose size cannot be read ("CrazyVTT could not
             read the size of this picture, so it cannot be checked. Save it
             again in an image editor and try once more."); a `name` over 200 characters
             ("The asset name must be 200 characters or fewer"), a
@@ -5982,7 +5982,7 @@ paths:
             most 50 tags") or a tag over 50 characters ("Each tag must be 50
             characters or fewer"); the tag `cozyvtt-drawn-map` on anything
             but a CAMPAIGN MAP ("The tag cozyvtt-drawn-map is kept for maps
-            drawn in CozyVTT."); or `name`, `description` or `tags` sent
+            drawn in CrazyVTT."); or `name`, `description` or `tags` sent
             more than once ("Send the name once, as text.", and so on; this
             answered 500 before); or a field or the file's name holding
             U+0000 ("Text cannot contain the null character (U+0000).";
@@ -6384,7 +6384,7 @@ paths:
       summary: Save a new painting over a drawn map's picture
       description: >-
         What **Save** in Mapmaker calls. Writes the uploaded picture over the
-        file of an existing picture drawn in CozyVTT: a `MAP` asset of
+        file of an existing picture drawn in CrazyVTT: a `MAP` asset of
         `CAMPAIGN` scope tagged exactly `cozyvtt-drawn-map`. The asset keeps
         its id, so every address naming it (a map, a shared Document, a
         note) shows the new picture; no earlier version is kept. Only the
@@ -6447,7 +6447,7 @@ paths:
         '400':
           description: >-
             The asset is not a drawn picture of a campaign ("Only a picture
-            drawn in CozyVTT can be saved over. Upload a new picture
+            drawn in CrazyVTT can be saved over. Upload a new picture
             instead."), checked before the file is read; or the file is
             refused as the map upload refuses it (no file, "MAP files must be
             smaller than <n>MB", "Could not determine file type. File may be
@@ -6461,7 +6461,7 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: Validation Error
-                message: Only a picture drawn in CozyVTT can be saved over. Upload a new picture instead.
+                message: Only a picture drawn in CrazyVTT can be saved over. Upload a new picture instead.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6737,7 +6737,7 @@ paths:
         `Content-Security-Policy: default-src 'none'; sandbox` that applies
         whenever the browser renders the response as a document. Note it does
         not sandbox a PDF; a client embedding one should sandbox the frame
-        itself, as CozyVTT's reader does. Caching differs by format: a PDF
+        itself, as CrazyVTT's reader does. Caching differs by format: a PDF
         cannot change under its id and is cacheable as immutable, while text
         and Markdown can be rewritten in place, so they are served
         `Cache-Control: private, no-cache` with an ETag that changes with the
@@ -6822,7 +6822,7 @@ paths:
         `application/octet-stream`) and `X-Content-Type-Options: nosniff`.
         It is cached as `private, max-age=31536000, immutable` with the ETag
         `"<asset id>"`; send that in `If-None-Match` for a 304. A picture
-        drawn in CozyVTT (tagged `cozyvtt-drawn-map`) is written over in place
+        drawn in CrazyVTT (tagged `cozyvtt-drawn-map`) is written over in place
         by `PUT /api/assets/{id}/picture`, so it is served
         `private, no-cache` instead, with the ETag
         `"<asset id>-<size in bytes>-<modified time in ms>"`, which changes
@@ -7276,7 +7276,7 @@ paths:
                 drawnBackground:
                   type: string
                   example: '#e8dcc4'
-                  description: For a map drawn in CozyVTT, the colour its picture is made in, as `#rrggbb`. Null when omitted or written any other way.
+                  description: For a map drawn in CrazyVTT, the colour its picture is made in, as `#rrggbb`. Null when omitted or written any other way.
                 spiritLayerUrl:
                   type: string
                   description: Asset id or exact asset address. Omitted or empty means none.
@@ -11995,7 +11995,7 @@ paths:
         position, or without a `range` above 0, is left out. Its bright
         radius is the light's
         `bright_range` when that is a number of 0 or more, capped at the dim
-        radius (CozyVTT's own export writes it), and otherwise half the
+        radius (CrazyVTT's own export writes it), and otherwise half the
         range. A light with `enabled: false` is imported switched off. A
         file that is not JSON or lacks `resolution.map_size`, `image` or
         `line_of_sight` answers 400 with `error: Parse Error`.
@@ -12232,7 +12232,7 @@ paths:
         closed), its windows as open portals (a window does not block sight, so
         it is not written as a wall), and every light, switched off ones
         included, each with its dim radius as `range`, `intensity` 0 when it is
-        off, and two keys of CozyVTT's own, `bright_range` and `enabled`, which
+        off, and two keys of CrazyVTT's own, `bright_range` and `enabled`, which
         other tools skip and a re-import reads back. Walls are joined into
         polylines in time proportional to their number. Tokens, fog and the
         spirit layer are not included.
@@ -12350,7 +12350,7 @@ paths:
         place). Needs pg_dump and psql present in the backend image. The archive's
         database.sql is
         checked before anything runs: it must be a complete pg_dump of a
-        CozyVTT database (pg_dump's closing line present, the User and
+        CrazyVTT database (pg_dump's closing line present, the User and
         _prisma_migrations tables created in the schema the instance keeps
         its data in, and on an instance whose `DATABASE_URL` names a schema,
         no table in any other) holding nothing but SQL; a line
@@ -12423,11 +12423,11 @@ paths:
             upload could not be read: <reason>. Nothing was changed.`; a file
             that is not a ZIP archive; an archive listing more than 100,000
             entries or holding an unsafe path; a ZIP that is not a complete
-            CozyVTT backup; or a backup of a database schema other than the
+            CrazyVTT backup; or a backup of a database schema other than the
             one the instance keeps its data in (the one `?schema=` in
             `DATABASE_URL` names, `public` without it), which names both
             schemas. A ZIP without `database.sql` answers `This file
-            does not appear to be a valid CozyVTT backup (database.sql not
+            does not appear to be a valid CrazyVTT backup (database.sql not
             found inside ZIP)`; the other `Invalid Backup` messages give the
             reason and end "Nothing was changed." None of these changes
             anything. Before 1.5.2 every refusal here but the missing file and
@@ -13220,7 +13220,7 @@ components:
         drawnBackground:
           type: string
           nullable: true
-          description: The colour a map drawn in CozyVTT was made in, as `#rrggbb`, which Mapmaker's eraser paints. Null for a map made from a picture.
+          description: The colour a map drawn in CrazyVTT was made in, as `#rrggbb`, which Mapmaker's eraser paints. Null for a map made from a picture.
         tokens:
           type: array
           items:

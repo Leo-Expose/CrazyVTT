@@ -633,7 +633,7 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
         return answer(400, {
           error: 'Validation Error',
           message:
-            'The picture inside this file is not an image CozyVTT can use. ' +
+            'The picture inside this file is not an image CrazyVTT can use. ' +
             `Maps must be one of: ${UVTT_IMAGE_EXTENSIONS}.`,
         });
       }

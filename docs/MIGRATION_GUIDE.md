@@ -1,4 +1,4 @@
-# CozyVTT Upgrade Guide
+# CrazyVTT Upgrade Guide
 
 ## Existing installations
 

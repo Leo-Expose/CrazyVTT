@@ -1069,7 +1069,7 @@ class ApiClient {
   }
 
   /**
-   * Write a new picture over a picture drawn in CozyVTT, under the same id:
+   * Write a new picture over a picture drawn in CrazyVTT, under the same id:
    * Paint's Save. Answers the asset and `imageUrl`, the picture's address
    * with a version new on every save, to give the map. No limit of the
    * page's own, as for an upload.
@@ -1583,7 +1583,7 @@ class ApiClient {
       try {
         target = await pick({
           suggestedName: fileName,
-          types: [{ description: 'CrazyVTT campaign archive', accept: { 'application/zip': ['.cozyvtt'] } }],
+          types: [{ description: 'CrazyVTT campaign archive', accept: { 'application/zip': ['.crazyvtt', '.cozyvtt'] } }],
         });
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {

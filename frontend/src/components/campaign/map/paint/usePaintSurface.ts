@@ -841,7 +841,7 @@ export function usePaintSurface(options: PaintSurfaceOptions) {
     };
     // The map's own colour: what the eraser paints, and the second colour to
     // start with the first time this map is opened, the DM's after. Kept with
-    // a map drawn in CozyVTT; read off the picture's top-left pixel for one
+    // a map drawn in CrazyVTT; read off the picture's top-left pixel for one
     // drawn before it was kept.
     const background = map.drawnBackground ?? readColour(ctx, 0, 0) ?? DRAWN_MAP_BACKGROUND;
     if (secondStartedFor.current !== map.id) {

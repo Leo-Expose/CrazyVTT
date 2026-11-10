@@ -217,7 +217,7 @@ describe('anyone but the DM', () => {
   });
 });
 
-describe('a picture that was not drawn in CozyVTT', () => {
+describe('a picture that was not drawn in CrazyVTT', () => {
   it.each([
     ['an uploaded picture', async () => upload('drawn-map')],
     ['a drawn picture moved to a personal library', async () => {
@@ -230,7 +230,7 @@ describe('a picture that was not drawn in CozyVTT', () => {
     const before = await onDisk(id);
     const res = await replace('dm', id, await picture('#336699'));
     expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Only a picture drawn in CozyVTT can be saved over. Upload a new picture instead.');
+    expect(res.body.message).toBe('Only a picture drawn in CrazyVTT can be saved over. Upload a new picture instead.');
     expect(await onDisk(id)).toEqual(before);
   });
 });

@@ -1,5 +1,5 @@
 # ============================================================================
-# CozyVTT — Root .gitignore
+# CrazyVTT — Root .gitignore
 # Sub-directories (backend/, frontend/) have their own .gitignore for
 # project-specific patterns. This file covers anything at the repo root or
 # common to both projects.
@@ -149,6 +149,6 @@ playwright-report/
 
 # ---- Game system rulebooks ---------------------------------------------------
 # Publisher PDFs and OCR text kept locally for rules reference while developing.
-# These are copyrighted material and must never be committed — CozyVTT ships
+# These are copyrighted material and must never be committed — CrazyVTT ships
 # rules-reference scaffolding only (see the legal note in docs/GAME_SYSTEMS.md).
 system-docs/

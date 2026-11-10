@@ -146,7 +146,7 @@ On a computer, or a tablet held sideways, the page has three main areas, describ
 - **Your role** at the bottom of the **Campaign Info** panel, and under it **Leave Campaign**, which takes you out of the campaign after asking (see [Leaving a campaign](#leaving-a-campaign))
 
 ### Center — The Map
-This is the battle map. During a session, you'll see your token here and can move it: click it to pick it up, then click where it should go ([Moving Your Token](#moving-your-token)). On a tablet or a phone, see [On a touch screen](#on-a-touch-screen). The toolbar at its top left zooms and fits the view, and you move the view by dragging an empty part of the map ([Moving Around the Map](USER_GUIDE.md#moving-around-the-map)). The map may be a picture your DM uploaded or one they drew in CozyVTT; it works the same either way. When the DM saves a change to the map you are on, its picture changes where you are: your view, and a token you are holding, stay as they were.
+This is the battle map. During a session, you'll see your token here and can move it: click it to pick it up, then click where it should go ([Moving Your Token](#moving-your-token)). On a tablet or a phone, see [On a touch screen](#on-a-touch-screen). The toolbar at its top left zooms and fits the view, and you move the view by dragging an empty part of the map ([Moving Around the Map](USER_GUIDE.md#moving-around-the-map)). The map may be a picture your DM uploaded or one they drew in CrazyVTT; it works the same either way. When the DM saves a change to the map you are on, its picture changes where you are: your view, and a token you are holding, stay as they were.
 
 ### Right Sidebar — Your Tools
 A tabbed panel — click a tab to switch between:
@@ -188,7 +188,7 @@ In **Dice** each roll takes two lines, who rolled it, what for and when over the
 
 A press and hold on your token opens its menu as a list from the bottom of the screen, as it does on a character in **Party**'s roster. The map's toolbar keeps **Zoom Out**, **Zoom In**, **Ping** and **Draw** in its one row; its **More** has the rest, such as **Fit to Screen**, the grid and the **Ruler**. Turn the phone on its side and the bar's buttons move into the header, with sheets and menus opening from the right. See [The campaign page on a phone or tablet](USER_GUIDE.md#the-campaign-page-on-a-phone-or-tablet) for the whole of it.
 
-To open CozyVTT from your phone's home screen like an app, full screen, see [Adding CozyVTT to your home screen](USER_GUIDE.md#adding-cozyvtt-to-your-home-screen).
+To open CrazyVTT from your phone's home screen like an app, full screen, see [Adding CrazyVTT to your home screen](USER_GUIDE.md#adding-cozyvtt-to-your-home-screen).
 
 ### Rulebooks and Handouts
 
@@ -764,13 +764,13 @@ It rolls **one** die, not the whole pool — spending is one die at a time, and 
 
 **A hit die that isn't a plain die.** If your game uses something else — a homebrew class whose hit die is `2d6`, or one with a flat bonus like `1d10+1` — type that in the die box and it rolls exactly as written, with your Constitution added on top. Anything the dice roller understands works here.
 
-**Add the hit points yourself.** CozyVTT rolls the die and keeps count of what you have left, but it doesn't change your HP for you — use the **+** button on your roster card for the amount you rolled. (If your Constitution modifier is negative and the total comes out below zero, you regain nothing rather than losing hit points.)
+**Add the hit points yourself.** CrazyVTT rolls the die and keeps count of what you have left, but it doesn't change your HP for you — use the **+** button on your roster card for the amount you rolled. (If your Constitution modifier is negative and the total comes out below zero, you regain nothing rather than losing hit points.)
 
 Once the pool is empty the number stops being clickable. Your DM can also spend one on your behalf if you're not at the table, and it comes off your sheet the same way.
 
 **Getting them back.** A short rest is when you *spend* hit dice — it doesn't give any back. A **long rest** does: you regain all your lost hit points, plus spent hit dice up to **half your total, rounded down, and always at least one**. So a level 5 fighter with `5d10` gets two back, not five, and a level 1 character gets their single die back.
 
-CozyVTT doesn't apply that for you yet. After a long rest, click **Edit** on your sheet and set the remaining number for each pool yourself — **Max** is there so you can see what you're counting back up towards.
+CrazyVTT doesn't apply that for you yet. After a long rest, click **Edit** on your sheet and set the remaining number for each pool yourself — **Max** is there so you can see what you're counting back up towards.
 
 ### Weapons that do more than one thing
 

@@ -1,5 +1,5 @@
 /**
- * Documents written or edited in CozyVTT, as opposed to uploaded.
+ * Documents written or edited in CrazyVTT, as opposed to uploaded.
  *
  * Only plain text and Markdown can be typed. A PDF is a file and stays one.
  *

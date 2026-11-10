@@ -102,7 +102,7 @@ async function archiveOf(entries: Array<[name: string, fields: Record<string, un
     {
       name: 'manifest.json',
       data: JSON.stringify({
-        formatVersion: 1, exportedAt: '2026-11-01T12:00:00.000Z', exportedFrom: 'CozyVTT v1.5.4', campaignName: 'Hand-made',
+        formatVersion: 1, exportedAt: '2026-11-01T12:00:00.000Z', exportedFrom: 'CrazyVTT v1.5.4', campaignName: 'Hand-made',
         gameSystem: 'DND_5E', mapCount: 0, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0,
         assetCount: entries.length, includesAudio: false, totalSizeBytes: PNG.length * entries.length,
       }),

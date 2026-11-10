@@ -4,6 +4,12 @@ All notable changes to CrazyVTT will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- The product is branded CrazyVTT again. Existing customized instance names are kept; the old default `CozyVTT` name is updated. New campaign exports use `.crazyvtt`, while imports continue to accept `.cozyvtt` archives.
+
 The notes for 1.5.4 and earlier were shortened in 1.6.0. The full notes of each release are in `CHANGELOG.md` at its tag, such as [v1.5.4](https://github.com/CheekyChinchilla/CozyVTT/blob/v1.5.4/CHANGELOG.md).
 
 ---
@@ -29,7 +35,7 @@ There is a database change, made by itself on the first start in five steps, one
 
 There is no new server setting and no manual step. The backend and frontend containers are rebuilt with the new code. `nginx/nginx.conf` and `docker-compose.yml` do not change, so `git pull` does not stop at your own edits to them, and a proxy of your own in place of the bundled nginx needs nothing new.
 
-To go back to 1.5.4 after upgrading, restore the backup you took before the upgrade. The restore also takes back everything done since the upgrade, the drawings and whispers among it. Without the restore, 1.5.4 cannot read a whisper: the chat of a campaign where one was sent shows an error in place of its history. After going back, reload every open CozyVTT tab, since a page still open from this release would send a message meant as a whisper to the whole table.
+To go back to 1.5.4 after upgrading, restore the backup you took before the upgrade. The restore also takes back everything done since the upgrade, the drawings and whispers among it. Without the restore, 1.5.4 cannot read a whisper: the chat of a campaign where one was sent shows an error in place of its history. After going back, reload every open CrazyVTT tab, since a page still open from this release would send a message meant as a whisper to the whole table.
 
 #### What you will notice
 
@@ -47,7 +53,7 @@ To go back to 1.5.4 after upgrading, restore the backup you took before the upgr
 
 #### What to do afterwards, if it applies to you
 
-- **Reload any CozyVTT page left open through the upgrade.** Until you do, it shows a whisper to you as an ordinary message; only you and its sender are sent it.
+- **Reload any CrazyVTT page left open through the upgrade.** Until you do, it shows a whisper to you as an ordinary message; only you and its sender are sent it.
 - **If you have put a symbolic link in `backend/uploads`, back up what it points to on its own.** A backup leaves the link out and the backend log names it, and a backup made before the upgrade did not hold those files either. See [Via the Admin Panel](docs/DEPLOYMENT.md#via-the-admin-panel).
 
 ### Added
@@ -58,13 +64,13 @@ To go back to 1.5.4 after upgrading, restore the backup you took before the upgr
 
 - **A laser pointer for the map.** **Laser pointer**, in the drawing tools, draws a trail everyone sees as you drag, which fades within 3 seconds and is never kept. See [Drawing and pointing](docs/PLAYER_GUIDE.md#drawing-and-pointing).
 
-- **Draw a map in CozyVTT.** ([#46](https://github.com/CheekyChinchilla/CozyVTT/issues/46)) **Create Map** has **Draw a map**, a blank map you paint with **Mapmaker**: brushes, shapes, textures, rooms that add their own walls, stamps, fill, text and more. **Save** writes the painting over the map's picture after asking and keeps no earlier version, so download the picture first to keep it; an unsaved painting is kept as a draft in the browser. See [Drawing a map](docs/DM_GUIDE.md#drawing-a-map).
+- **Draw a map in CrazyVTT.** ([#46](https://github.com/CheekyChinchilla/CozyVTT/issues/46)) **Create Map** has **Draw a map**, a blank map you paint with **Mapmaker**: brushes, shapes, textures, rooms that add their own walls, stamps, fill, text and more. **Save** writes the painting over the map's picture after asking and keeps no earlier version, so download the picture first to keep it; an unsaved painting is kept as a draft in the browser. See [Drawing a map](docs/DM_GUIDE.md#drawing-a-map).
 
 - **Prepare a map while your players keep playing.** **Open to prepare**, on a map's card in the **Map Library**, opens a map on the DM's screen only; players are sent nothing of it until **Bring everyone here**. See [Preparing a map while the table plays](docs/DM_GUIDE.md#preparing-a-map-while-the-table-plays).
 
 - **The campaign page fits a phone.** ([#31](https://github.com/CheekyChinchilla/CozyVTT/issues/31)) Below 1,024 pixels wide the map fills the screen, with **Map**, **Chat**, **Dice**, **Initiative**, **Party** and **More** along the bottom, each opening its panel as a sheet over the map. Every control there is at least 44 by 44 pixels, and the on-screen keyboard never covers what you type. See [The campaign page on a phone or tablet](docs/USER_GUIDE.md#the-campaign-page-on-a-phone-or-tablet).
 
-- **CozyVTT can go on a phone's or a tablet's home screen,** from the browser's own menu. It opens full screen at the dashboard, without the browser's address bar; on Android, Chrome installs it full screen only from an `https://` address. See [Adding CozyVTT to your home screen](docs/USER_GUIDE.md#adding-cozyvtt-to-your-home-screen).
+- **CrazyVTT can go on a phone's or a tablet's home screen,** from the browser's own menu. It opens full screen at the dashboard, without the browser's address bar; on Android, Chrome installs it full screen only from an `https://` address. See [Adding CrazyVTT to your home screen](docs/USER_GUIDE.md#adding-cozyvtt-to-your-home-screen).
 
 - **The table works by touch on a tablet.** Pinch to zoom, drag to move the view, slide a finger to carry a token, and press and hold a token or a door for its menu or empty ground to ping it. A tap on a token shows its card, and the new **Ping** button pings the next spot you tap. See [On a touch screen](docs/PLAYER_GUIDE.md#on-a-touch-screen).
 
@@ -236,7 +242,7 @@ To go back to 1.5.4 after upgrading, restore the backup you took before the upgr
 
 - **A Call of Cthulhu creature is no longer given D&D 5e's Challenge Rating and worked-out saves and skills.** The Creature Library and the token editor name its characteristics as its stat block does, and take its skills as printed. See [Saving Throws and Skills](docs/DM_GUIDE.md#saving-throws-and-skills).
 
-- **Importing a character file made for a game system this CozyVTT doesn't have gives a message.** Choosing the file used to break the preview; it's now refused there, naming the system. See [Character Templates](docs/USER_GUIDE.md#character-templates).
+- **Importing a character file made for a game system this CrazyVTT doesn't have gives a message.** Choosing the file used to break the preview; it's now refused there, naming the system. See [Character Templates](docs/USER_GUIDE.md#character-templates).
 
 - **The Call of Cthulhu skills list puts its headings over its columns.**
 
@@ -2208,7 +2214,7 @@ Add `-- --dry-run` first if you would like to see what it would change. D&D 5e s
 
 - **The roster's "Reassign to Player" menu entry is gone.** It never did anything.
 
-- **Internal: the codebase is strictly typed again.** Nothing about how CozyVTT behaves changes.
+- **Internal: the codebase is strictly typed again.** Nothing about how CrazyVTT behaves changes.
 
 - **Three unnecessary packages removed from the backend install.**
 

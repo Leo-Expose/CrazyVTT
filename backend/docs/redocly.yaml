@@ -1,9 +1,9 @@
-# Redocly CLI configuration for CozyVTT's API spec.
+# Redocly CLI configuration for CrazyVTT's API spec.
 # Run lint:  npx @redocly/cli lint docs/API_DOCUMENTATION.yaml
 # Run docs:  npx @redocly/cli build-docs docs/API_DOCUMENTATION.yaml
 #
 # This config tunes off four lint rules that are intentionally-noisy for
-# CozyVTT's design:
+# CrazyVTT's design:
 #   • operation-4xx-response  — turned off because several genuinely-public
 #       endpoints (/health, /api/setup/status, /api/auth/registration-status,
 #       /api/auth/appearance) never return 4xx by design; they always return

@@ -1,6 +1,6 @@
 /**
  * Paint, through MapCanvas: the DM painting the picture of a map drawn in
- * CozyVTT, or of a map with no picture.
+ * CrazyVTT, or of a map with no picture.
  *
  * Paint is offered only to the DM, on a map whose picture is a campaign map
  * picture tagged DRAWN_MAP_TAG, or which has no picture; never on an uploaded

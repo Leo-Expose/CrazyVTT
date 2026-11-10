@@ -526,7 +526,7 @@ export async function initializeDefaultLayers(mapId: string) {
 }
 
 /**
- * Export layer data for UVTT/Foundry compatibility
+ * Export layer data in the interoperable UVTT layer format.
  */
 export function exportLayerData(layer: { type: LayerType; data: Record<string, unknown> }) {
   switch (layer.type) {

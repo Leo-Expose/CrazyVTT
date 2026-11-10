@@ -8,7 +8,7 @@
  * accepted step is remembered, and a code from that step or an earlier one is
  * refused.
  *
- * The record is kept in this process's memory. That is enough for CozyVTT as
+ * The record is kept in this process's memory. That is enough for CrazyVTT as
  * deployed, a single backend process: every check goes through this map, and
  * Node runs the check and the record with no await in between, so two requests
  * carrying one code cannot both pass. A restart forgets the record, which
@@ -39,9 +39,9 @@ export function newTotpSecret(): string {
   return generateSecret({ length: 20 });
 }
 
-/** The otpauth:// address the setup QR code holds, which names the account as CozyVTT:<email>. */
+/** The otpauth:// address the setup QR code holds, which names the account as CrazyVTT:<email>. */
 export function totpSetupUri(secret: string, email: string): string {
-  return generateURI({ issuer: 'CozyVTT', label: email, secret });
+  return generateURI({ issuer: 'CrazyVTT', label: email, secret });
 }
 
 /**

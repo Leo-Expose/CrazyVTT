@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { BASE_URL } from './e2e/instance';
 
 /**
- * End-to-end smoke tests: a real browser against a running CozyVTT. CI runs
+ * End-to-end smoke tests: a real browser against a running CrazyVTT. CI runs
  * them against the production stack, built and started with Docker Compose
  * (.github/workflows/ci.yml), so the bundled nginx, the page's security
  * headers and the live connection through the proxy are all in the path.

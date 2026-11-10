@@ -82,7 +82,7 @@ describe('saving a map with no drawn picture', () => {
     expect(steps.writeOver).not.toHaveBeenCalled();
   });
 
-  it('never writes over a picture that was not drawn in CozyVTT, and deletes nothing', async () => {
+  it('never writes over a picture that was not drawn in CrazyVTT, and deletes nothing', async () => {
     steps.previousIsDrawn = vi.fn(async () => false);
     await savePaint({ ...steps, sharing: ['map-b'] });
     expect(order).toEqual(['png', 'upload', 'point new-picture']);

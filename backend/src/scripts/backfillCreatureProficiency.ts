@@ -20,7 +20,7 @@ async function main() {
   const dryRun = process.argv.includes('--dry-run');
   const verbose = process.argv.includes('--verbose');
 
-  console.log('CozyVTT Creature Proficiency Backfill');
+  console.log('CrazyVTT Creature Proficiency Backfill');
   console.log(
     dryRun
       ? 'DRY RUN — reporting what would change, writing nothing.\n'

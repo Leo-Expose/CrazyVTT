@@ -90,7 +90,7 @@ describe('Players may draw', () => {
       {
         name: 'manifest.json',
         data: JSON.stringify({
-          formatVersion: 1, exportedAt: '2026-10-25T12:00:00.000Z', exportedFrom: 'CozyVTT v1.5.4', campaignName: 'Older',
+          formatVersion: 1, exportedAt: '2026-10-25T12:00:00.000Z', exportedFrom: 'CrazyVTT v1.5.4', campaignName: 'Older',
           gameSystem: 'NONE', mapCount: 0, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0, assetCount: 0,
           includesAudio: false, totalSizeBytes: 0,
         }),
@@ -118,7 +118,7 @@ async function oneMapArchive(name: string, map: Record<string, unknown>): Promis
     {
       name: 'manifest.json',
       data: JSON.stringify({
-        formatVersion: 1, exportedAt: '2026-10-25T12:00:00.000Z', exportedFrom: 'CozyVTT v1.5.4', campaignName: name,
+        formatVersion: 1, exportedAt: '2026-10-25T12:00:00.000Z', exportedFrom: 'CrazyVTT v1.5.4', campaignName: name,
         gameSystem: 'NONE', mapCount: 1, tokenCount: 0, creatureCount: 0, tokenTemplateCount: 0, assetCount: 0,
         includesAudio: false, totalSizeBytes: 0,
       }),

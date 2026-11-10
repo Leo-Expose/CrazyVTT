@@ -1,11 +1,11 @@
 # ============================================================================
-# CozyVTT — example personal overrides
+# CrazyVTT — example personal overrides
 #
 # WHAT THIS IS
 #   A place to keep YOUR deployment tweaks without editing docker-compose.yml.
 #   Docker Compose automatically reads a file named `docker-compose.override.yml`
 #   (this file's name, minus the `.example`) and layers it on top of the shipped
-#   docker-compose.yml. CozyVTT's .gitignore excludes that filename, so updates
+#   docker-compose.yml. CrazyVTT's .gitignore excludes that filename, so updates
 #   with `git pull` will never conflict with your changes.
 #
 # HOW TO USE IT

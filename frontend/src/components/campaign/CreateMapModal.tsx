@@ -1,7 +1,7 @@
 // ============================================
 // CreateMapModal Component
 // Modal for DMs to create a new campaign map: from a picture, or drawn in
-// CozyVTT (Draw a map), which starts as a blank picture of the size and
+// CrazyVTT (Draw a map), which starts as a blank picture of the size and
 // colour chosen (map/paint/drawnMapSize.ts)
 // ============================================
 
@@ -48,7 +48,7 @@ export default function CreateMapModal({
   onClose,
   onCreated,
 }: CreateMapModalProps) {
-  // From a picture, or drawn in CozyVTT.
+  // From a picture, or drawn in CrazyVTT.
   const [making, setMaking] = useState<'picture' | 'drawing'>('picture');
   const drawing = making === 'drawing';
   // A drawn map's pixels per square and colour.

@@ -13,7 +13,7 @@
 //
 // Only the folders uploads are written to are looked at. `temp/` holds
 // campaign imports still in progress, and anything else in the uploads folder
-// is not CozyVTT's to judge. A file changed in the last hour is left out, since
+// is not CrazyVTT's to judge. A file changed in the last hour is left out, since
 // an upload or campaign import writes its file before its row.
 //
 // A file counts as named when its file name matches the file name of any

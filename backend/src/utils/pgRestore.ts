@@ -42,13 +42,13 @@ function schemaIdentifier(schema: string): string {
  * Statements run before the dump itself.
  *
  * The dump drops and recreates only the objects it contains. A backup taken on
- * an older CozyVTT does not know about tables added since, so when one of those
+ * an older CrazyVTT does not know about tables added since, so when one of those
  * references a table the dump is about to drop, the drop fails and the restore
  * stops; and a table the dump does not mention would otherwise survive with
  * stale rows. Replacing the schema first makes a restore mean what the screen
  * says: afterwards the instance's schema holds the backup and nothing else.
  * Only that schema: on a database shared with other software, the other
- * schemas are not CozyVTT's. The statements sit at the top of the file psql
+ * schemas are not CrazyVTT's. The statements sit at the top of the file psql
  * loads with --single-transaction, so a dump that fails to apply rolls the
  * schema back too. Migrations then run to bring an older backup up to the
  * running version.
@@ -148,7 +148,7 @@ const COPY_END = '\\.';
  * replacement above commits, and the instance is left empty while the restore
  * reports success. So a file is refused unless, outside its table data, it
  * ends with the trailer pg_dump writes last and creates the tables every
- * CozyVTT database has, in the schema this instance keeps its data in. A
+ * CrazyVTT database has, in the schema this instance keeps its data in. A
  * backup of another schema is refused: loaded, its tables would land in the
  * schema it came from while the restore reported success. An instance with a
  * schema of its own also refuses tables in any other schema, which are not
@@ -198,7 +198,7 @@ function anotherSchema(found: string[], schema: string): string {
 const TRANSACTION_CONTROL =
   /^(?:BEGIN|START TRANSACTION|COMMIT|END|ROLLBACK|ABORT|SAVEPOINT|RELEASE|PREPARE TRANSACTION)\b/i;
 
-/** Tables every CozyVTT database has; a dump that does not create them is not a backup of one. */
+/** Tables every CrazyVTT database has; a dump that does not create them is not a backup of one. */
 export const REQUIRED_TABLES = ['User', '_prisma_migrations'];
 
 /** What prepareDumpForRestore left out, for the log. */
@@ -347,7 +347,7 @@ export async function prepareDumpForRestore(sqlPath: string, outPath: string, db
     } else if ((schema !== 'public' && elsewhere.length > 0) || (missing.length > 0 && backupOfAnother)) {
       refused = anotherSchema(found, schema);
     } else if (missing.length > 0) {
-      refused = `it does not create the ${missing.join(' and ')} table${missing.length > 1 ? 's' : ''}, so it is not a CozyVTT backup`;
+      refused = `it does not create the ${missing.join(' and ')} table${missing.length > 1 ? 's' : ''}, so it is not a CrazyVTT backup`;
     }
   }
   return { skipped, refused };

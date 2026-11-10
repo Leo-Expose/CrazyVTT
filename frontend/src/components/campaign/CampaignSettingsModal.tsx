@@ -280,7 +280,7 @@ export default function CampaignSettingsModal({
       const outcome = await api.downloadCampaignExport(
         campaign.id,
         { includeAudio: exportIncludeAudio },
-        `${safeName}-export.cozyvtt`
+        `${safeName}-export.crazyvtt`
       );
       if (outcome === 'saved') showToast('Campaign exported successfully', 'success');
     } catch (err) {
@@ -454,7 +454,7 @@ export default function CampaignSettingsModal({
                   Export Campaign
                 </div>
                 <p className="text-xs text-warm-gray">
-                  Download a <span className="font-mono">.cozyvtt</span> archive containing maps, creatures,
+                  Download a <span className="font-mono">.crazyvtt</span> archive containing maps, creatures,
                   token templates, and all associated assets. Character data is not included for privacy.
                 </p>
 

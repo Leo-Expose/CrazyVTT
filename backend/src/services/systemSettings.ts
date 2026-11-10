@@ -12,7 +12,7 @@ import logger from '../utils/logger';
 /** What a fresh instance's settings row holds. */
 const DEFAULT_SETTINGS = {
   setupCompleted: false,
-  instanceName: 'CozyVTT',
+  instanceName: 'CrazyVTT',
   timezone: 'UTC',
   allowRegistration: false,
   requireAdminApproval: true,

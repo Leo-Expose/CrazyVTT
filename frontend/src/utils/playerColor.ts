@@ -1,7 +1,7 @@
 // ============================================
 // Player colour — a stable identity colour derived from a user id
 //
-// CozyVTT has no per-user colour field, and adding one would mean a schema
+// CrazyVTT has no per-user colour field, and adding one would mean a schema
 // change plus a backfill for every existing deployment. Hashing the id instead
 // gives a colour that is stable across sessions, identical on every client,
 // and needs nothing synced — at the cost of nobody picking their own.
