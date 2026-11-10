@@ -55,7 +55,7 @@ cd CrazyVTT
 cp .env.example .env
 ```
 
-Edit `.env` and fill in all required values. At minimum (with `NODE_ENV=production`, the app refuses to start while `DATABASE_PASSWORD` is still the placeholder from `.env.example`, and while `SESSION_SECRET` is a placeholder, is the example value shown here, or is shorter than 32 characters):
+Edit `.env` and fill in all required values. At minimum (the production stack refuses to start while `DATABASE_PASSWORD` is still the placeholder from `.env.example`, and while `SESSION_SECRET` is a placeholder, is the example value shown here, or is shorter than 32 characters):
 
 ```env
 # Database — paste the output of: openssl rand -hex 16
@@ -66,8 +66,6 @@ SESSION_SECRET=<paste the 64 characters that command prints>
 
 # Your public URL (used for CORS and email links)
 CORS_ORIGIN=https://your-domain.com
-
-NODE_ENV=production
 ```
 
 **Use letters and digits only in `DATABASE_PASSWORD`**, which is what `openssl rand -hex 16` gives you. The stack writes the password into the database's address, so a character such as `/`, `#`, `?` or `%` breaks that address. The database container still starts and looks healthy, but the backend cannot connect: `docker compose logs backend` shows `Database connection successful`, because that first check does not use the password, and then `Migration failed`, and the container keeps restarting. If you see that, check the password's characters first. A `$` has a different problem: Docker Compose reads a `$` in `.env` as the start of a variable name, so the password it uses is not the one you typed.
@@ -166,9 +164,11 @@ docker compose down -v       # ⚠️ Also removes volumes — deletes all datab
 
 Stopping the backend takes about a second. It finishes the requests it is answering, disconnects everyone at the table (their browsers reconnect by themselves once it is back), closes its database connections, and exits. Anything still running after 8 seconds, such as a large download, is cut off and the backend exits anyway. A backend run without Docker stops the same way on Ctrl+C or when a service manager such as systemd or pm2 stops it. The bundled nginx stops at once, players connected or not.
 
-**While the Admin Dashboard is making or restoring a backup, stopping waits for it.** The backend takes no new requests, lets the backup or restore finish for up to 10 minutes, and then stops as above. `docker compose stop`, `restart` and an upgrade's `up -d --build` show the backend as stopping until then, and `docker compose logs backend` says `A backup is being written; waiting up to 10 minutes for it to finish before stopping` (`A backup is being restored` for a restore). `docker-compose.yml` lets the backend take ten and a half minutes to stop before Docker forces it. A backup still unfinished after 10 minutes is lost, and the log says so; make it again once the backend is back. A restore still unfinished then may be left half done, and the log says so; restoring the backup again puts everything as it was in the backup.
+**While the Admin Panel is making or restoring a backup, stopping waits for it.** The backend takes no new requests, lets the backup or restore finish for up to 10 minutes, and then stops as above. `docker compose stop`, `restart` and an upgrade's `up -d --build` show the backend as stopping until then, and `docker compose logs backend` says `A backup is being written; waiting up to 10 minutes for it to finish before stopping` (`A backup is being restored` for a restore). `docker-compose.yml` lets the backend take ten and a half minutes to stop before Docker forces it. A backup still unfinished after 10 minutes is lost, and the log says so; make it again once the backend is back. A restore still unfinished then may be left half done, and the log says so; restoring the backup again puts everything as it was in the backup.
 
 **Deleting an account removes its files just after the page confirms it.** If the backend is stopped in those seconds it waits up to 4 seconds for the removal to finish. Files it did not reach stay as assets with no owner, which an administrator can find with the **No Uploader (account deleted)** filter on the **Assets** tab of the Admin Panel and delete.
+
+**Some work goes on for a moment after the change that started it, and stopping waits up to 2 seconds for it.** The squares a player explored in the last second are saved, the map is sent to the table again after a change, and a password reset email asked for a moment before goes out. Nothing needs doing; if that work is still going after 2 seconds, `docker compose logs backend` says `Work started before the shutdown was still under way after 2 seconds; stopping without it` and the backend stops anyway.
 
 ---
 
@@ -445,6 +445,7 @@ Docker can give a network a new range when it makes it again, after `docker comp
 Whatever proxy you use, it must:
 - Forward `/api/*` and `/socket.io/*` to the backend, and everything else to the frontend
 - Support WebSocket upgrades (`Upgrade: websocket` / `Connection: upgrade`) on the `/socket.io/` path
+- Pass the `Host` header visitors used through unchanged (in nginx, `proxy_set_header Host $host;`, as every example in this guide does). The app page's security policy names the live table's connection by that host, and some browsers need it named
 - Pass `X-Forwarded-Proto` to the backend, and `X-Forwarded-For` with the visitor's own address last (see [Visitor addresses and sign-in limits](#visitor-addresses-and-sign-in-limits))
 - Allow request bodies of at least **55 MB** (covers the default `MAX_MAP_SIZE_MB=50` plus overhead), and more if you raise any `MAX_*_SIZE_MB` — see [Upload Size Limits](#upload-size-limits)
 - For importing campaigns: allow `/api/campaigns/import` (which also covers `/api/campaigns/import/preview`) a request body of at least **505 MB**, the 500 MB largest archive plus overhead, and give it about **300 seconds** to answer, since a large archive takes minutes to unpack. The bundled nginx allows 512 MB there whatever `NGINX_MAX_BODY_SIZE` says. Without this, importing an archive bigger than your body limit shows "This archive is larger than the server accepts", and a slow import shows an error while the backend carries on and finishes it. Where your proxy can, pass the upload straight through instead of saving it first (`proxy_request_buffering off` in nginx)
@@ -1018,7 +1019,7 @@ curl -sI https://your-domain.com/ | grep -i -e content-security -e permissions-p
 
 It should print three lines. These lines are a copy of `frontend/security-headers.conf`, so after an upgrade compare them with that file.
 
-**Backups need PostgreSQL's command-line tools.** The Admin Dashboard's **Create Backup** and restore run `pg_dump` and `psql` on the machine the backend runs on. The `postgresql-15` package from step 2 brings them; `pg_dump --version` should print 15 or higher. If it says command not found, install `postgresql-client-15` from the same repository.
+**Backups need PostgreSQL's command-line tools.** The Admin Panel's **Create Backup** and restore run `pg_dump` and `psql` on the machine the backend runs on. The `postgresql-15` package from step 2 brings them; `pg_dump --version` should print 15 or higher. If it says command not found, install `postgresql-client-15` from the same repository.
 
 ---
 
@@ -1083,7 +1084,7 @@ MAX_DOCUMENT_SIZE_MB=50
 NGINX_MAX_BODY_SIZE=55M
 ```
 
-These take effect on `docker compose up -d` (no image rebuild needed): the backend enforces them, and the app fetches them at runtime for the admin panel and the upload dialog. Values that aren't a positive number are ignored, with a warning in the backend log.
+These take effect on `docker compose up -d` (no image rebuild needed): the backend enforces them, and the app fetches them at runtime for the Admin Panel and the upload dialog. Values that aren't a positive number are ignored, with a warning in the backend log.
 
 Whatever these say, a map, token or avatar picture can be at most 16,384 pixels on each side, and an animated one at most 1,000 frames and 200 million pixels across them for a map (50 million for a token or avatar); raising a size limit does not raise these (see [Asset Types](USER_GUIDE.md#asset-types) in the User Guide).
 
@@ -1110,7 +1111,7 @@ Upload limits: MAP 50MB, TOKEN 5MB, AUDIO 250MB, AVATAR 2MB, DOCUMENT 50MB
 NGINX_MAX_BODY_SIZE=55M is smaller than the largest upload limit AUDIO (250 MB). ...
 ```
 
-The admin panel shows the same numbers under **Settings → Upload Size Limits**, along with the body size your proxy needs.
+The Admin Panel shows the same numbers under **Settings → Upload Size Limits**, along with the body size your proxy needs.
 
 ### Campaign Import and Export Limits
 
@@ -1188,11 +1189,11 @@ Back up `backend/uploads/` alongside your database dumps. See [Database Backups]
 df -h backend/uploads
 ```
 
-The `Use%` column is the same number the dashboard shows. If it is high, delete files nobody needs from the **Assets** tab (including **Leftover Files**), delete old backups from **Backups**, or move `backend/uploads/` to a larger disk.
+The `Use%` column is the same number the Admin Panel's **Dashboard** tab shows. If it is high, delete files nobody needs from the **Assets** tab (including **Leftover Files**), delete old backups from **Backups**, or move `backend/uploads/` to a larger disk.
 
 A file can be left in `backend/uploads/` with no asset naming it, for example when a restored backup brings back files its database does not know. The **Assets** tab of the Admin Panel lists these under **Leftover Files** and can delete them after asking; see [Files with no owner, and leftover files](USER_GUIDE.md#files-with-no-owner-and-leftover-files-admins) in the user guide.
 
-Instance backups made from the Admin Dashboard are written to `backend/backups/`, **not** inside `uploads/`: a backup holds every credential on the instance, while `uploads/` is media you may sync anywhere. Versions before 1.5.0 wrote them to `backend/uploads/backups/`; if you have backups there, move them to `backend/backups/`, which is the only directory the dashboard lists now. Both folders belong to the container's user, so on Docker the move needs `sudo`, run through `sh -c` so that the `*` is read by an account that can see into the folder, and the `chmod` makes the moved backups readable by that user alone, as new ones are:
+Instance backups made from the Admin Panel are written to `backend/backups/`, **not** inside `uploads/`: a backup holds every credential on the instance, while `uploads/` is media you may sync anywhere. Versions before 1.5.0 wrote them to `backend/uploads/backups/`; if you have backups there, move them to `backend/backups/`, which is the only directory the Admin Panel lists now. Both folders belong to the container's user, so on Docker the move needs `sudo`, run through `sh -c` so that the `*` is read by an account that can see into the folder, and the `chmod` makes the moved backups readable by that user alone, as new ones are:
 
 ```bash
 sudo sh -c 'mv backend/uploads/backups/*.zip backend/backups/ && chmod 600 backend/backups/*.zip'
@@ -1202,7 +1203,7 @@ Without Docker, `backend/backups/` appears the first time the Backups tab is ope
 
 On an install without Docker the backend writes them to a `backups` folder in its working directory (`backend/backups`, beside `uploads`); set the `BACKUP_DIR` environment variable to put them somewhere else. A folder inside the uploads directory is refused, and the backend will not start with one. The Docker setup keeps them at `backend/backups/` on the host and does not pass `BACKUP_DIR` through.
 
-Because a backup holds every credential on the instance, the backend keeps the folder and each file in it readable by its own user alone (the folder is mode `700`, each backup `600`), and `backup.sh` does the same for its folder and the dumps in it, including any an earlier version left readable. While a backup or a restore runs, the working copy of the database it keeps in the system's temporary folder (`/tmp` unless `TMPDIR` says otherwise) sits in a folder of its own with the same protection, and is removed when it finishes, whether it worked or not. On a Docker host that user is the container's `appuser`, so copying a backup off the machine by hand needs `sudo`; downloading it from the dashboard needs nothing. The database password is never on a tool's command line either: `pg_dump` and `psql` read it from their environment, where the process list cannot show it.
+Because a backup holds every credential on the instance, the backend keeps the folder and each file in it readable by its own user alone (the folder is mode `700`, each backup `600`), and `backup.sh` does the same for its folder and the dumps in it, including any an earlier version left readable. While a backup or a restore runs, the working copy of the database it keeps in the system's temporary folder (`/tmp` unless `TMPDIR` says otherwise) sits in a folder of its own with the same protection, and is removed when it finishes, whether it worked or not. On a Docker host that user is the container's `appuser`, so copying a backup off the machine by hand needs `sudo`; downloading it from the Admin Panel needs nothing. The database password is never on a tool's command line either: `pg_dump` and `psql` read it from their environment, where the process list cannot show it.
 
 If the backend is stopped part-way through a backup or a restore (killed, or the machine loses power), its temporary folder (`crazyvtt-db-…` or `crazyvtt-restore-…`) is left behind. On Docker, the backend's `/tmp` is a volume of its own, `backend_tmp`, which outlives the container, and the backend removes such a folder each time it starts, for example with `docker compose restart backend`. On a manual install it stays until you delete it.
 
@@ -1212,7 +1213,7 @@ For large or multi-server deployments, consider mounting an S3-compatible object
 
 ## Per-User Permissions
 
-Beyond the platform role (Admin / User), two permissions are granted individually from **Admin Dashboard → Users**, as pill toggles beside each user's role. Both default to off, including on upgrade, and neither appears for admins, who have both implicitly.
+Beyond the platform role (Admin / User), two permissions are granted individually from **Admin Panel → Users**, as pill toggles beside each user's role. Both default to off, including on upgrade, and neither appears for admins, who have both implicitly.
 
 | Permission | Grants |
 |---|---|
@@ -1229,9 +1230,16 @@ An instance always keeps at least one admin. While you are the only one, you can
 
 ## Database Backups
 
-### Via Admin Dashboard
+<!-- The heading below was "Via Admin Dashboard": this keeps links made to it working. -->
+<a id="via-admin-dashboard"></a>
 
-**Admin Dashboard → Backups → Create Backup** generates a ZIP holding a `pg_dump` of the database and every uploaded file, which you can download for offsite storage. It is written to `backend/backups/` on the host, which the backend creates and takes ownership of on its first start, so there is nothing to make by hand. The bin beside a backup in the list deletes that file for good; it asks first, naming the file.
+### Via the Admin Panel
+
+**Admin Panel → Backups → Create Backup** generates a ZIP holding a `pg_dump` of the database and every uploaded file, which you can download for offsite storage. It is written to `backend/backups/` on the host, which the backend creates and takes ownership of on its first start, so there is nothing to make by hand. The bin beside a backup in the list deletes that file for good; it asks first, naming the file.
+
+**A backup too large for the Admin Panel's restore is said to be one when it is made.** The restore takes a backup of at most 4 GB that unpacks to at most 10 GiB in at most 100,000 files. **Create Backup** still makes and keeps a larger one, and says so on screen and in the backend log (`Backup made that the Admin Panel cannot restore`); restore such a backup from the command line, as "To restore anyway" below describes, and keep making backups by script too (see [Via the included scripts](#via-the-included-scripts)).
+
+Only what is inside `backend/uploads/` itself goes into a backup. If you have put a symbolic link there (a shortcut to a folder on another disk, say), the backup leaves the link and everything it points to out, and the backend log names it with the line `The backup left out something in the uploads folder that is not a file or a folder`; back that folder up on its own. A file or folder you copied in by hand whose name has two dots in a row or a backslash in it is left out too, since a restore refuses such a name, and the log names it with the line `The backup left out something in the uploads folder whose name a restore refuses`; rename it if you want it in the backup. The files CozyVTT stores itself never have such names.
 
 **Backups are never deleted automatically.** Every backup made with **Create Backup**, and the database-only backup each restore makes first, stays in the folder until you delete it with the bin. A backup holds every uploaded file, so each one is about as large as `backend/uploads/`, and the folder grows with every backup: delete the ones you no longer need, or download them for safekeeping and then delete them. Watch the disk space with `df -h backend/backups`. (The 30-day pruning of the backup script below applies only to the script's own `crazyvtt_*.sql.gz` files.)
 
@@ -1333,7 +1341,7 @@ A database-only backup (the kind a restore makes first) has no uploaded files, a
 
 If the backend is stopped while a restore is running, the uploaded backup it was working from is left in the backups folder as `restore-temp-….zip`; it is deleted the next time the backend starts.
 
-**Restore only backups made by this dashboard or by the backup script, on an instance you trust.** A backup is a set of instructions the database carries out with its owner's full rights. The restore refuses the database tool's own commands, and a line that starts with a copy statement that is not table data, but it cannot tell harmless SQL from harmful SQL. A file made to do harm can put anything at all in your database, and on the Docker setup it can also run programs inside the database container.
+**Restore only backups made by the Admin Panel or by the backup script, on an instance you trust.** A backup is a set of instructions the database carries out with its owner's full rights. The restore refuses the database tool's own commands, and a line that starts with a copy statement that is not table data, but it cannot tell harmless SQL from harmful SQL. A file made to do harm can put anything at all in your database, and on the Docker setup it can also run programs inside the database container.
 
 **If your `DATABASE_URL` names a schema** (it ends in `?schema=` and a name, as in [step 3 of the manual install](#3-configure-and-build)), a backup holds that schema alone, and a restore drops and recreates that schema alone: `public` and every other schema in the database are left as they were. The one exception is anything another program built on CrazyVTT's tables, such as a view of them, or a foreign key in its own table pointing at one of them: the database removes it along with the schema, so make it again after a restore. A backup restores only onto an instance whose `DATABASE_URL` names the schema it came from; any other is refused with **This file cannot be restored because it is a backup of the database schema "…", and this instance keeps its data in the schema "…"**, and nothing changes. To move such a backup between schemas, set the same `?schema=` on the instance you restore it on. The backup and restore scripts below work with the `public` schema only and stop with a message if `DATABASE_URL` names another; use the dashboard. A file `backup.sh` made on such an install with 1.5.3 or earlier holds the whole database, and neither the dashboard nor the scripts restore it; see [Restoring an older script backup of an install that names a schema](#restoring-an-older-script-backup-of-an-install-that-names-a-schema).
 
@@ -1369,11 +1377,11 @@ holding nothing but SQL. Anything else is refused with the reason, and nothing
 has changed. It then replaces the database's contents in a single step that is
 undone entirely if any part of it fails, so a backup that cannot be applied
 leaves your existing data as it was. Ownership and permission lines from
-another instance are ignored, as the dashboard ignores them, so a backup made
-under a different database user name still restores. Like the dashboard, the
-script runs `psql` in its restricted mode, which needs a PostgreSQL release
-from August 2025 or later; on Docker that is the database container's own
-`psql`, and `docker compose pull database` followed by
+another instance are ignored, as the Admin Panel's restore ignores them, so a
+backup made under a different database user name still restores. Like the
+Admin Panel's restore, the script runs `psql` in its restricted mode, which
+needs a PostgreSQL release from August 2025 or later; on Docker that is the
+database container's own `psql`, and `docker compose pull database` followed by
 `docker compose up -d database` brings an older image up to date.
 
 **Restart the backend as soon as a restore finishes.** The restore empties the
@@ -1434,7 +1442,7 @@ you changed them):
 The `umask 077` in brackets makes the file readable by you alone, as the script's are: it holds every password hash and MFA secret on the instance. (Password reset and invitation links are stored hashed, so a backup holds no working link.)
 
 `--exclude-table-data=public.session` leaves the login sessions out, as the
-dashboard and the script do, so restoring the file cannot sign back in someone
+Admin Panel and the script do, so restoring the file cannot sign back in someone
 who was signed out after it was made.
 
 To restore it, use `restore.sh` from the section above, which accepts this file
@@ -1475,7 +1483,7 @@ Only for a manual install whose `DATABASE_URL` ends in `?schema=` and a name, an
 
    It ends with `All migrations have been successfully applied` or `No pending migrations to apply`. Everyone signs in again afterwards.
 
-5. Once you have checked your campaigns are there, make a backup from the dashboard. It holds your schema alone and restores as usual.
+5. Once you have checked your campaigns are there, make a backup from the Admin Panel's **Backups** tab. It holds your schema alone and restores as usual.
 
 The new database also holds a copy of whatever other software kept in the old one; CrazyVTT ignores it.
 
@@ -1578,7 +1586,7 @@ docker compose exec -u appuser backend wget -qO- http://localhost:4000/health
 
 Docker already runs this check for you every 30 seconds; `docker compose ps` shows the backend as `healthy` or `unhealthy` based on it.
 
-The **Status** card on the Admin Panel's dashboard shows three lights and a count of the live connections open at that moment:
+The **Status** card on the Admin Panel's **Dashboard** tab shows three lights and a count of the live connections open at that moment:
 
 | Light | Green when | What it does not tell you |
 |---|---|---|
@@ -1742,7 +1750,7 @@ Database migrations run automatically via `prisma migrate deploy` on every start
 
 ### One-off data migration (only if upgrading from before 1.3.0)
 
-**None of 1.4.0, 1.5.0, 1.5.1, 1.5.2, 1.5.3 and 1.5.4 needs a manual step here**: their database migrations run automatically, and 1.5.1, 1.5.2 and 1.5.4 have none. Only one of them changes existing data: 1.5.3 clears the author of any custom creature whose account had already been deleted, and keeps the creature. (1.5.0 has four things to know after the upgrade, all in the changelog's upgrade note: backups now live in `backend/backups/`, MFA backup codes must be regenerated, a production instance refuses to start while `DATABASE_PASSWORD` is still the placeholder, and an install without Docker needs the database role to own the database before a backup can be restored.) This section applies only if you have characters created on a version **before 1.3.0** and never ran it.
+**None of 1.4.0, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4 and 1.6.0 needs a manual step here**: their database migrations run automatically, and 1.5.1, 1.5.2 and 1.5.4 have none. Only one of them changes existing data: 1.5.3 clears the author of any custom creature whose account had already been deleted, and keeps the creature. (1.5.0 has four things to know after the upgrade, all in the changelog's upgrade note: backups now live in `backend/backups/`, MFA backup codes must be regenerated, a production instance refuses to start while `DATABASE_PASSWORD` is still the placeholder, and an install without Docker needs the database role to own the database before a backup can be restored.) This section applies only if you have characters created on a version **before 1.3.0** and never ran it.
 
 Characters made from the built-in templates of those versions keep some of their content in fields the sheet no longer reads: a Pathfinder 2e character's strikes and class features, and a D&D 5e character's languages, personality traits, ideals, bonds, flaws and allies. Saving a character moves its own content to the right place. Until a character is saved or moved, though, a Pathfinder 2e sheet shows no strikes or class features. Run this once to move every character at once:
 
@@ -1937,4 +1945,4 @@ The routes are the same whether the file is published or not, since the web clie
 - rate limits: 5 failed sign-ins per 15 minutes and 10 new accounts per hour from one address, 300 requests a minute from one address, 30 uploads a minute per user, 20 campaign imports, 20 import previews and 20 campaign exports an hour per user, one at a time, 20 campaign invitation emails an hour per DM, and a limit per account on every kind of event sent to the live table (chat, dice, token moves, the DM's controls), set far above what a game sends
 - uploads checked by what the file contains, not by its name or the type it claims
 - Argon2id password hashing and a strong `SESSION_SECRET`
-- security headers on every response: from helmet on the API, and from the bundled nginx on the app page
+- security headers on every response: from helmet on the API, and from the frontend container on the app page (the manual install's Nginx example sets them itself)

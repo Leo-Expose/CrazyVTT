@@ -9,6 +9,7 @@ import { FogOperationSchema, FogShapeRevealSchema } from '../../validators/walls
 import type { FogState } from '../../types/walls';
 import logger from '../../utils/logger';
 import { fogOperationLimiter, limiterKey, stateRequestAllowed, loadFogState, applyWsFogOperation, revealedCellIndices, broadcastFogState, FogTooLargeError, campaignSockets, broadcastPartyVisionMerge } from '../shared';
+import { emitNewestState } from '../outgoingQueue';
 import { toJson } from '../../utils/prisma-json';
 import { canReadMap } from '../../services/permissions';
 import { bestEffort } from '../utils';
@@ -176,15 +177,15 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
       const fog: FogState = loadFogState(map, map.fogData as FogState | null);
 
       if (socket.role === 'DM') {
-        socket.emit('fog:updated', { mapId, fogState: fog });
+        emitNewestState(socket, 'fog:updated', { mapId, fogState: fog }, mapId);
       } else {
-        socket.emit('fog:cells', {
+        emitNewestState(socket, 'fog:cells', {
           mapId,
           revealedCells: revealedCellIndices(fog),
           fogCols: fog.fogCols,
           fogRows: fog.fogRows,
           cellPx: fog.cellPx,
-        });
+        }, mapId);
       }
     } catch (error) {
       // A map stored before the size limits can be too large for fog. Say
