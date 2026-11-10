@@ -452,6 +452,7 @@ export default function CharacterEditorPage() {
               <Button
                 variant={showInventory ? 'primary' : 'secondary'}
                 className="flex items-center gap-2"
+                aria-label="Manage Inventory & Containers"
                 onClick={() => setShowInventory(!showInventory)}
               >
                 <Package className="w-4 h-4" />

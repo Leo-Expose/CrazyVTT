@@ -266,8 +266,8 @@ describe('the token menu on the compact layout', () => {
     expect(sheetNamed('Goblin Scout')).toHaveAttribute('aria-modal', 'true');
     expect(openMenu()).toBeNull();
     expect(sheetLabels()).toEqual([
-      'Rotate Left', 'Rotate Right', 'Roll...', 'Edit Token', 'Add to Initiative', 'Duplicate Token', 'Save as Template',
-      'Hide from Players', 'Obscure Identity', 'Send to Spirit Realm', '---', 'Move to Map…', '---', 'Remove from Map',
+      'Rotate Left', 'Rotate Right', 'Movement Mode…', 'Roll...', 'Edit Token', 'Add to Initiative', 'Duplicate Token', 'Save as Template',
+      'Hide from Players', 'Obscure Identity', 'Send to Spirit Realm', '---', 'Move to Map…', 'DM Movement Override…', '---', 'Remove from Map',
     ]);
   });
 

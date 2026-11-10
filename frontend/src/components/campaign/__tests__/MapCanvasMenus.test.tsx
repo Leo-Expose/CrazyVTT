@@ -297,6 +297,9 @@ function rows(): string[] {
 }
 
 const ROTATE = ['Rotate Left [Turn 45 degrees anticlockwise]', 'Rotate Right [Turn 45 degrees clockwise]'];
+const MOVEMENT_MODE = 'Movement Mode…';
+const DM_MOVEMENT_OVERRIDE = 'DM Movement Override…';
+
 /** The DM's items after any Roll... of the creature's, for a creature on the material plane. */
 const DM_ITEMS = [
   'Edit Token (brand, bold)',
@@ -311,6 +314,70 @@ const DM_ITEMS = [
   '---',
   'Remove from Map (danger)',
 ];
+
+/** DM items for a movable creature (has Movement Mode… and DM Movement Override…) */
+const DM_MOVABLE_ITEMS = [
+  ...ROTATE,
+  MOVEMENT_MODE,
+  'Roll...',
+  'Edit Token (brand, bold)',
+  'Add to Initiative (accent)',
+  'Duplicate Token',
+  'Save as Template',
+  'Hide from Players',
+  'Obscure Identity',
+  'Send to Spirit Realm (spirit, dims)',
+  '---',
+  'Move to Map…▶ (accent, opens a submenu)',
+  DM_MOVEMENT_OVERRIDE,
+  '---',
+  'Remove from Map (danger)',
+];
+
+/** DM items for a movable character token (has Movement Mode… and DM Movement Override…) */
+const DM_MOVABLE_CHARACTER_ITEMS = [
+  'View Character Sheet',
+  'Roll...',
+  ...ROTATE,
+  MOVEMENT_MODE,
+  'Edit Token (brand, bold)',
+  'Add to Initiative (accent)',
+  'Duplicate Token',
+  'Save as Template',
+  'Hide from Players',
+  'Obscure Identity',
+  'Send to Spirit Realm (spirit, dims)',
+  '---',
+  'Move to Map…▶ (accent, opens a submenu)',
+  DM_MOVEMENT_OVERRIDE,
+  '---',
+  'Remove from Map (danger)',
+];
+
+/** DM items for a movable token with no character (has Movement Mode… and DM Movement Override…) */
+const DM_MOVABLE_NO_CHAR_ITEMS = [
+  ...ROTATE,
+  MOVEMENT_MODE,
+  'Roll...',
+  'Edit Token (brand, bold)',
+  'Add to Initiative (accent)',
+  'Duplicate Token',
+  'Save as Template',
+  'Hide from Players',
+  'Obscure Identity',
+  'Send to Spirit Realm (spirit, dims)',
+  '---',
+  'Move to Map…▶ (accent, opens a submenu)',
+  DM_MOVEMENT_OVERRIDE,
+  '---',
+  'Remove from Map (danger)',
+];
+
+/** Player items for their own movable character token */
+const PLAYER_MOVABLE_CHARACTER_ITEMS = ['View Character Sheet', 'Roll...', ...ROTATE, MOVEMENT_MODE];
+
+/** Player items for their own movable token with no character */
+const PLAYER_MOVABLE_NO_CHAR_ITEMS = [...ROTATE, MOVEMENT_MODE];
 
 /** A promise the test settles. */
 function deferred() {
@@ -345,14 +412,14 @@ beforeEach(() => {
 });
 
 describe("the DM's token menu", () => {
-  it('on a creature: the turns, its Roll..., then every DM item', () => {
+  it('on a creature: the turns, Movement Mode…, its Roll..., then every DM item', () => {
     render(<MapCanvas />);
     show(goblin());
     rightClick(0, 19);
 
     expect(theMenu().className).toBe(MENU);
     expect(theMenu().getAttribute('style')).toBe('left: 10px; top: 10px; visibility: visible;');
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_ITEMS);
   });
 
   it("on a player's character: the sheet and its Roll... first, and no creature's Roll...", () => {
@@ -360,7 +427,7 @@ describe("the DM's token menu", () => {
     show(hero('char-alice', 'alice'));
     rightClick(2, 19);
 
-    expect(rows()).toEqual(['View Character Sheet', 'Roll...', ...ROTATE, ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_CHARACTER_ITEMS);
   });
 
   it("on a creature with a character, a companion: the character's sheet and Roll... only", () => {
@@ -368,7 +435,7 @@ describe("the DM's token menu", () => {
     show(goblin({ characterId: 'char-alice' }));
     rightClick(0, 19);
 
-    expect(rows()).toEqual(['View Character Sheet', 'Roll...', ...ROTATE, ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_CHARACTER_ITEMS);
   });
 
   it("on a character that has left the campaign: no sheet, and the DM's own Roll... only for a creature", () => {
@@ -376,11 +443,11 @@ describe("the DM's token menu", () => {
     show(hero('char-gone', 'alice'), goblin({ characterId: 'char-gone' }));
 
     rightClick(2, 19);
-    expect(rows()).toEqual([...ROTATE, ...DM_ITEMS]);
+    expect(rows()).toEqual([...ROTATE, MOVEMENT_MODE, 'Edit Token (brand, bold)', 'Add to Initiative (accent)', 'Duplicate Token', 'Save as Template', 'Hide from Players', 'Obscure Identity', 'Send to Spirit Realm (spirit, dims)', '---', 'Move to Map…▶ (accent, opens a submenu)', DM_MOVEMENT_OVERRIDE, '---', 'Remove from Map (danger)']);
     fireEvent.click(document.body);
 
     rightClick(0, 19);
-    expect(rows()).toEqual([...ROTATE, ...DM_ITEMS]);
+    expect(rows()).toEqual([...ROTATE, MOVEMENT_MODE, 'Edit Token (brand, bold)', 'Add to Initiative (accent)', 'Duplicate Token', 'Save as Template', 'Hide from Players', 'Obscure Identity', 'Send to Spirit Realm (spirit, dims)', '---', 'Move to Map…▶ (accent, opens a submenu)', DM_MOVEMENT_OVERRIDE, '---', 'Remove from Map (danger)']);
   });
 
   it('on an object: no Roll... and no crossing to the spirit realm', () => {
@@ -388,7 +455,8 @@ describe("the DM's token menu", () => {
     show(goblin({ type: TokenType.OBJECT }));
     rightClick(0, 19);
 
-    expect(rows()).toEqual([...ROTATE, ...DM_ITEMS.filter((r) => !r.startsWith('Send to Spirit Realm'))]);
+    const expectedItems = [...ROTATE, MOVEMENT_MODE, 'Edit Token (brand, bold)', 'Add to Initiative (accent)', 'Duplicate Token', 'Save as Template', 'Hide from Players', 'Obscure Identity', '---', 'Move to Map…▶ (accent, opens a submenu)', DM_MOVEMENT_OVERRIDE, '---', 'Remove from Map (danger)'];
+    expect(rows()).toEqual(expectedItems);
   });
 
   it('on a token with no type: a creature without a character, a player with one', () => {
@@ -396,11 +464,11 @@ describe("the DM's token menu", () => {
     show(goblin({ type: undefined }), hero('char-alice', 'alice', { type: undefined }));
 
     rightClick(0, 19);
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_NO_CHAR_ITEMS);
     fireEvent.click(document.body);
 
     rightClick(2, 19);
-    expect(rows()).toEqual(['View Character Sheet', 'Roll...', ...ROTATE, ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_CHARACTER_ITEMS);
   });
 
   it('on a hidden, obscured token in the spirit realm: each switch offers the way back', () => {
@@ -410,6 +478,7 @@ describe("the DM's token menu", () => {
 
     expect(rows()).toEqual([
       ...ROTATE,
+      MOVEMENT_MODE,
       'Roll...',
       'Edit Token (brand, bold)',
       'Add to Initiative (accent)',
@@ -420,6 +489,7 @@ describe("the DM's token menu", () => {
       'Return to Material Plane (brand, dims)',
       '---',
       'Move to Map…▶ (accent, opens a submenu)',
+      DM_MOVEMENT_OVERRIDE,
       '---',
       'Remove from Map (danger)',
     ]);
@@ -431,7 +501,7 @@ describe("the DM's token menu", () => {
     show(goblin());
     rightClick(0, 19);
 
-    expect(rows().slice(-3)).toEqual(['Send to Spirit Realm (spirit, dims)', '---', 'Remove from Map (danger)']);
+    expect(rows().slice(-3)).toEqual([DM_MOVEMENT_OVERRIDE, '---', 'Remove from Map (danger)']);
   });
 
   it('while the session is paused, the same, the turns included', () => {
@@ -440,7 +510,7 @@ describe("the DM's token menu", () => {
     show(goblin());
     rightClick(0, 19);
 
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_NO_CHAR_ITEMS);
   });
 });
 
@@ -459,11 +529,13 @@ describe('the token menu in Player Preview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview Player View' }));
 
     rightClick(2, 19);
-    expect(rows()).toEqual(['View Character Sheet', 'Roll...', ...ROTATE, ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_CHARACTER_ITEMS);
     fireEvent.click(document.body);
 
+    // Hidden token: visible=false so shows "Reveal to Players"
+    const hiddenTokenItems = [...ROTATE, MOVEMENT_MODE, 'Roll...', 'Edit Token (brand, bold)', 'Add to Initiative (accent)', 'Duplicate Token', 'Save as Template', 'Reveal to Players', 'Obscure Identity', 'Send to Spirit Realm (spirit, dims)', '---', 'Move to Map…▶ (accent, opens a submenu)', DM_MOVEMENT_OVERRIDE, '---', 'Remove from Map (danger)'];
     rightClick(3, 10);
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS.map((r) => (r === 'Hide from Players' ? 'Reveal to Players' : r))]);
+    expect(rows()).toEqual(hiddenTokenItems);
   });
 });
 
@@ -478,7 +550,7 @@ describe("a player's token menu", () => {
     rightClick(2, 19);
 
     expect(theMenu().className).toBe(MENU);
-    expect(rows()).toEqual(['View Character Sheet', 'Roll...', ...ROTATE]);
+    expect(rows()).toEqual(PLAYER_MOVABLE_CHARACTER_ITEMS);
   });
 
   it('on a token of their own with no character: the turns', () => {
@@ -486,7 +558,7 @@ describe("a player's token menu", () => {
     show(goblin({ controlledBy: 'me' }));
     rightClick(0, 19);
 
-    expect(rows()).toEqual(ROTATE);
+    expect(rows()).toEqual(PLAYER_MOVABLE_NO_CHAR_ITEMS);
   });
 
   it("on another player's character: the sheet only", () => {
@@ -562,10 +634,10 @@ describe('Move to Map…', () => {
     expect(opener.innerHTML).toBe('<span>Move to Map…</span><span class="text-xs opacity-60">▶</span>');
 
     fireEvent.click(opener);
-    expect(rows().slice(-6)).toEqual(['---', 'Move to Map…▶ (accent, opens a submenu)', '› Map B', '› Map C', '---', 'Remove from Map (danger)']);
+    expect(rows().slice(-7)).toEqual(['---', 'Move to Map…▶ (accent, opens a submenu)', '› Map B', '› Map C', 'DM Movement Override…', '---', 'Remove from Map (danger)']);
 
     fireEvent.click(opener);
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_NO_CHAR_ITEMS);
   });
 
   it("opens with its submenu shut on a right-click on another token while it is open", () => {
@@ -577,7 +649,7 @@ describe('Move to Map…', () => {
 
     rightClick(4, 19);
 
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_NO_CHAR_ITEMS);
   });
 
   it('lists every map while the current one is not known to the campaign', () => {
@@ -606,7 +678,7 @@ describe('Move to Map…', () => {
     for (const x of [0, 4]) {
       rightClick(x, 19);
       fireEvent.click(screen.getByText('Move to Map…'));
-      expect(rows().slice(-5)).toEqual(['---', 'Move to Map…▶ (accent, opens a submenu)', '› (Moving…)', '---', 'Remove from Map (danger)']);
+      expect(rows().slice(-7)).toEqual(['Send to Spirit Realm (spirit, dims)', '---', 'Move to Map…▶ (accent, opens a submenu)', '› (Moving…)', 'DM Movement Override…', '---', 'Remove from Map (danger)']);
       fireEvent.click(document.body);
     }
 
@@ -1032,7 +1104,7 @@ describe('when a menu opens beside the map', () => {
     act(() => { vi.advanceTimersByTime(500); });
     finger.up(surface(), at(0, 19));
 
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_ITEMS);
     expect(screen.queryByText('Loading rolls…')).toBeNull();
   });
 
@@ -1069,7 +1141,7 @@ describe('when a menu opens beside the map', () => {
     act(() => { vi.advanceTimersByTime(500); });
     finger.up(surface(), at(0, 19));
 
-    expect(rows()).toEqual([...ROTATE, 'Roll...', ...DM_ITEMS]);
+    expect(rows()).toEqual(DM_MOVABLE_ITEMS);
     expect(openCharacterMenu()).toBeNull();
   });
 });

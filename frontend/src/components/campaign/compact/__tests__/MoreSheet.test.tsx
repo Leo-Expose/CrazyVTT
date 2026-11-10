@@ -57,7 +57,7 @@ describe('More', () => {
     more();
     render(<SessionToolbar openPanels={{}} onOpen={() => undefined} />);
     const toolbar = within(screen.getByRole('toolbar', { name: 'DM tools' })).getAllByRole('button').map((b) => b.getAttribute('aria-label'));
-    expect(toolbar).toHaveLength(7);
+    expect(toolbar).toHaveLength(11);
     expect(groups()).toEqual([AT_THE_TABLE, ['DM tools', toolbar]]);
   });
 

@@ -317,7 +317,7 @@ describe('Map controls', () => {
     render(<MapCanvas />);
     fireEvent.click(mapControlsButton());
     expect(sheetRows()).toEqual([
-      'Fit to Screen', 'Hide grid', 'Grid Color: Black', '---', 'Ruler', 'AoE Shape', '---', 'Show tools', 'Hide spirit tokens',
+      'Fit to Screen', 'Hide grid', 'Grid Color: Black', '---', 'Ruler', 'AoE Shape', '---', 'Show tools', '---', 'Tile Stamp Tool', 'Room Tool', 'Corridor Tool', 'Map Layers', 'Hide spirit tokens',
     ]);
   });
 

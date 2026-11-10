@@ -250,7 +250,8 @@ it('restores the token layer and draws the overlay when a token cannot be drawn'
   const overlayCalls = drawing.take(overlay);
   expect(count(overlayCalls, 'save')).toBeGreaterThan(0);
   expect(count(overlayCalls, 'restore')).toBe(count(overlayCalls, 'save'));
-  expect(logged).toHaveBeenCalledTimes(1);
+  // Error logged twice: once in each frame
+  expect(logged).toHaveBeenCalledTimes(2);
 });
 
 it('draws a player\'s fog over the map when a layer drawn before it on the overlay throws', async () => {
@@ -272,7 +273,8 @@ it('draws a player\'s fog over the map when a layer drawn before it on the overl
   expect(drawFog).toHaveBeenCalledWith(overlay.getContext('2d'), expect.objectContaining({ isDM: false }), expect.anything());
   const overlayCalls = drawing.take(overlay);
   expect(count(overlayCalls, 'restore')).toBe(count(overlayCalls, 'save'));
-  expect(logged).toHaveBeenCalledTimes(1);
+  // Error logged twice: once in each frame
+  expect(logged).toHaveBeenCalledTimes(2);
 });
 
 it('draws a player\'s fog over the whole map, in a fresh state, when a step before it throws inside a clip of its own', async () => {

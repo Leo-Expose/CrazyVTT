@@ -67,9 +67,9 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue>({
   appearance: null,
   refreshAppearance: async () => {},
-  mascotUrl: '/crazyvtt-mascot.png',
-  logoUrl: '/crazyvtt-logo.png',
-  faviconUrl: '/crazyvtt-mascot.png',
+  mascotUrl: '/mascot.png',
+  logoUrl: '/logo.png',
+  faviconUrl: '/mascot.png',
   applyUserPreferences: () => {},
 });
 
@@ -277,12 +277,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // The browser tab shows the instance's name.
   useEffect(() => {
     if (!appearance) return;
-    document.title = appearance.instanceName?.trim() || 'CrazyVTT';
+    document.title = appearance.instanceName?.trim() || 'CozyVTT';
   }, [appearance]);
 
-  const mascotUrl = appearance?.customMascotUrl || '/crazyvtt-mascot.png';
-  const logoUrl = appearance?.customLogoUrl || '/crazyvtt-logo.png';
-  const faviconUrl = appearance?.customFaviconUrl || '/crazyvtt-mascot.png';
+  const mascotUrl = appearance?.customMascotUrl || '/mascot.png';
+  const logoUrl = appearance?.customLogoUrl || '/logo.png';
+  const faviconUrl = appearance?.customFaviconUrl || '/mascot.png';
 
   return (
     <ThemeContext.Provider

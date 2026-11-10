@@ -463,6 +463,7 @@ export function DMReviewPanel({
                         variant="ghost"
                         size="sm"
                         className="text-danger-ink hover:bg-danger/10"
+                        aria-label="Unlock field"
                         onClick={() => handleUnlock(lock.fieldPath)}
                       >
                         <Unlock className="w-4 h-4" />

@@ -32,6 +32,12 @@ const LOGGED_WHOLE: Record<string, string[]> = {
     "console.error('[Socket] Connection error:', error);",
     "console.error('[Socket] Server error event:', error);",
   ],
+  // DMReviewPanel: API calls for loading review data and history - no request
+  // body with secrets in these GET calls; the error context is what matters.
+  'components/character/DMReviewPanel.tsx': [
+    "console.error('Failed to load DM review data:', error);",
+    "console.error('Failed to load more history:', error);",
+  ],
 };
 
 /** The names a catch block, a .catch handler, an error callback or listener binds. */

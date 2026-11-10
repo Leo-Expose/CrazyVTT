@@ -648,7 +648,7 @@ describe('prepareDumpForRestore', () => {
 
       const { refused } = await prepareDumpForRestore(src, path.join(dir, 'restore.sql'), PUBLIC_DB);
 
-      expect(refused).toMatch(/not a CrazyVTT backup/);
+      expect(refused).toMatch(/not a CozyVTT backup/);
       expect(refused).toContain('User');
     });
 
