@@ -277,7 +277,7 @@ const possessionSchema = z.object({
   name: shortText.min(1),
   notes: longText.optional(),
   // Container fields
-  containerId: z.string().optional(),
+  containerId: shortText.optional(),
   location: z.enum(['EQUIPPED', 'CARRIED', 'STOWED', 'CONTAINER']).optional(),
   // Weight (CoC uses weight in lbs)
   weight: z.number().min(0).optional(),
@@ -293,8 +293,8 @@ const possessionSchema = z.object({
  * All fields optional for progressive wealth tracking
  */
 const currencyContainerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  id: shortText,
+  name: shortText,
   cash: z.number().min(0),
 });
 
@@ -307,7 +307,7 @@ const wealthSchema = z.object({
   assets: longText.optional(),
   notes: longText.optional(),
   // Per container currency tracking
-  containers: z.array(currencyContainerSchema).optional(),
+  containers: sheetList(currencyContainerSchema).optional(),
 });
 
 /**

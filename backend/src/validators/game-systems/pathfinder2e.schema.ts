@@ -253,8 +253,8 @@ const strikeSchema = z.object({
  * Currency container (for tracking currency per container)
  */
 const currencyContainerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  id: shortText,
+  name: shortText,
   cp: z.number().int().min(0),
   sp: z.number().int().min(0),
   gp: z.number().int().min(0),
@@ -270,7 +270,7 @@ const currencySchema = z.object({
   gp: z.number().int().min(0).default(0),
   pp: z.number().int().min(0).default(0),
   // Per container currency tracking
-  containers: z.array(currencyContainerSchema).optional(),
+  containers: sheetList(currencyContainerSchema).optional(),
 });
 
 /**
@@ -279,7 +279,7 @@ const currencySchema = z.object({
 const chargesSchema = z.object({
   max: z.number().int().min(0),
   current: z.number().int().min(0),
-  recharge: z.string().optional(),
+  recharge: shortText.optional(),
 });
 
 /**
@@ -308,13 +308,13 @@ const inventoryItemSchema = z.object({
   invested: z.boolean().optional(),
   notes: longText.optional(),
   // Container fields
-  containerId: z.string().optional(),
+  containerId: shortText.optional(),
   location: z.enum(['EQUIPPED', 'CARRIED', 'STOWED', 'CONTAINER']).optional(),
   capacity: z.number().min(0).optional(),
   capacityUnit: z.enum(['LBS', 'BULK']).optional(),
   // Attunement/Invested
-  attunementNotes: z.string().optional(),
-  investedNotes: z.string().optional(),
+  attunementNotes: longText.optional(),
+  investedNotes: longText.optional(),
   // Magic
   magical: z.boolean().optional(),
   charges: chargesSchema.optional(),

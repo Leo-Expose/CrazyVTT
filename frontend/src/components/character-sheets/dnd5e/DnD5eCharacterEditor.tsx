@@ -90,6 +90,7 @@ import { RaceClassManager } from '@/components/character/RaceClassSelect';
 import { applyBackgroundToSheet, calculateArmorLogistics, getClassById, applyClassLevelFeatures } from '@/data/dnd5e';
 import { LevelUpAssistantModal } from '@/components/character/LevelUpAssistantModal';
 import { CompendiumItemPickerModal } from '@/components/character/CompendiumItemPickerModal';
+import { CompendiumSpellPickerModal } from '@/components/character/CompendiumSpellPickerModal';
 
 /**
  * The sheet as this editor holds it.
@@ -468,6 +469,10 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
       appearance: own.appearance || {},
       personality: own.personality || {},
       alliesAndOrganizations: own.alliesAndOrganizations || { name: '', description: '' },
+      rulesetVersion: own.rulesetVersion || '2014',
+      weaponMasteries: own.weaponMasteries || [],
+      heroicInspiration: own.heroicInspiration || false,
+      originFeat: own.originFeat || '',
     };
   });
 
@@ -1123,6 +1128,9 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
 
   // Compendium Item Picker Modal state
   const [showItemPicker, setShowItemPicker] = useState(false);
+
+  // Compendium Spell Picker Modal state
+  const [showSpellPicker, setShowSpellPicker] = useState(false);
 
   /**
    * Set the level, moving the proficiency bonus with it when the bonus was the
@@ -2831,20 +2839,30 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-3">
           <h3 className="text-lg font-semibold text-ink">Spells</h3>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              const newSpells = [
-                ...(formData.spellcasting?.spells || []),
-                newRow({ level: 1, name: '', prepared: false, ritual: false, concentration: false }),
-              ];
-              updateField('spellcasting.spells', newSpells);
-            }}
-            disabled={listIsFull(formData.spellcasting?.spells)}
-          >
-            + Add Spell
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowSpellPicker(true)}
+              disabled={listIsFull(formData.spellcasting?.spells)}
+            >
+              Browse Spell Compendium
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                const newSpells = [
+                  ...(formData.spellcasting?.spells || []),
+                  newRow({ level: 1, name: '', prepared: false, ritual: false, concentration: false }),
+                ];
+                updateField('spellcasting.spells', newSpells);
+              }}
+              disabled={listIsFull(formData.spellcasting?.spells)}
+            >
+              + Add Spell
+            </Button>
+          </div>
         </div>
         <ListLimitNote full={listIsFull(formData.spellcasting?.spells)} />
         <div className="space-y-2">
@@ -3574,6 +3592,33 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
               }),
             ];
             updateField('inventory', newInventory);
+          }}
+        />
+      )}
+      {/* Compendium Spell Picker Modal */}
+      {showSpellPicker && (
+        <CompendiumSpellPickerModal
+          isOpen={showSpellPicker}
+          onClose={() => setShowSpellPicker(false)}
+          onAddCantrip={(cantripName) => {
+            const currentCantrips = parseCommaSeparated(cantripsText);
+            if (!currentCantrips.includes(cantripName)) {
+              const updated = [...currentCantrips, cantripName].join(', ');
+              updateField('spellcasting.cantrips', updated);
+            }
+          }}
+          onAddSpell={(spell) => {
+            const newSpells = [
+              ...(formData.spellcasting?.spells || []),
+              newRow({
+                level: spell.level,
+                name: spell.name,
+                prepared: true,
+                ritual: false,
+                concentration: spell.concentration,
+              }),
+            ];
+            updateField('spellcasting.spells', newSpells);
           }}
         />
       )}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <circle cx="50" cy="50" r="46" fill="#1e293b" stroke="#e2e8f0" stroke-width="4"/>
+  <circle cx="50" cy="50" r="42" fill="#3b82f6" fill-opacity="0.2"/>
+  <!-- Crossed Swords Icon -->
+  <path d="M28 72 L72 28 M24 68 L32 76 M68 24 L76 32 M35 55 L45 65 M55 35 L65 45" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+  <path d="M72 72 L28 28 M68 76 L76 68 M24 32 L32 24 M55 65 L65 55 M35 35 L45 45" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -37,6 +37,8 @@ import { getUploadLimit, formatUploadLimit } from '@/utils/uploadLimits';
 import { assetNameFrom } from '@/utils/assetName';
 import { cn } from '@/utils/cn';
 import { BackToList, useLibraryFormStep } from './libraryFormStep';
+import { BatchTokenImportModal } from './BatchTokenImportModal';
+import { Download } from 'lucide-react';
 
 function defaultStatBlockForNpc(): NpcStatBlock {
   return {
@@ -79,6 +81,7 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [placingId, setPlacingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TokenTemplate | null>(null);
   // The template whose Delete button was clicked, until it is confirmed or cancelled.
   const [templateToDelete, setTemplateToDelete] = useState<TokenTemplate | null>(null);
@@ -296,6 +299,13 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
           >
             <Plus className="w-3 h-3" /> New Template
           </button>
+          <button
+            onClick={() => setShowBatchModal(true)}
+            className="flex items-center gap-1 text-xs text-brand hover:text-brand-hover transition-colors font-medium"
+            title="Seed starter vector tokens or batch import token images"
+          >
+            <Download className="w-3 h-3" /> Import Tokens
+          </button>
         </div>
       </div>
 
@@ -387,6 +397,66 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
       variant="danger"
       onConfirm={() => templateToDelete && handleDelete(templateToDelete.id)}
       onCancel={() => setTemplateToDelete(null)}
+    />
+
+    {/* Batch Token Import & Starter Pack Modal */}
+    <BatchTokenImportModal
+      isOpen={showBatchModal}
+      onClose={() => setShowBatchModal(false)}
+      onImportStarterTokens={async () => {
+        if (!campaign) return;
+        const starterList = [
+          { name: 'Fighter Hero', type: TokenType.PLAYER, url: '/tokens/token_fighter.svg', hpMax: 12 },
+          { name: 'Wizard Hero', type: TokenType.PLAYER, url: '/tokens/token_wizard.svg', hpMax: 8 },
+          { name: 'Rogue Hero', type: TokenType.PLAYER, url: '/tokens/token_rogue.svg', hpMax: 10 },
+          { name: 'Cleric Hero', type: TokenType.PLAYER, url: '/tokens/token_cleric.svg', hpMax: 11 },
+          { name: 'Goblin Scout', type: TokenType.NPC, url: '/tokens/token_goblin.svg', hpMax: 7 },
+          { name: 'Skeleton Minion', type: TokenType.NPC, url: '/tokens/token_skeleton.svg', hpMax: 13 },
+          { name: 'Red Dragon', type: TokenType.NPC, url: '/tokens/token_dragon.svg', hpMax: 178 },
+          { name: 'Dire Beast', type: TokenType.NPC, url: '/tokens/token_beast.svg', hpMax: 19 },
+        ];
+
+        for (const item of starterList) {
+          try {
+            const created = await api.createTokenTemplate(campaign.id, {
+              name: item.name,
+              type: item.type,
+              imageUrl: item.url,
+              size: item.name.includes('Dragon') ? { width: 3, height: 3 } : { width: 1, height: 1 },
+              displayMode: 'pog',
+              disposition: item.type === TokenType.PLAYER ? 'friendly' : 'hostile',
+              hp: { current: item.hpMax, max: item.hpMax, temp: 0 },
+              showHpBar: true,
+            });
+            setTemplates((prev) => [created.template, ...prev]);
+            setTotal((p) => p + 1);
+          } catch (e) {
+            console.error('Failed to seed starter token', e);
+          }
+        }
+      }}
+      onBatchUploadImages={async (files) => {
+        if (!campaign) return;
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          try {
+            const asset = await api.uploadAsset(file, AssetType.TOKEN, campaign.id);
+            const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            const created = await api.createTokenTemplate(campaign.id, {
+              name: name.charAt(0).toUpperCase() + name.slice(1),
+              type: TokenType.NPC,
+              imageUrl: asset.filePath,
+              size: { width: 1, height: 1 },
+              displayMode: 'pog',
+              disposition: 'hostile',
+            });
+            setTemplates((prev) => [created.template, ...prev]);
+            setTotal((p) => p + 1);
+          } catch (err) {
+            console.error('Failed to upload batch token', err);
+          }
+        }
+      }}
     />
     </>
   );

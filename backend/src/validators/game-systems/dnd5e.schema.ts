@@ -231,8 +231,8 @@ const attackSchema = z.object({
  * Currency container (for tracking currency per container)
  */
 const currencyContainerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  id: shortText,
+  name: shortText,
   cp: z.number().int().min(0),
   sp: z.number().int().min(0),
   ep: z.number().int().min(0),
@@ -250,7 +250,7 @@ const currencySchema = z.object({
   gp: z.number().int().min(0).default(0),
   pp: z.number().int().min(0).default(0),
   // Per container currency tracking
-  containers: z.array(currencyContainerSchema).optional(),
+  containers: sheetList(currencyContainerSchema).optional(),
 });
 
 /**
@@ -259,7 +259,7 @@ const currencySchema = z.object({
 const chargesSchema = z.object({
   max: z.number().int().min(0),
   current: z.number().int().min(0),
-  recharge: z.string().optional(), // "dawn", "dusk", "long rest", "1d6", "short rest"
+  recharge: shortText.optional(), // "dawn", "dusk", "long rest", "1d6", "short rest"
 });
 
 /**
@@ -282,7 +282,7 @@ const inventoryItemSchema = z.object({
   equippable: z.boolean().optional(),
   equipped: z.boolean().optional(),
   // Container fields
-  containerId: z.string().optional(), // Parent container ID
+  containerId: shortText.optional(), // Parent container ID
   location: z.enum(['EQUIPPED', 'CARRIED', 'STOWED', 'CONTAINER']).optional(),
   // Container capacity (if this item is a container)
   capacity: z.number().min(0).optional(),
@@ -290,7 +290,7 @@ const inventoryItemSchema = z.object({
   // Attunement
   requiresAttunement: z.boolean().optional(),
   attuned: z.boolean().optional(),
-  attunementNotes: z.string().optional(),
+  attunementNotes: longText.optional(),
   // Magic
   magical: z.boolean().optional(),
   charges: chargesSchema.optional(),
