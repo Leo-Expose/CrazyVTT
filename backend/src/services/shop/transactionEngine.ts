@@ -4,9 +4,9 @@
 // ============================================
 
 import { Prisma, PrismaClient, ShopItemType } from '@prisma/client';
-import { addCurrency as addCurrencyRecord, getTotalCurrency, removeCurrency } from '../inventory/currency.js';
-import type { RestockRuleInput } from '../../validators/shops.js';
-import { readCharacterInventory, toPrismaJson, type InventoryEntry } from '../inventory/characterData.js';
+import { addCurrency as addCurrencyRecord, getTotalCurrency, removeCurrency } from '../inventory/currency';
+import type { RestockRuleInput } from '../../validators/shops';
+import { readCharacterInventory, toPrismaJson, type InventoryEntry } from '../inventory/characterData';
 
 interface BuyItemInput {
   itemId: string;

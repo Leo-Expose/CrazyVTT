@@ -864,7 +864,7 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                 </div>
 
                 {/* Show HP to players toggle */}
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
                   <input
                     type="checkbox"
                     checked={showHpBar}
@@ -873,6 +873,63 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                   />
                   <span className="text-xs text-stone-gray">Show HP bar to players</span>
                 </label>
+
+                {/* Qualitative / Enemy Health Display Override (PRD §14.1, §14.3) */}
+                <div className="pt-2 border-t border-moss-green/10">
+                  <div className="text-xs font-semibold text-stone-gray mb-1">Player Health View:</div>
+                  <div className="flex gap-1.5">
+                    {(['campaign', 'exact', 'qualitative', 'none'] as const).map((mode) => {
+                      const currentMode = (token.metadata?.healthDisplayMode as string) ?? 'campaign';
+                      const isSelected = currentMode === mode;
+                      return (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={async () => {
+                            const newMetadata = { ...token.metadata };
+                            if (mode === 'campaign') {
+                              delete newMetadata.healthDisplayMode;
+                            } else {
+                              newMetadata.healthDisplayMode = mode;
+                            }
+                            await saveUpdate({ metadata: newMetadata });
+                          }}
+                          className={`px-2 py-1 text-[11px] rounded capitalize transition-colors ${
+                            isSelected
+                              ? 'bg-moss-green/20 text-brand-ink font-medium border border-moss-green/40'
+                              : 'bg-warm-gray/10 text-stone-gray hover:bg-warm-gray/20'
+                          }`}
+                        >
+                          {mode === 'campaign' ? 'Default' : mode}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-warm-gray mt-1">
+                    When Qualitative or None is chosen, exact HP is stripped from player network payloads.
+                  </p>
+                </div>
+
+                {/* Elevation & Flying Height (PRD §11.1, §13) */}
+                <div className="pt-2 border-t border-moss-green/10 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-stone-gray">Elevation (ft):</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      step={5}
+                      value={token.metadata?.elevation !== undefined ? Number(token.metadata.elevation) : 0}
+                      onChange={async (e) => {
+                        const val = parseInt(e.target.value, 10) || 0;
+                        const newMetadata = { ...token.metadata, elevation: val };
+                        if (val === 0) delete newMetadata.elevation;
+                        await saveUpdate({ metadata: newMetadata });
+                      }}
+                      className="input-cozy input-cozy-number w-20 text-xs text-center"
+                      placeholder="0 ft"
+                    />
+                    <span className="text-[11px] text-stone-gray font-mono">ft</span>
+                  </div>
+                </div>
               </>
             ) : (
               <div className="glass-panel p-3">

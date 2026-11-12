@@ -247,6 +247,19 @@ function WelcomePage() {
             </Button>
           )}
         </div>
+
+        {/* Open source footer notice */}
+        <div className="mt-8 pt-4 border-t border-moss-green/20 text-center text-xs text-stone-gray">
+          Self-hosted Virtual Tabletop &middot; Open source and free under the{' '}
+          <a
+            href="https://www.gnu.org/licenses/agpl-3.0.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand hover:underline font-medium"
+          >
+            GNU AGPL v3 License
+          </a>
+        </div>
       </div>
     </div>
   );

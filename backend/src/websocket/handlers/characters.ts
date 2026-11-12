@@ -326,4 +326,165 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       socket.emit('error', { message: 'Failed to spend hit die' });
     }
   });
+
+  /**
+   * CHARACTER.REST — Long Rest / Short Rest automated recovery engine (PRD §5, §10.3)
+   * Automatically recovers hit points, refreshes expended spell slots, resets death saves,
+   * and replenishes hit dice per 5e rules.
+   */
+  socket.on('character.rest', async (data: { characterId: string; restType: 'short' | 'long' }) => {
+    try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
+
+      const { characterId, restType } = data ?? {};
+      if (!characterId || (restType !== 'short' && restType !== 'long')) {
+        socket.emit('error', { message: 'characterId and valid restType ("short" | "long") are required' });
+        return;
+      }
+
+      const character = await characterToChange(
+        socket,
+        socket.campaignId,
+        characterId,
+        'You do not have permission to rest this character',
+      );
+      if (!character) return;
+
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
+        const fresh = await tx.character.findUnique({ where: { id: characterId }, select: { data: true } });
+        if (!fresh) return { error: 'Character not found' } as const;
+
+        const sheetData = { ...(fresh.data as Record<string, unknown>) };
+
+        if (restType === 'long') {
+          // 1. Long Rest restores 100% of maximum HP and clears temporary HP
+          const hp = (sheetData.hp as { current: number; maximum: number; temporary: number }) || { current: 10, maximum: 10, temporary: 0 };
+          sheetData.hp = { ...hp, current: hp.maximum, temporary: 0 };
+
+          // 2. Clear death saves
+          sheetData.deathSaves = { successes: 0, failures: 0 };
+
+          // 3. Reset spell slots: reset used count to 0 for all tiers
+          if (sheetData.spellcasting && typeof sheetData.spellcasting === 'object') {
+            const spellcasting = { ...(sheetData.spellcasting as Record<string, unknown>) };
+            const slots = (spellcasting.slots as Record<string, { total: number; used: number }>) || {};
+            const refreshedSlots: Record<string, { total: number; used: number }> = {};
+            for (const [lvl, val] of Object.entries(slots)) {
+              refreshedSlots[lvl] = { ...val, used: 0 };
+            }
+            spellcasting.slots = refreshedSlots;
+            sheetData.spellcasting = spellcasting;
+          }
+
+          // 4. Regain up to half total hit dice (min 1)
+          if (Array.isArray(sheetData.hitDice)) {
+            sheetData.hitDice = sheetData.hitDice.map((hd: { maximum: number; remaining: number; class?: string; total?: string; die?: string }) => {
+              const max = hd.maximum || 1;
+              const regained = Math.max(1, Math.floor(max / 2));
+              return { ...hd, remaining: Math.min(max, (hd.remaining || 0) + regained) };
+            });
+          }
+        }
+
+        const updated = await tx.character.update({
+          where: { id: characterId },
+          data: { data: toJson(sheetData) },
+        });
+
+        return { updated, hp: sheetData.hp };
+      });
+
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
+        return;
+      }
+
+      // Broadcast character updated to table
+      await emitCharacterUpdated(socket.campaignId, outcome.updated, {
+        characterId,
+        userId: socket.userId,
+        tokensChanged: false,
+      });
+
+      io.to(socket.campaignId).emit('character.hp.updated', { characterId, hp: outcome.hp });
+      logger.info('character.rest applied', { characterId, restType, userId: socket.userId });
+    } catch (error) {
+      logger.error('character.rest failed', { err: error });
+      socket.emit('error', { message: 'Failed to process character rest' });
+    }
+  });
+
+  /**
+   * CHARACTER.SPELLSLOT.USE — Deduct or refund a spell slot on cast (PRD §5, §10.3)
+   */
+  socket.on('character.spellslot.use', async (data: { characterId: string; level: number; delta: number }) => {
+    try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
+
+      const { characterId, level, delta } = data ?? {};
+      if (!characterId || typeof level !== 'number' || level < 1 || level > 9 || typeof delta !== 'number') {
+        socket.emit('error', { message: 'characterId, valid level (1-9), and delta are required' });
+        return;
+      }
+
+      const character = await characterToChange(
+        socket,
+        socket.campaignId,
+        characterId,
+        'You do not have permission to modify this character\'s spell slots',
+      );
+      if (!character) return;
+
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
+        const fresh = await tx.character.findUnique({ where: { id: characterId }, select: { data: true } });
+        if (!fresh) return { error: 'Character not found' } as const;
+
+        const sheetData = { ...(fresh.data as Record<string, unknown>) };
+        if (!sheetData.spellcasting || typeof sheetData.spellcasting !== 'object') {
+          return { error: 'Character has no spellcasting slots' } as const;
+        }
+
+        const spellcasting = { ...(sheetData.spellcasting as Record<string, unknown>) };
+        const slots = { ...(spellcasting.slots as Record<string, { total: number; used: number }>) };
+        const lvlKey = String(level);
+        const slot = slots[lvlKey] || { total: 0, used: 0 };
+
+        const newUsed = Math.max(0, Math.min(slot.total, (slot.used || 0) + delta));
+        slots[lvlKey] = { ...slot, used: newUsed };
+        spellcasting.slots = slots;
+        sheetData.spellcasting = spellcasting;
+
+        const updated = await tx.character.update({
+          where: { id: characterId },
+          data: { data: toJson(sheetData) },
+        });
+
+        return { updated, newUsed, total: slot.total };
+      });
+
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
+        return;
+      }
+
+      await emitCharacterUpdated(socket.campaignId, outcome.updated, {
+        characterId,
+        userId: socket.userId,
+        tokensChanged: false,
+      });
+
+      logger.info('character.spellslot.use applied', { characterId, level, delta, newUsed: outcome.newUsed });
+    } catch (error) {
+      logger.error('character.spellslot.use failed', { err: error });
+      socket.emit('error', { message: 'Failed to update spell slots' });
+    }
+  });
 }

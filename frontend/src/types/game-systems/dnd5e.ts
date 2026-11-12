@@ -287,13 +287,19 @@ export interface DnD5eCharacterData extends SheetChrome {
   // Required: Core identity
   characterName: string;
   class: string;
+  subclass?: string;
+  subrace?: string;
   level: number;
   race: string;
   proficiencyBonus: number;
   stats: DnD5eStats;
 
-  // Optional: Additional details
+  // Optional: Additional details & 5.5e (2024 Revised) support
   playerName?: string;
+  rulesetVersion?: '2014' | '2024';
+  weaponMasteries?: string[];
+  heroicInspiration?: boolean;
+  originFeat?: string;
   background?: string;
   alignment?: string;
   experiencePoints?: number;

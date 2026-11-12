@@ -583,6 +583,34 @@ export function drawTokens(
       ctx.fillText('?', bx, by + badgeRadius * 0.05);
     }
 
+    // Token Elevation indicator badge (e.g. "+20 ft" for flying or climbing)
+    if (token.metadata?.elevation !== undefined && Number(token.metadata.elevation) !== 0) {
+      const elevationNum = Number(token.metadata.elevation);
+      const elevText = elevationNum > 0 ? `+${elevationNum}ft` : `${elevationNum}ft`;
+      const badgeW = Math.max(24, 28 / zoom);
+      const badgeH = Math.max(12, 14 / zoom);
+      const ex = centerX - badgeW / 2;
+      const ey = displayMode === 'full-art' ? tokenY + tokenHeight - badgeH - 2 / zoom : centerY + radius - badgeH;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1 / zoom;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(ex, ey, badgeW, badgeH, 3 / zoom);
+      } else {
+        ctx.rect(ex, ey, badgeW, badgeH);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = `bold ${Math.max(8, 9 / zoom)}px 'Inter', system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(elevText, centerX, ey + badgeH / 2);
+    }
+
     // Hover border
     if (state.hoverTokenId === token.id) {
       ctx.strokeStyle = '#4a90e2';

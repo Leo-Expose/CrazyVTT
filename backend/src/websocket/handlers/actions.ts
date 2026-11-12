@@ -515,6 +515,145 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
       refuse('Failed to reset used actions');
     }
   });
+
+  /**
+   * ACTION.RESOLVE - Direct effect resolution (PRD §10.3)
+   * Direct apply of damage, healing, resource deduction, and conditions to target tokens/characters
+   */
+  socket.on('action:resolve', async (data: {
+    actionId?: string;
+    actionName?: string;
+    initiatorId?: string;
+    targets: Array<{ id: string; name?: string }>;
+    effects?: {
+      damage?: number;
+      damageType?: string;
+      healing?: number;
+      tempHP?: number;
+      conditions?: Array<{ name: string; duration?: string }>;
+      resourceCost?: { type: string; amount: number };
+    };
+    dmModifications?: Record<string, unknown>;
+  }, ackArg?: unknown) => {
+    const ack = ackFrom(ackArg);
+    const refuse = (message: string) => refuseRequest(socket, ack, message);
+
+    try {
+      if (!socket.campaignId) {
+        refuse('Not authenticated to a campaign');
+        return;
+      }
+
+      const { actionId, actionName, initiatorId, targets, effects, dmModifications } = data;
+      const appliedResults: Array<{
+        targetId: string;
+        previousHP?: number;
+        newHP?: number;
+        appliedConditions?: string[];
+      }> = [];
+
+      // 1. If an action is identified, mark it as used
+      if (actionId) {
+        await setActionUsed(actionId, true).catch(() => {});
+      }
+
+      // 2. Apply effects to each target token or character
+      for (const target of targets) {
+        // Look up maps containing this token
+        const mapList: Array<{ id: string; tokens: unknown }> = await prisma.map.findMany({
+          where: { campaignId: socket.campaignId },
+          select: { id: true, tokens: true },
+        });
+
+        for (const currentMap of mapList) {
+          const mapTokens = (currentMap.tokens as Array<Record<string, unknown>>) || [];
+          const tokenIndex = mapTokens.findIndex((tok: Record<string, unknown>) => tok.id === target.id);
+          if (tokenIndex !== -1) {
+            const token = mapTokens[tokenIndex];
+            const hp = (token.hp as { current: number; max: number; temp?: number }) || null;
+            let newHP = hp ? { ...hp } : null;
+
+            if (newHP) {
+              // Apply damage
+              if (effects?.damage && effects.damage > 0) {
+                let damageRemaining = effects.damage;
+                if (newHP.temp && newHP.temp > 0) {
+                  const absorbed = Math.min(newHP.temp, damageRemaining);
+                  newHP.temp -= absorbed;
+                  damageRemaining -= absorbed;
+                }
+                newHP.current = Math.max(0, newHP.current - damageRemaining);
+              }
+              // Apply healing
+              if (effects?.healing && effects.healing > 0) {
+                newHP.current = Math.min(newHP.max, newHP.current + effects.healing);
+              }
+              // Apply temp HP
+              if (effects?.tempHP && effects.tempHP > 0) {
+                newHP.temp = Math.max(newHP.temp || 0, effects.tempHP);
+              }
+
+              token.hp = newHP;
+            }
+
+            // Apply conditions
+            const conditions = Array.isArray(token.conditions) ? [...(token.conditions as string[])] : [];
+            if (effects?.conditions) {
+              for (const c of effects.conditions) {
+                if (!conditions.includes(c.name)) {
+                  conditions.push(c.name);
+                }
+              }
+              token.conditions = conditions;
+            }
+
+            mapTokens[tokenIndex] = token;
+
+            // Persist updated token to map
+            await prisma.map.update({
+              where: { id: currentMap.id },
+              data: { tokens: mapTokens as unknown as Prisma.InputJsonValue },
+            });
+
+            appliedResults.push({
+              targetId: target.id,
+              previousHP: hp?.current,
+              newHP: newHP?.current,
+              appliedConditions: effects?.conditions?.map((c) => c.name),
+            });
+
+            // Broadcast token update
+            io.to(socket.campaignId).emit('token:updated', {
+              mapId: currentMap.id,
+              token,
+            });
+          }
+        }
+      }
+
+      // Broadcast action resolved event
+      io.to(socket.campaignId).emit('action:resolved', {
+        actionId,
+        actionName,
+        initiatorId,
+        targets,
+        effects,
+        dmModifications,
+        results: appliedResults,
+        resolvedBy: socket.userId,
+      });
+
+      ack?.({ ok: true, results: appliedResults });
+      logger.info('action:resolve direct effect applied', {
+        campaignId: socket.campaignId,
+        targetsCount: targets.length,
+        actionName,
+      });
+    } catch (error) {
+      logger.error('action:resolve failed', { err: error });
+      refuse('Failed to resolve action effects');
+    }
+  });
 }
 
 /**

@@ -78,6 +78,8 @@ const SPECIAL_ROLLS = [
   { label: 'Adv', expression: '2d20kh1' },
   { label: 'Dis', expression: '2d20kl1' },
   { label: '4d6kh3', expression: '4d6kh3' },
+  { label: 'Bell 3d6', expression: '3d6' },
+  { label: 'Bell 2d10', expression: '2d10' },
 ];
 
 /**

@@ -152,6 +152,14 @@ export function tokenSentTo<T extends MaskableToken>(token: T, own: boolean): T 
   // Whatever fields T has beyond the list are exactly what this leaves out.
   const sent = Object.fromEntries(listed) as T;
   if (!(own || token.showHpBar === true)) delete sent.hp;
+  // Qualitative enemy health: when qualitative or none is configured in token metadata (e.g. healthDisplayMode: 'qualitative' | 'none'),
+  // or showQualitativeHealth is set without exact HP, zero exact HP is leaked to non-controllers.
+  if (!own && sent.hp && token.metadata) {
+    const mode = token.metadata.healthDisplayMode;
+    if (mode === 'none' || mode === 'qualitative') {
+      delete sent.hp;
+    }
+  }
   if (!own) {
     delete sent.sightRadius;
     // The link resolves to a library entry, whose stat block and true name

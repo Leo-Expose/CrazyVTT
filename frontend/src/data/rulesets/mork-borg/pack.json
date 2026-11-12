@@ -1,0 +1,97 @@
+{
+  "id": "mork-borg",
+  "version": "1.0.0",
+  "name": "MÖRK BORG Ruleset Pack",
+  "description": "A doom-driven apocalyptic fantasy ruleset pack. D4/D6/D8/D10/D12, Omens, Powers, and Misery as the dying world crumbles.",
+  "system": "MORK_BORG",
+  "attribution": {
+    "source": "MÖRK BORG Bare Bones Edition / Third-Party License",
+    "publisher": "Ockult Örtmästare Games & Stockholm Kartell",
+    "license": "MÖRK BORG Third-Party License",
+    "url": "https://morkborg.com",
+    "notice": "MÖRK BORG is copyright Ockult Örtmästare Games and Stockholm Kartell."
+  },
+  "measurements": {
+    "gridType": "square",
+    "gridDistance": 5,
+    "gridUnit": "ft",
+    "diagonalRule": "euclidean",
+    "defaultMovement": 30
+  },
+  "fields": [
+    { "key": "agility", "label": "Agility", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "presence", "label": "Presence", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "strength", "label": "Strength", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "toughness", "label": "Toughness", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "omens", "label": "Omens", "type": "number", "defaultValue": 2, "min": 0, "max": 10 }
+  ],
+  "conditions": [
+    { "id": "broken", "name": "Broken", "description": "HP reduced to 0: roll d4 on Broken table (1=Unconscious d4 rounds, 2=Severe limb loss, 3=Bleeding out in d4 rounds, 4=Dead).", "preventsActions": true, "effects": ["broken"] },
+    { "id": "infected", "name": "Infected", "description": "Rotting from filthy wounds. -1 to all tests; take d4 damage per day until cured.", "effects": ["penalty_tests"] },
+    { "id": "madness", "name": "Mind Shattered", "description": "Overcome by bleak cosmic nihilism. Disadvantage on Presence and mental tests.", "effects": ["disadvantage_mental"] }
+  ],
+  "actions": [
+    { "id": "melee_attack", "name": "Melee Attack", "actionType": "ATTACK_MELEE", "cost": "ACTION", "description": "Attack with sword, femur, or flail (Strength DR12). Deals weapon damage (d4 to d10)." },
+    { "id": "ranged_attack", "name": "Ranged Attack", "actionType": "ATTACK_RANGED", "cost": "ACTION", "description": "Fire bow or sling (Agility DR12). Critical fumbles break the weapon." },
+    { "id": "defend", "name": "Defend / Dodge", "actionType": "REACTION", "cost": "REACTION", "description": "Roll Agility DR12 when attacked. Failure results in taking armor-reduced damage." },
+    { "id": "use_power", "name": "Wield Unclean / Sacred Power", "actionType": "SPELL_ATTACK", "cost": "ACTION", "description": "Test Presence DR12 to invoke a scroll. Fumble (natural 1) triggers Arcane Catastrophe (d20)." },
+    { "id": "use_omen", "name": "Spend an Omen", "actionType": "FEATURE", "cost": "FREE", "description": "Expend 1 Omen: deal max damage, reroll any test, or lower a test DR by 4." }
+  ],
+  "races": [
+    {
+      "id": "wretched_human",
+      "name": "Wretched Human",
+      "description": "A hopeless soul wandering the dying world of Galgenbeck and Sarkash.",
+      "speed": 30,
+      "abilityScoreModifiers": {},
+      "features": [
+        { "id": "grim_resolve", "name": "Grim Resolve", "level": 1, "description": "Begin with d2 Omens rolled each sunrise." }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "id": "fanged_deserter",
+      "name": "Fanged Deserter",
+      "description": "Savage ex-soldier with monstrous cannibalistic teeth.",
+      "hitDie": 10,
+      "primaryAbility": "Strength",
+      "savingThrows": ["strength", "toughness"],
+      "features": [
+        { "id": "bite_attack", "name": "Bite Attack", "level": 1, "description": "Strength DR12 bite deals d6 damage; heal d4 on kill." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "gutterborn_scum",
+      "name": "Gutterborn Scum",
+      "description": "Filthy cutpurse bred in the foul alleys of Schleswig.",
+      "hitDie": 6,
+      "primaryAbility": "Agility",
+      "savingThrows": ["agility"],
+      "features": [
+        { "id": "cowardly_sneak", "name": "Cowardly Backstab", "level": 1, "description": "Attack from surprise with DR8, dealing +d6 damage." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "occult_heretic",
+      "name": "Occult Heretic",
+      "description": "Blasphemer who fled the Two-Headed Basilisks.",
+      "hitDie": 4,
+      "primaryAbility": "Presence",
+      "savingThrows": ["presence"],
+      "features": [
+        { "id": "forbidden_scrolls", "name": "Scroll Bearer", "level": 1, "description": "Starts with d2 unclean or sacred powers." }
+      ],
+      "subclasses": []
+    }
+  ],
+  "automation": {
+    "deathSavesEnabled": false,
+    "criticalHitRule": "double_total",
+    "encumbranceRule": "standard_5e",
+    "shortRestRecoveryFormula": "d4",
+    "longRestFullHeal": false
+  }
+}

@@ -685,7 +685,17 @@ export default function InitiativeTracker() {
   const handleNext = useCallback(() => {
     if (!socket) return;
     socket.emitInitiativeNext();
-  }, [socket]);
+
+    // Check for tokens with active conditions and tick durations on round transition
+    const combatants = combatState.combatants;
+    if (combatState.currentIndex >= combatants.length - 1) {
+      // Advancing to next round: notify DM of active conditions
+      const tokensWithConditions = tokens.filter((t) => t.conditions && t.conditions.length > 0);
+      if (tokensWithConditions.length > 0) {
+        showToast(`Round ${combatState.round + 1}: ${tokensWithConditions.length} creature(s) have active conditions to review`, 'info');
+      }
+    }
+  }, [socket, combatState, tokens, showToast]);
 
   const handleEnd = useCallback(() => {
     if (!socket) return;
@@ -832,11 +842,46 @@ export default function InitiativeTracker() {
           <div className="p-3 space-y-3">
             {/* Active turn banner */}
             {combatState.active && currentCombatant && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-warm-amber/10 border border-warm-amber/30 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-warm-amber animate-pulse shrink-0" />
-                <span className="text-xs font-semibold text-accent-ink truncate">
-                  {tokenDisplayName(currentCombatant)}'s turn
-                </span>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 px-3 py-2 bg-warm-amber/10 border border-warm-amber/30 rounded-lg">
+                  <div className="w-2 h-2 rounded-full bg-warm-amber animate-pulse shrink-0" />
+                  <span className="text-xs font-semibold text-accent-ink truncate">
+                    {tokenDisplayName(currentCombatant)}'s turn
+                  </span>
+                </div>
+
+                {/* Death Saving Throw Prompt (PRD §10.4, §14.1) */}
+                {currentCombatant.hp && currentCombatant.hp.current <= 0 && (
+                  <div className="p-2.5 rounded-lg bg-danger/10 border border-danger/30 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-danger-ink block">At 0 HP — Dying</span>
+                      <span className="text-[10px] text-stone-gray">Roll a Death Saving Throw</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const roll = Math.floor(Math.random() * 20) + 1;
+                        const isSuccess = roll >= 10;
+                        const isCrit = roll === 20;
+                        const isFumble = roll === 1;
+
+                        socket?.emit('dice.roll', {
+                          expression: '1d20',
+                          characterName: tokenDisplayName(currentCombatant),
+                          purpose: `Death Saving Throw: ${roll} [${isCrit ? 'NAT 20 - REVIVE 1 HP' : isFumble ? 'NAT 1 - 2 FAILURES' : isSuccess ? 'SUCCESS' : 'FAILURE'}]`,
+                        });
+
+                        showToast(
+                          `Death Save: ${roll} — ${isCrit ? 'Natural 20! Regains 1 HP' : isFumble ? 'Natural 1! Counts as 2 failures' : isSuccess ? 'Success (>=10)' : 'Failure (<10)'}`,
+                          isSuccess ? 'success' : 'error'
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded bg-danger text-white hover:bg-danger-hover font-semibold text-[11px] transition-colors"
+                    >
+                      Roll Death Save (d20)
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

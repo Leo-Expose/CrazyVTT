@@ -7,6 +7,8 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { MessageCircle, Send, Loader, AlertCircle, Eraser, X, Lock, Shield } from 'lucide-react';
 import { useParams } from 'react-router';
+import { rollOnTable, ROLLABLE_TABLES } from '@/data/compendium/rollableTables';
+import { Table as TableIcon } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOnRejoin } from '@/hooks/useOnRejoin';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1017,9 +1019,31 @@ export default function ChatPanel() {
             </>
           ) : (
             <>
-              <div key="to" className="flex items-center gap-2">
-                {toLabel}
-                {toList}
+              <div key="to" className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {toLabel}
+                  {toList}
+                </div>
+                {/* Rollable Tables Trigger (PRD §10.1, §19.1) */}
+                <select
+                  aria-label="Roll on Table"
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    const res = rollOnTable(e.target.value);
+                    socket?.emit('chat.message', {
+                      content: `[TABLE: ${res.tableName}] Rolled ${res.roll}: ${res.result}`,
+                      type: MessageType.PLAYER,
+                      clientId: newClientId(),
+                    });
+                    e.target.value = '';
+                  }}
+                  className="px-2 py-0.5 text-xs rounded border border-moss-green/30 bg-paper/60 text-brand-ink cursor-pointer"
+                >
+                  <option value="">Roll on Table...</option>
+                  {Object.values(ROLLABLE_TABLES).map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
               </div>
               <div key="compose" className="flex gap-2">
                 {messageBox}

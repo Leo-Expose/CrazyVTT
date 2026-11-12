@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import {
   DEFAULT_SPELL_TEMPLATES,
   type AoETemplateDefinition,
@@ -11,7 +12,7 @@ export interface SpellTemplatePlacerProps {
   selectedTemplate: AoETemplateDefinition;
   onSelectTemplate: (template: AoETemplateDefinition) => void;
   affectedTokens: AffectedTokenResult[];
-  onConfirmCast: () => void;
+  onConfirmCast: (autoApply?: boolean, damageDice?: string) => void;
   onCancel: () => void;
   customTemplates?: AoETemplateDefinition[];
 }
@@ -43,7 +44,7 @@ export const SpellTemplatePlacer: React.FC<SpellTemplatePlacerProps> = ({
     >
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-edge">
         <div className="flex items-center gap-2">
-          <span className="text-xl">✨</span>
+          <Sparkles className="w-5 h-5 text-brand" />
           <span className="font-semibold tracking-wide">Cast Spell AoE</span>
         </div>
         <button
@@ -128,7 +129,7 @@ export const SpellTemplatePlacer: React.FC<SpellTemplatePlacerProps> = ({
 
           {/* Placement Hint */}
           <p className="text-[11px] text-ink-muted italic">
-            Click map to place origin. Drag to orient direction.
+            Click map to place origin. Drag to orient direction. Targets with &ge;50% area coverage are highlighted (PRD §13).
           </p>
 
           {/* Action Buttons */}
@@ -143,11 +144,11 @@ export const SpellTemplatePlacer: React.FC<SpellTemplatePlacerProps> = ({
             </button>
             <button
               type="button"
-              onClick={onConfirmCast}
+              onClick={() => onConfirmCast(true)}
               disabled={affectedCount === 0}
               className="flex-1 py-1.5 px-3 rounded-lg bg-brand text-brand-ink hover:bg-brand/90 disabled:opacity-50 text-xs font-medium transition-colors shadow-sm"
             >
-              Cast Spell
+              Cast &amp; Apply
             </button>
           </div>
         </div>

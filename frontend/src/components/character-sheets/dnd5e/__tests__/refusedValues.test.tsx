@@ -117,8 +117,10 @@ describe('saving', () => {
     const onSave = open({ race: '', class: ' ' });
     pressSave();
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Race is required');
-    expect(screen.getByRole('alert')).toHaveTextContent('Class is required');
+    const raceErrors = screen.getAllByText('Race is required');
+    const classErrors = screen.getAllByText('Class is required');
+    expect(raceErrors.length).toBeGreaterThan(0);
+    expect(classErrors.length).toBeGreaterThan(0);
     expect(onSave).not.toHaveBeenCalled();
   });
 

@@ -19,6 +19,12 @@
  */
 
 // ---------------------------------------------------------------------------
+// Health Display Representation Modes (PRD §14.1, §14.3)
+// ---------------------------------------------------------------------------
+
+export type HealthDisplayMode = 'none' | 'qualitative' | 'exact';
+
+// ---------------------------------------------------------------------------
 // Core enum — the seven observable states a creature can be in
 // ---------------------------------------------------------------------------
 
@@ -60,7 +66,7 @@ export type KnownGameSystem =
   | 'SHADOWRUN_6E'
   | 'FLEXIBLE';
 
-const DEFAULT_THRESHOLDS: HealthThresholds = {
+export const DEFAULT_THRESHOLDS: HealthThresholds = {
   healthy: 0.75,
   wounded: 0.50,
   bloodied: 0.25,
@@ -122,17 +128,21 @@ export interface TokenHealthData {
  */
 export function getQualitativeHealth(
   health: TokenHealthData,
-  gameSystem: string,
+  gameSystemOrThresholds?: string | HealthThresholds,
 ): QualitativeHealth {
-  const thresholds: HealthThresholds =
-    SYSTEM_THRESHOLDS[gameSystem as KnownGameSystem] ?? DEFAULT_THRESHOLDS;
+  let thresholds: HealthThresholds = DEFAULT_THRESHOLDS;
+  if (typeof gameSystemOrThresholds === 'object' && gameSystemOrThresholds !== null) {
+    thresholds = gameSystemOrThresholds;
+  } else if (typeof gameSystemOrThresholds === 'string') {
+    thresholds = SYSTEM_THRESHOLDS[gameSystemOrThresholds as KnownGameSystem] ?? DEFAULT_THRESHOLDS;
+  }
 
   // ── 1. Explicit dead condition ───────────────────────────────────────────
   if (health.conditions?.includes('Dead')) return QualitativeHealth.DEAD;
 
   // ── 2. Zero / negative HP ───────────────────────────────────────────────
   if (health.current <= 0) {
-    if (gameSystem === 'DND_5E' && health.deathSaves) {
+    if (gameSystemOrThresholds === 'DND_5E' && health.deathSaves) {
       if (health.deathSaves.failures >= 3) return QualitativeHealth.DEAD;
       if (health.deathSaves.successes >= 3) return QualitativeHealth.UNCONSCIOUS;
       return QualitativeHealth.DYING;

@@ -67,9 +67,9 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue>({
   appearance: null,
   refreshAppearance: async () => {},
-  mascotUrl: '/mascot.png',
-  logoUrl: '/logo.png',
-  faviconUrl: '/mascot.png',
+  mascotUrl: '/favicon.svg',
+  logoUrl: '/logo.svg',
+  faviconUrl: '/favicon.svg',
   applyUserPreferences: () => {},
 });
 
@@ -280,9 +280,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.title = appearance.instanceName?.trim() || 'CrazyVTT';
   }, [appearance]);
 
-  const mascotUrl = appearance?.customMascotUrl || '/mascot.png';
-  const logoUrl = appearance?.customLogoUrl || '/logo.png';
-  const faviconUrl = appearance?.customFaviconUrl || '/mascot.png';
+  const mascotUrl = appearance?.customMascotUrl || '/favicon.svg';
+  const logoUrl = appearance?.customLogoUrl || '/logo.svg';
+  const faviconUrl = appearance?.customFaviconUrl || '/favicon.svg';
 
   return (
     <ThemeContext.Provider

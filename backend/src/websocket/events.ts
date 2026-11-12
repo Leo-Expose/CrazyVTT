@@ -34,6 +34,7 @@ import { registerMovementHandlers } from './handlers/movement';
 import { registerSpellHandlers } from './handlers/spells';
 import { registerOverrideHandlers } from './handlers/overrides';
 import { registerDrawingHandlers } from './handlers/drawings';
+import { registerDrawingHandlers as registerLayerDrawingHandlers } from './handlers/drawing';
 
 /**
  * WebSocket Event Handlers — orchestrator.
@@ -323,6 +324,7 @@ export function registerEventHandlers(io: Server): void {
     registerSpellHandlers(io, socket);
     registerOverrideHandlers(io, socket);
     registerDrawingHandlers(io, socket);
+    registerLayerDrawingHandlers(io, socket);
 
     // ============================================
     // DISCONNECT EVENT

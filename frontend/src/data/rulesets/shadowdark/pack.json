@@ -1,0 +1,142 @@
+{
+  "id": "shadowdark",
+  "version": "1.0.0",
+  "name": "Shadowdark RPG Ruleset Pack",
+  "description": "Fast-paced old-school dungeon crawling with real-time torch timers (1 hour), roll-to-cast spells, Luck tokens, and slot-based gear.",
+  "system": "SHADOWDARK",
+  "attribution": {
+    "source": "Shadowdark RPG Quickstart / Third-Party Creator License",
+    "publisher": "The Arcane Library LLC",
+    "license": "Shadowdark RPG Community License",
+    "url": "https://www.thearcanelibrary.com/pages/shadowdark",
+    "notice": "Shadowdark RPG is copyright The Arcane Library LLC."
+  },
+  "measurements": {
+    "gridType": "square",
+    "gridDistance": 5,
+    "gridUnit": "ft",
+    "diagonalRule": "dnd5e_standard",
+    "defaultMovement": 30
+  },
+  "fields": [
+    { "key": "strength", "label": "Strength", "type": "number", "defaultValue": 10, "min": 3, "max": 18 },
+    { "key": "dexterity", "label": "Dexterity", "type": "number", "defaultValue": 10, "min": 3, "max": 18 },
+    { "key": "constitution", "label": "Constitution", "type": "number", "defaultValue": 10, "min": 3, "max": 18 },
+    { "key": "intelligence", "label": "Intelligence", "type": "number", "defaultValue": 10, "min": 3, "max": 18 },
+    { "key": "wisdom", "label": "Wisdom", "type": "number", "defaultValue": 10, "min": 3, "max": 18 },
+    { "key": "charisma", "label": "Charisma", "type": "number", "defaultValue": 10, "min": 3, "max": 18 },
+    { "key": "luck_token", "label": "Luck Token", "type": "boolean", "defaultValue": false }
+  ],
+  "conditions": [
+    { "id": "darkness", "name": "Total Darkness", "description": "No torch or light remaining. You cannot see. Disadvantage on all checks and attacks; attacks against you have advantage.", "effects": ["disadvantage_all", "grant_advantage"] },
+    { "id": "paralyzed", "name": "Paralyzed", "description": "Incapacitated and cannot move or speak. Attacks against you hit automatically and are critical hits.", "preventsActions": true, "preventsReactions": true, "speedMultiplier": 0, "effects": [] },
+    { "id": "poisoned", "name": "Poisoned", "description": "Disadvantage on all checks and attack rolls.", "effects": ["disadvantage_attacks"] },
+    { "id": "dying", "name": "Dying (0 HP)", "description": "Bleeding out. You die in 1d4 + Constitution modifier rounds unless stabilized.", "preventsActions": true, "effects": ["dying"] }
+  ],
+  "actions": [
+    { "id": "melee_strike", "name": "Melee Weapon Strike", "actionType": "ATTACK_MELEE", "cost": "ACTION", "description": "Make one melee attack with d20 + Strength mod vs target AC." },
+    { "id": "ranged_shot", "name": "Ranged Weapon Shot", "actionType": "ATTACK_RANGED", "cost": "ACTION", "description": "Make one ranged attack with d20 + Dexterity mod vs target AC." },
+    { "id": "cast_spell", "name": "Roll to Cast Spell", "actionType": "SPELL_ATTACK", "cost": "ACTION", "description": "Roll d20 + Spellcasting Stat mod vs Spell DC (10 + Tier). Natural 1 triggers Wizard Mishap or Deity Penance. On failure, spell is lost for the day." },
+    { "id": "turn_undead", "name": "Turn Undead", "actionType": "SPELL_ATTACK", "cost": "ACTION", "description": "Cleric rolls d20 + Wisdom mod vs highest undead level. Success paralyzes or destroys undead." },
+    { "id": "spend_luck", "name": "Spend Luck Token", "actionType": "FEATURE", "cost": "FREE", "description": "Discard your Luck Token to reroll any one roll you just made." }
+  ],
+  "races": [
+    {
+      "id": "human",
+      "name": "Human",
+      "description": "Ambitious and adaptable dungeon crawlers.",
+      "speed": 30,
+      "abilityScoreModifiers": {},
+      "features": [
+        { "id": "human_grit", "name": "Grit", "level": 1, "description": "Roll an additional talent at 1st level." }
+      ]
+    },
+    {
+      "id": "dwarf",
+      "name": "Dwarf",
+      "description": "Stout, subterranean fighters renowned for stonecraft and endurance.",
+      "speed": 25,
+      "abilityScoreModifiers": {},
+      "features": [
+        { "id": "stout", "name": "Stout", "level": 1, "description": "Start with +2 HP and advantage on saves vs poison." }
+      ]
+    },
+    {
+      "id": "elf",
+      "name": "Elf",
+      "description": "Fey beings with keen vision and ethereal longevity.",
+      "speed": 30,
+      "abilityScoreModifiers": {},
+      "features": [
+        { "id": "fey_blood", "name": "Fey Blood", "level": 1, "description": "+1 to spellcasting checks or +1 with ranged attacks." }
+      ]
+    },
+    {
+      "id": "halfling",
+      "name": "Halfling",
+      "description": "Small, cheerful, and remarkably stealthy survivors.",
+      "speed": 25,
+      "abilityScoreModifiers": {},
+      "features": [
+        { "id": "stealthy", "name": "Stealthy", "level": 1, "description": "Advantage on checks to remain unseen or pass silently." }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "id": "fighter",
+      "name": "Fighter",
+      "description": "Armor-clad masters of steel and physical combat.",
+      "hitDie": 8,
+      "primaryAbility": "Strength or Dexterity",
+      "savingThrows": ["strength", "constitution"],
+      "features": [
+        { "id": "weapon_mastery", "name": "Weapon Mastery", "level": 1, "description": "+1 to attack and damage with your chosen weapon type." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "priest",
+      "name": "Priest",
+      "description": "Devoted holy warriors invoking miracles and turning the restless dead.",
+      "hitDie": 6,
+      "primaryAbility": "Wisdom",
+      "savingThrows": ["wisdom"],
+      "features": [
+        { "id": "holy_magic", "name": "Holy Spellcasting", "level": 1, "description": "Cast Priest spells with Wisdom check (DC 10 + Tier)." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "wizard",
+      "name": "Wizard",
+      "description": "Arcane scholars commanding elemental forces and ancient wards.",
+      "hitDie": 4,
+      "primaryAbility": "Intelligence",
+      "savingThrows": ["intelligence"],
+      "features": [
+        { "id": "arcane_magic", "name": "Arcane Spellcasting", "level": 1, "description": "Cast Wizard spells with Intelligence check (DC 10 + Tier)." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "thief",
+      "name": "Thief",
+      "description": "Silent shadows adept at lockpicking, trap disarming, and assassination.",
+      "hitDie": 4,
+      "primaryAbility": "Dexterity",
+      "savingThrows": ["dexterity"],
+      "features": [
+        { "id": "backstab", "name": "Backstab", "level": 1, "description": "Advantage on attacks against unaware foes, dealing +1d6 damage." }
+      ],
+      "subclasses": []
+    }
+  ],
+  "automation": {
+    "deathSavesEnabled": false,
+    "criticalHitRule": "double_dice",
+    "encumbranceRule": "standard_5e",
+    "shortRestRecoveryFormula": "1",
+    "longRestFullHeal": true
+  }
+}

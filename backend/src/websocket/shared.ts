@@ -264,6 +264,14 @@ export const SOCKET_CEILINGS = {
     windows: [{ limit: 50, windowMs: SECOND }],
     refusal: 'Too many hit dice spent at once. Wait a moment, then try again.',
   },
+  'character.rest': {
+    windows: [{ limit: 10, windowMs: SECOND }],
+    refusal: 'Too many rest requests at once. Wait a moment, then try again.',
+  },
+  'character.spellslot.use': {
+    windows: [{ limit: 30, windowMs: SECOND }],
+    refusal: 'Too many spell slot updates. Wait a moment, then try again.',
+  },
   // Their own budget, apart from the drag frames: each drop is a write under
   // the map's lock, and on a lit map line of sight for every player.
   'token.move.start': tokenMoves,
@@ -282,6 +290,7 @@ export const SOCKET_CEILINGS = {
   'action:preview': tokenMoves,
   'action:startResolution': tokenMoves,
   'action:roll': tokenMoves,
+  'action:resolve': tokenMoves,
   'action:dmReview': dmEvent('action reviews'),
   'action:resetUsed': dmEvent('action resets'),
   'character:draft:join': tokenMoves,
@@ -298,6 +307,17 @@ export const SOCKET_CEILINGS = {
   'tile:place': dmEvent('tile placements'),
   'tile:remove': dmEvent('tile removals'),
   'tile:rectangle': dmEvent('tile rectangles'),
+  'shape:draw': dmEvent('shape drawings'),
+  'shape:update': dmEvent('shape updates'),
+  'shape:delete': dmEvent('shape deletions'),
+  'drawing:stroke': dmEvent('drawing strokes'),
+  'text:place': dmEvent('text placements'),
+  'image:upload': dmEvent('image uploads'),
+  'erase': dmEvent('erasing'),
+  'map:undo': dmEvent('undo actions'),
+  'map:redo': dmEvent('redo actions'),
+  'layer:create': dmEvent('layer creations'),
+  'layer:merge-down': dmEvent('layer merges'),
   // A page joins once per socket, and again after each reconnect; a browser
   // restoring its tabs joins with all of them at once.
   authenticate: {

@@ -294,8 +294,11 @@ const inventoryItemSchema = z.object({
   // Magic
   magical: z.boolean().optional(),
   charges: chargesSchema.optional(),
-  // Value
-  value: itemValueSchema.optional(),
+  // Value - accepts either structured object { amount, currency } or plain number (gp) for backward compatibility
+  value: z.union([
+    itemValueSchema,
+    z.number().min(0).transform((amount) => ({ amount, currency: 'GP' as const })),
+  ]).optional(),
   // Legacy value field for backward compatibility
   valueLegacy: z.number().min(0).optional(),
 });
@@ -411,8 +414,14 @@ export const dnd5eCharacterDataSchema = z.object({
   proficiencyBonus: z.number().int().min(2).max(6),
   stats: statsSchema,
 
-  // Optional: Additional details
+  // Optional: Additional details & 5.5e (2024 Revised) support
   playerName: shortText.min(1).optional(),
+  subclass: shortText.optional(),
+  subrace: shortText.optional(),
+  rulesetVersion: z.enum(['2014', '2024']).optional(), // Toggle between 2014 and 2024 rulesets
+  weaponMasteries: sheetList(shortText).optional(),    // 2024 Weapon Masteries (Cleave, Graze, Nick, Push, Sap, Slow, Topple, Vex)
+  heroicInspiration: z.boolean().optional(),           // 2024 Heroic Inspiration
+  originFeat: shortText.optional(),                    // 2024 Origin Feat from background
   // Empty is allowed: these are text boxes on the sheet, and clearing one
   // writes an empty string, which `min(1)` refused along with the whole save.
   background: shortText.optional(),

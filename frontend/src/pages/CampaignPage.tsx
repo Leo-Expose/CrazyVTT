@@ -523,6 +523,9 @@ function CampaignPageContent() {
       {/* Atmosphere Player — mounts for ALL users, manages ambient audio sync */}
       <AtmospherePlayer />
 
+      {/* Opportunity Attack & Spell Reaction Prompts (PRD §10.3, §12.2) */}
+      <ReactionPromptUI />
+
       {/* What the server refuses, shown as a message */}
       <TableRefusals />
     </div>
@@ -532,6 +535,8 @@ function CampaignPageContent() {
 // ============================================
 // Campaign Page (with provider wrapper)
 // ============================================
+
+import ReactionPromptUI from '@/components/campaign/ReactionPrompt';
 
 export default function CampaignPage() {
   // The page's one question of the screen's width: below it, the compact

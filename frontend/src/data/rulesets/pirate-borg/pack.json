@@ -1,0 +1,123 @@
+{
+  "id": "pirate-borg",
+  "version": "1.0.0",
+  "name": "Pirate Borg Ruleset Pack",
+  "description": "A scurvy-ridden ruleset pack for Pirate Borg — dark Caribbean tabletop RPG with cutlasses, flintlocks, black powder, ash, and nautical doom.",
+  "system": "PIRATE_BORG",
+  "attribution": {
+    "source": "Pirate Borg Third-Party License / MÖRK BORG Compatible",
+    "publisher": "Limithron LLC / Ockult Örtmästare Games",
+    "license": "Pirate Borg Compatible License",
+    "url": "https://www.limithron.com/pirateborg",
+    "notice": "Pirate Borg is copyright Limithron LLC. Adapted for tabletop play."
+  },
+  "measurements": {
+    "gridType": "square",
+    "gridDistance": 5,
+    "gridUnit": "yards",
+    "diagonalRule": "euclidean",
+    "defaultMovement": 30
+  },
+  "fields": [
+    { "key": "strength", "label": "Strength", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "agility", "label": "Agility", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "presence", "label": "Presence", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "toughness", "label": "Toughness", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "spirit", "label": "Spirit", "type": "number", "defaultValue": 0, "min": -3, "max": 6 },
+    { "key": "devil_luck", "label": "Devil's Luck", "type": "number", "defaultValue": 2, "min": 0, "max": 10 }
+  ],
+  "conditions": [
+    { "id": "broken", "name": "Broken", "description": "At 0 HP, roll d4: 1=Unconscious d4 rounds, 2=Disabling injury, 3=Hemorrhaging/Dying in d4 rounds, 4=Dead.", "preventsActions": true, "effects": ["broken"] },
+    { "id": "cursed", "name": "Cursed", "description": "The black spot or sea witch curse. Disadvantage on all Presence and Spirit checks.", "effects": ["disadvantage_spirit"] },
+    { "id": "drunk", "name": "Drunk (Rum-soaked)", "description": "+1 Toughness, -2 Agility and Presence checks.", "effects": ["rum_drunk"] },
+    { "id": "scurvy", "name": "Scurvy", "description": "Rotting gums and lethargy. Speed halved and max HP reduced by 2.", "speedMultiplier": 0.5, "effects": ["reduced_hp"] },
+    { "id": "drowning", "name": "Drowning", "description": "Cannot breathe or speak; take d6 damage per round unless rescued.", "preventsActions": true, "effects": ["suffocating"] }
+  ],
+  "actions": [
+    { "id": "cutlass_strike", "name": "Cutlass Strike", "actionType": "ATTACK_MELEE", "cost": "ACTION", "description": "Melee attack with cutlass or boarding axe (Strength DR12). Deals d6 damage." },
+    { "id": "flintlock_shot", "name": "Flintlock Shot", "actionType": "ATTACK_RANGED", "cost": "ACTION", "description": "Fire flintlock pistol or blunderbuss (Agility DR12). Deals 2d4 damage; requires 1 round to reload." },
+    { "id": "rapier_thrust", "name": "Rapier Thrust", "actionType": "ATTACK_MELEE", "cost": "ACTION", "description": "Agility-based melee strike. Deals d8 damage on hit." },
+    { "id": "cast_ancient_relic", "name": "Use Ancient Relic", "actionType": "SPELL_ATTACK", "cost": "ACTION", "description": "Channel ancient Caribbean sorcery or sea relic (Presence DR12). Failure triggers Arcane Catastrophe." },
+    { "id": "broadside_cannon", "name": "Fire Ship Cannon", "actionType": "ATTACK_RANGED", "cost": "ACTION", "description": "Fire 6-pounder or swivel gun. Deals 3d10 damage to ships or massive targets." },
+    { "id": "spend_devils_luck", "name": "Spend Devil's Luck", "actionType": "FEATURE", "cost": "FREE", "description": "Expend 1 Devil's Luck to reroll a test, maximize damage, or negate a critical fumble." }
+  ],
+  "races": [
+    {
+      "id": "human_buccaneer",
+      "name": "Buccaneer (Human)",
+      "description": "Hard-bitten survivor of Caribbean port towns and pirate havens.",
+      "speed": 30,
+      "abilityScoreModifiers": { "toughness": 1 },
+      "features": [
+        { "id": "sea_legs", "name": "Sea Legs", "level": 1, "description": "Immune to seasickness; advantage on checks to maintain balance on pitching decks." }
+      ]
+    },
+    {
+      "id": "skeleton_crew",
+      "name": "Haunted / Undead Crew",
+      "description": "Risen from Davy Jones' locker with saltwater in their bones.",
+      "speed": 25,
+      "abilityScoreModifiers": { "toughness": 2, "presence": -1 },
+      "features": [
+        { "id": "unliving", "name": "Saltwater Bones", "level": 1, "description": "Does not need to breathe or eat; immune to poison and drowning." }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "id": "zealot",
+      "name": "Zealot",
+      "description": "Fanatical preacher wielding burning black powder and holy scripture.",
+      "hitDie": 8,
+      "primaryAbility": "Presence",
+      "savingThrows": ["presence", "spirit"],
+      "features": [
+        { "id": "holy_fervor", "name": "Wrath of the Heavens", "level": 1, "description": "Test Presence DR12 to smite with holy fire or banish sea ghosts." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "sorcerer_of_the_tide",
+      "name": "Sorcerer of the Tide",
+      "description": "Touched by deep trench abominations and cursed abyssal relics.",
+      "hitDie": 6,
+      "primaryAbility": "Presence",
+      "savingThrows": ["spirit"],
+      "features": [
+        { "id": "abyssal_call", "name": "Abyssal Whispers", "level": 1, "description": "Summon fog, command sea vermin, or curse enemy ships." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "swashbuckler",
+      "name": "Swashbuckler",
+      "description": "Acrobatic duel-master swinging from the rigging with steel in both hands.",
+      "hitDie": 8,
+      "primaryAbility": "Agility",
+      "savingThrows": ["agility", "strength"],
+      "features": [
+        { "id": "parry_riposte", "name": "Parry & Riposte", "level": 1, "description": "On successful defense test against melee attack, immediately counterattack for d4 damage." }
+      ],
+      "subclasses": []
+    },
+    {
+      "id": "brute",
+      "name": "Brute",
+      "description": "Massive cannon-loader and brawler who drinks grog by the gallon.",
+      "hitDie": 10,
+      "primaryAbility": "Strength",
+      "savingThrows": ["strength", "toughness"],
+      "features": [
+        { "id": "thick_skull", "name": "Thick Skull", "level": 1, "description": "Ignore 1 point of physical damage from every incoming attack." }
+      ],
+      "subclasses": []
+    }
+  ],
+  "automation": {
+    "deathSavesEnabled": false,
+    "criticalHitRule": "double_total",
+    "encumbranceRule": "standard_5e",
+    "shortRestRecoveryFormula": "d4",
+    "longRestFullHeal": false
+  }
+}

@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { GameSystem } from '../../game-systems';
+import { GameSystem } from '../../game-systems/index';
 import { withUnionChecks } from './unionIssues';
 import { getBlankTemplate } from '../../utils/character-templates';
 import {

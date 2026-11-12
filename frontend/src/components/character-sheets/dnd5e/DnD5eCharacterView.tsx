@@ -63,6 +63,8 @@ interface DnD5eCharacterViewProps {
    * the dice still roll but nothing is decremented.
    */
   onSpendHitDie?: (index: number) => void;
+  /** Called when taking a short or long rest */
+  onRest?: (type: 'short' | 'long') => void;
 }
 
 type TabId = 'stats' | 'combat' | 'spells' | 'inventory' | 'features' | 'bio';
@@ -79,7 +81,7 @@ const TABS: SheetTab<TabId>[] = [
 /**
  * DnD5eCharacterView - Read-only D&D 5e character sheet
  */
-export const DnD5eCharacterView: React.FC<DnD5eCharacterViewProps> = ({ character, onEdit, onRoll, rollMode, onSpendHitDie }) => {
+export const DnD5eCharacterView: React.FC<DnD5eCharacterViewProps> = ({ character, onEdit, onRoll, rollMode, onSpendHitDie, onRest }) => {
   const [activeTab, setActiveTab] = useState<TabId>('stats');
   const sheetTabsId = useId();
   const data = character.data as DnD5eCharacterData;
@@ -362,10 +364,30 @@ export const DnD5eCharacterView: React.FC<DnD5eCharacterViewProps> = ({ characte
         )}
       </div>
 
-      {/* Hit Dice */}
+      {/* Hit Dice & Rest Recovery Engine */}
       {data.hitDice && data.hitDice.length > 0 && (
         <div className="bg-ink/5 border border-ink/10 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-ink mb-3">Hit Dice</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-ink">Hit Dice &amp; Resting</h3>
+            {onRest && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onRest('short')}
+                  className="px-2.5 py-1 text-xs bg-brand/10 hover:bg-brand/20 text-brand rounded font-medium border border-brand/30 transition-colors"
+                >
+                  Short Rest
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRest('long')}
+                  className="px-2.5 py-1 text-xs bg-brand text-white hover:bg-brand-hover rounded font-medium shadow-xs transition-colors"
+                >
+                  Long Rest (100% HP)
+                </button>
+              </div>
+            )}
+          </div>
           <div className="flex flex-wrap gap-3">
             {data.hitDice!.map((hd, idx) => {
               // `total` is the pool ("5d10"), so spending rolls one die plus

@@ -22,7 +22,9 @@ import {
   Star,
   Pencil,
   Trash2,
+  Wand2,
 } from 'lucide-react';
+import { HomebrewParserModal } from './HomebrewParserModal';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useGameStore } from '@/stores/gameStore';
 import api from '@/services/api';
@@ -139,6 +141,7 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [placingId, setPlacingId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showHomebrewParser, setShowHomebrewParser] = useState(false);
   const [editingCreature, setEditingCreature] = useState<CreatureTemplate | null>(null);
   // The creature whose Delete button was clicked, until it is confirmed or cancelled.
   const [creatureToDelete, setCreatureToDelete] = useState<CreatureTemplate | null>(null);
@@ -518,6 +521,13 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
           >
             <Plus className="w-3 h-3" /> Create Custom
           </button>
+          <button
+            onClick={() => setShowHomebrewParser(true)}
+            className="touch-target flex items-center gap-1 text-xs text-brand hover:text-brand-hover transition-colors"
+            title="Parse monster or NPC stat blocks from text or markdown"
+          >
+            <Wand2 className="w-3 h-3" /> Parse Stat Block
+          </button>
           {/* The label names the system it imports: this seeds the D&D 5e
               bestiary whatever the campaign's system, which was not
               obvious from a bare "Import SRD Creatures". */}
@@ -743,6 +753,49 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
       variant="danger"
       onConfirm={() => creatureToDelete && handleDelete(creatureToDelete.id)}
       onCancel={() => setCreatureToDelete(null)}
+    />
+
+    {/* Rulebook & Homebrew Parser Dialog */}
+    <HomebrewParserModal
+      isOpen={showHomebrewParser}
+      onClose={() => setShowHomebrewParser(false)}
+      onImportParsed={async (parsed) => {
+        try {
+          const statBlock: NpcStatBlock = {
+            ac: parsed.armorClass,
+            speed: parsed.speed,
+            stats: {
+              strength: { score: parsed.stats.strength, modifier: Math.floor((parsed.stats.strength - 10) / 2) },
+              dexterity: { score: parsed.stats.dexterity, modifier: Math.floor((parsed.stats.dexterity - 10) / 2) },
+              constitution: { score: parsed.stats.constitution, modifier: Math.floor((parsed.stats.constitution - 10) / 2) },
+              intelligence: { score: parsed.stats.intelligence, modifier: Math.floor((parsed.stats.intelligence - 10) / 2) },
+              wisdom: { score: parsed.stats.wisdom, modifier: Math.floor((parsed.stats.wisdom - 10) / 2) },
+              charisma: { score: parsed.stats.charisma, modifier: Math.floor((parsed.stats.charisma - 10) / 2) },
+            },
+            actions: parsed.actions.map((a) => ({
+              id: a.name.toLowerCase().replace(/\s+/g, '_'),
+              name: a.name,
+              desc: a.description,
+            })),
+          };
+
+          const newCreature = await api.createCreatureTemplate(campaign!.id, {
+            name: parsed.name,
+            size: parsed.size || 'Medium',
+            type: parsed.type || 'humanoid',
+            cr: parsed.challengeRating || '1/4',
+            hpMax: parsed.hitPoints,
+            statBlock,
+            gameSystem: campaign?.gameSystem || GameSystem.DND_5E,
+          });
+
+          setCreatures((prev) => [newCreature.creature, ...prev]);
+          setTotal((t) => t + 1);
+          setShowHomebrewParser(false);
+        } catch (err) {
+          console.error('Failed to import parsed creature', err);
+        }
+      }}
     />
     </>
   );

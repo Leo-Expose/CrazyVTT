@@ -1,0 +1,1037 @@
+{
+  "id": "dnd5e-2024",
+  "version": "2024.1",
+  "name": "D&D 5.5e (2024 Ruleset)",
+  "description": "Updated 2024 Revised Ruleset with background origin feats, weapon masteries, updated exhaustion tiers, and modern class mechanics.",
+  "system": "DND_5E_2024",
+  "attribution": {
+    "source": "Revised Systems Reference Document (SRD 5.2 / 2024)",
+    "publisher": "Wizards of the Coast LLC",
+    "license": "Creative Commons Attribution 4.0 International (CC-BY-4.0)",
+    "url": "https://dnd.wizards.com/resources/systems-reference-document",
+    "notice": "Updated 2024 Core Rules Reference under CC-BY-4.0."
+  },
+  "measurements": {
+    "gridType": "square",
+    "gridDistance": 5,
+    "gridUnit": "ft",
+    "diagonalRule": "dnd5e_standard",
+    "defaultMovement": 30
+  },
+  "conditions": [
+    {
+      "id": "blinded",
+      "name": "Blinded",
+      "description": "Cannot see; disadvantage on attack rolls; attacks against have advantage; fails checks requiring sight.",
+      "effects": [
+        "disadvantage_attacks",
+        "grant_advantage"
+      ]
+    },
+    {
+      "id": "charmed",
+      "name": "Charmed",
+      "description": "Cannot harm charmer; charmer has advantage on social ability checks.",
+      "effects": []
+    },
+    {
+      "id": "deafened",
+      "name": "Deafened",
+      "description": "Cannot hear; fails checks requiring hearing; disadvantage on initiative rolls.",
+      "effects": []
+    },
+    {
+      "id": "exhaustion",
+      "name": "Exhaustion (2024)",
+      "description": "Levels 1-10: Each level subtracts 2 from D20 Tests and subtracts 5 feet from speed. Death occurs at level 10.",
+      "effects": [
+        "d20_penalty"
+      ]
+    },
+    {
+      "id": "frightened",
+      "name": "Frightened",
+      "description": "Disadvantage on ability checks/attacks while source in sight; cannot willingly move closer.",
+      "effects": [
+        "disadvantage_attacks"
+      ]
+    },
+    {
+      "id": "grappled",
+      "name": "Grappled (2024)",
+      "description": "Speed 0. Disadvantage on attacks against targets other than the grappler. Grappler can drag target at half speed.",
+      "speedMultiplier": 0,
+      "effects": [
+        "speed_zero"
+      ]
+    },
+    {
+      "id": "incapacitated",
+      "name": "Incapacitated",
+      "description": "Cannot take actions or reactions; concentration broken; disadvantage on initiative.",
+      "preventsActions": true,
+      "preventsReactions": true,
+      "effects": []
+    },
+    {
+      "id": "invisible",
+      "name": "Invisible",
+      "description": "Cannot be seen without special senses. Advantage on attacks; attacks against have disadvantage.",
+      "effects": []
+    },
+    {
+      "id": "paralyzed",
+      "name": "Paralyzed",
+      "description": "Incapacitated and cannot move or speak. Automatically fails Str and Dex saves. Attacks against have advantage, critical within 5ft.",
+      "preventsActions": true,
+      "preventsReactions": true,
+      "speedMultiplier": 0,
+      "effects": []
+    },
+    {
+      "id": "poisoned",
+      "name": "Poisoned",
+      "description": "Disadvantage on attack rolls and ability checks.",
+      "effects": [
+        "disadvantage_attacks"
+      ]
+    },
+    {
+      "id": "prone",
+      "name": "Prone",
+      "description": "Crawling costs 1 extra foot per foot. Disadvantage on attack rolls. Attacks against within 5ft have advantage; beyond 5ft disadvantage.",
+      "effects": []
+    },
+    {
+      "id": "restrained",
+      "name": "Restrained",
+      "description": "Speed 0. Attacks against have advantage, attacks have disadvantage. Disadvantage on Dex saves.",
+      "speedMultiplier": 0,
+      "effects": [
+        "speed_zero"
+      ]
+    },
+    {
+      "id": "stunned",
+      "name": "Stunned",
+      "description": "Incapacitated, cannot move, can speak only falteringly. Automatically fails Str and Dex saves. Attacks against have advantage.",
+      "preventsActions": true,
+      "preventsReactions": true,
+      "speedMultiplier": 0,
+      "effects": []
+    },
+    {
+      "id": "unconscious",
+      "name": "Unconscious",
+      "description": "Incapacitated, cannot move or speak, unaware. Drops items, falls prone. Automatically fails Str and Dex saves.",
+      "preventsActions": true,
+      "preventsReactions": true,
+      "speedMultiplier": 0,
+      "effects": []
+    }
+  ],
+  "actions": [
+    {
+      "id": "attack",
+      "name": "Attack",
+      "actionType": "ATTACK_MELEE",
+      "cost": "ACTION",
+      "description": "Make one or more weapon attacks or unarmed strikes (incorporates Weapon Masteries)."
+    },
+    {
+      "id": "magic_action",
+      "name": "Magic Action",
+      "actionType": "SPELL_ATTACK",
+      "cost": "ACTION",
+      "description": "Cast a spell with a casting time of 1 action, or use a magical feature or magic item."
+    },
+    {
+      "id": "dash",
+      "name": "Dash",
+      "actionType": "MOVEMENT",
+      "cost": "ACTION",
+      "description": "Gain extra movement equal to your speed for the current turn."
+    },
+    {
+      "id": "disengage",
+      "name": "Disengage",
+      "actionType": "MOVEMENT",
+      "cost": "ACTION",
+      "description": "Your movement does not provoke opportunity attacks for the rest of the turn."
+    },
+    {
+      "id": "dodge",
+      "name": "Dodge",
+      "actionType": "OTHER",
+      "cost": "ACTION",
+      "description": "Attackers have disadvantage if you can see them, and you have advantage on Dexterity saving throws."
+    },
+    {
+      "id": "help",
+      "name": "Help",
+      "actionType": "OTHER",
+      "cost": "ACTION",
+      "description": "Assist an ally's ability check or attack roll before the start of your next turn."
+    },
+    {
+      "id": "hide",
+      "name": "Hide",
+      "actionType": "OTHER",
+      "cost": "ACTION",
+      "description": "Make a DC 15 Dexterity (Stealth) check to gain the Invisible condition."
+    },
+    {
+      "id": "influence",
+      "name": "Influence",
+      "actionType": "OTHER",
+      "cost": "ACTION",
+      "description": "Make a Charisma or Wisdom check to alter an NPC's attitude."
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "actionType": "OTHER",
+      "cost": "ACTION",
+      "description": "Make an Intelligence or Wisdom check to discern hidden features or objects."
+    },
+    {
+      "id": "study",
+      "name": "Study",
+      "actionType": "OTHER",
+      "cost": "ACTION",
+      "description": "Make an Intelligence check to recall lore, decipher runes, or analyze a creature."
+    },
+    {
+      "id": "utilize",
+      "name": "Utilize",
+      "actionType": "ITEM_USE",
+      "cost": "ACTION",
+      "description": "Use an object or nonmagical gear that requires your action."
+    }
+  ],
+  "races": [
+    {
+      "id": "human-2024",
+      "name": "Human (2024)",
+      "description": "Versatile and ambitious, humans are the most adaptable and diverse people.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "strength": 1,
+        "dexterity": 1,
+        "constitution": 1,
+        "intelligence": 1,
+        "wisdom": 1,
+        "charisma": 1
+      },
+      "features": []
+    },
+    {
+      "id": "elf-2024",
+      "name": "Elf (2024)",
+      "description": "Magical people of otherworldly grace, living in the world but not entirely part of it.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "dexterity": 2
+      },
+      "features": [
+        {
+          "id": "darkvision",
+          "name": "Darkvision",
+          "level": 1,
+          "description": "Superior vision in dark and dim conditions (60 ft)."
+        },
+        {
+          "id": "keen_senses",
+          "name": "Keen Senses",
+          "level": 1,
+          "description": "Proficiency in the Perception skill."
+        },
+        {
+          "id": "fey_ancestry",
+          "name": "Fey Ancestry",
+          "level": 1,
+          "description": "Advantage on saves vs being charmed, and magic cannot put you to sleep."
+        },
+        {
+          "id": "trance",
+          "name": "Trance",
+          "level": 1,
+          "description": "Elves meditate deeply for 4 hours instead of sleeping."
+        }
+      ]
+    },
+    {
+      "id": "dwarf-2024",
+      "name": "Dwarf (2024)",
+      "description": "Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal.",
+      "speed": 25,
+      "abilityScoreModifiers": {
+        "constitution": 2
+      },
+      "features": [
+        {
+          "id": "darkvision_dwarf",
+          "name": "Darkvision",
+          "level": 1,
+          "description": "Accustomed to life underground, you see in darkness (60 ft)."
+        },
+        {
+          "id": "dwarven_resilience",
+          "name": "Dwarven Resilience",
+          "level": 1,
+          "description": "Advantage on saving throws against poison, and resistance against poison damage."
+        }
+      ]
+    },
+    {
+      "id": "halfling-2024",
+      "name": "Halfling (2024)",
+      "description": "Small and practical survivors who survive through stealth and good cheer.",
+      "speed": 25,
+      "abilityScoreModifiers": {
+        "dexterity": 2
+      },
+      "features": [
+        {
+          "id": "lucky",
+          "name": "Lucky",
+          "level": 1,
+          "description": "When you roll a 1 on d20 for attack, check, or save, you can reroll."
+        },
+        {
+          "id": "brave",
+          "name": "Brave",
+          "level": 1,
+          "description": "Advantage on saving throws against being frightened."
+        }
+      ]
+    },
+    {
+      "id": "dragonborn-2024",
+      "name": "Dragonborn (2024)",
+      "description": "Born of dragons, walking proudly through a world that greets them with fearful incomprehension.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "strength": 2,
+        "charisma": 1
+      },
+      "features": [
+        {
+          "id": "draconic_ancestry",
+          "name": "Draconic Ancestry",
+          "level": 1,
+          "description": "Choose a dragon type determining your breath weapon and damage resistance."
+        },
+        {
+          "id": "breath_weapon",
+          "name": "Breath Weapon",
+          "level": 1,
+          "description": "Exhale destructive energy in a 15ft cone or 30ft line once per rest."
+        }
+      ]
+    },
+    {
+      "id": "gnome-2024",
+      "name": "Gnome (2024)",
+      "description": "A constant hum of busy activity pervades the warrens where gnomes live.",
+      "speed": 25,
+      "abilityScoreModifiers": {
+        "intelligence": 2
+      },
+      "features": [
+        {
+          "id": "darkvision_gnome",
+          "name": "Darkvision",
+          "level": 1,
+          "description": "Superior vision in dark and dim conditions (60 ft)."
+        },
+        {
+          "id": "gnome_cunning",
+          "name": "Gnome Cunning",
+          "level": 1,
+          "description": "Advantage on all Intelligence, Wisdom, and Charisma saves against magic."
+        }
+      ]
+    },
+    {
+      "id": "half-elf-2024",
+      "name": "Half-Elf (2024)",
+      "description": "Walking in two worlds but truly belonging to neither.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "charisma": 2
+      },
+      "features": [
+        {
+          "id": "darkvision_halfelf",
+          "name": "Darkvision",
+          "level": 1,
+          "description": "Superior vision in dark and dim conditions (60 ft)."
+        },
+        {
+          "id": "fey_ancestry_halfelf",
+          "name": "Fey Ancestry",
+          "level": 1,
+          "description": "Advantage on saves vs being charmed; magic cannot sleep you."
+        },
+        {
+          "id": "skill_versatility",
+          "name": "Skill Versatility",
+          "level": 1,
+          "description": "Gain proficiency in two skills of your choice."
+        }
+      ]
+    },
+    {
+      "id": "half-orc-2024",
+      "name": "Half-Orc (2024)",
+      "description": "Whether united under leadership or fighting for survival, half-orcs show savage fury.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "strength": 2,
+        "constitution": 1
+      },
+      "features": [
+        {
+          "id": "darkvision_halforc",
+          "name": "Darkvision",
+          "level": 1,
+          "description": "Superior vision in dark and dim conditions (60 ft)."
+        },
+        {
+          "id": "relentless_endurance",
+          "name": "Relentless Endurance",
+          "level": 1,
+          "description": "When reduced to 0 HP but not killed outright, drop to 1 HP instead once per long rest."
+        },
+        {
+          "id": "savage_attacks",
+          "name": "Savage Attacks",
+          "level": 1,
+          "description": "When you score a critical hit with a melee weapon, roll one of the weapon's damage dice one additional time."
+        }
+      ]
+    },
+    {
+      "id": "tiefling-2024",
+      "name": "Tiefling (2024)",
+      "description": "Infused with the essence of Asmodeus—overlord of the Nine Hells.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "charisma": 2,
+        "intelligence": 1
+      },
+      "features": [
+        {
+          "id": "darkvision_tiefling",
+          "name": "Darkvision",
+          "level": 1,
+          "description": "Superior vision in dark and dim conditions (60 ft)."
+        },
+        {
+          "id": "hellish_resistance",
+          "name": "Hellish Resistance",
+          "level": 1,
+          "description": "Resistance to fire damage."
+        },
+        {
+          "id": "infernal_legacy",
+          "name": "Infernal Legacy",
+          "level": 1,
+          "description": "You know Thaumaturgy cantrip; cast Hellish Rebuke at 3rd level, Darkness at 5th level."
+        }
+      ]
+    },
+    {
+      "id": "fairy-2024",
+      "name": "Fairy (2024)",
+      "description": "Infused with Feywild magic, resembling small winged elves with flight and nature cantrips.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "dexterity": 2,
+        "charisma": 1
+      },
+      "features": [
+        {
+          "id": "flight_fairy",
+          "name": "Flight",
+          "level": 1,
+          "description": "Flying speed equal to walking speed (30 ft). Cannot fly if wearing medium or heavy armor."
+        },
+        {
+          "id": "fairy_magic",
+          "name": "Fairy Magic",
+          "level": 1,
+          "description": "You know Druidcraft; cast Faerie Fire at 3rd level, Enlarge/Reduce at 5th level."
+        }
+      ]
+    },
+    {
+      "id": "harengon-2024",
+      "name": "Harengon (2024)",
+      "description": "Rabbitfolk native to the Feywild, energetic and lucky travelers.",
+      "speed": 30,
+      "abilityScoreModifiers": {
+        "dexterity": 2,
+        "wisdom": 1
+      },
+      "features": [
+        {
+          "id": "hare_trigger",
+          "name": "Hare-Trigger",
+          "level": 1,
+          "description": "Add proficiency bonus to initiative rolls."
+        },
+        {
+          "id": "rabbit_hop",
+          "name": "Rabbit Hop",
+          "level": 1,
+          "description": "Bonus action jump 5 × proficiency bonus feet without provoking opportunity attacks."
+        }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "id": "barbarian-2024",
+      "name": "Barbarian (2024)",
+      "description": "A fierce warrior of primitive background who can enter a battle rage.",
+      "hitDie": 12,
+      "primaryAbility": "Strength",
+      "savingThrows": [
+        "strength",
+        "constitution"
+      ],
+      "armorProficiencies": [
+        "light",
+        "medium",
+        "shields"
+      ],
+      "weaponProficiencies": [
+        "simple",
+        "martial"
+      ],
+      "features": [
+        {
+          "id": "rage",
+          "name": "Rage",
+          "level": 1,
+          "description": "In battle, you fight with primal ferocity for 1 minute, gaining advantage on Strength checks and saves, bonus melee damage, and resistance to bludgeoning, piercing, and slashing damage."
+        },
+        {
+          "id": "unarmored_defense_barbarian",
+          "name": "Unarmored Defense",
+          "level": 1,
+          "description": "While not wearing armor, your AC equals 10 + Dex modifier + Con modifier (you can use a shield)."
+        },
+        {
+          "id": "reckless_attack",
+          "name": "Reckless Attack",
+          "level": 2,
+          "description": "Gain advantage on melee weapon attack rolls using Strength during your turn, but attacks against you have advantage until your next turn."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "berserker",
+          "name": "Path of the Berserker",
+          "description": "Channels violent fury into a bloodthirsty frenzy.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "bard-2024",
+      "name": "Bard (2024)",
+      "description": "An inspiring magician whose power echoes the music of creation.",
+      "hitDie": 8,
+      "primaryAbility": "Charisma",
+      "savingThrows": [
+        "dexterity",
+        "charisma"
+      ],
+      "armorProficiencies": [
+        "light"
+      ],
+      "weaponProficiencies": [
+        "simple",
+        "hand crossbows",
+        "longswords",
+        "rapiers",
+        "shortswords"
+      ],
+      "spellcastingAbility": "charisma",
+      "features": [
+        {
+          "id": "bardic_inspiration",
+          "name": "Bardic Inspiration",
+          "level": 1,
+          "description": "Use a bonus action to give an ally a d6 inspiration die to add to one ability check, attack roll, or saving throw."
+        },
+        {
+          "id": "jack_of_all_trades",
+          "name": "Jack of All Trades",
+          "level": 2,
+          "description": "Add half your proficiency bonus, rounded down, to any ability check that doesn't already include it."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "lore",
+          "name": "College of Lore",
+          "description": "Pursuers of beauty, truth, and ancient secrets.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "cleric-2024",
+      "name": "Cleric (2024)",
+      "description": "A priestly champion who wields divine magic in service of a higher power.",
+      "hitDie": 8,
+      "primaryAbility": "Wisdom",
+      "savingThrows": [
+        "wisdom",
+        "charisma"
+      ],
+      "armorProficiencies": [
+        "light",
+        "medium",
+        "shields"
+      ],
+      "weaponProficiencies": [
+        "simple"
+      ],
+      "spellcastingAbility": "wisdom",
+      "features": [
+        {
+          "id": "divine_domain",
+          "name": "Divine Domain",
+          "level": 1,
+          "description": "Choose a domain related to your deity, such as Life Domain, granting bonus domain spells and features."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "life",
+          "name": "Life Domain",
+          "description": "Focuses on preserving life and restoring vitality.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "druid-2024",
+      "name": "Druid (2024)",
+      "description": "A priest of the Old Faith, wielding the powers of nature and adopting animal forms.",
+      "hitDie": 8,
+      "primaryAbility": "Wisdom",
+      "savingThrows": [
+        "intelligence",
+        "wisdom"
+      ],
+      "armorProficiencies": [
+        "light",
+        "medium",
+        "shields"
+      ],
+      "weaponProficiencies": [
+        "clubs",
+        "daggers",
+        "darts",
+        "javelins",
+        "maces",
+        "quarterstaffs",
+        "scimitars",
+        "sickles",
+        "slings",
+        "spears"
+      ],
+      "spellcastingAbility": "wisdom",
+      "features": [
+        {
+          "id": "druidic",
+          "name": "Druidic",
+          "level": 1,
+          "description": "You know Druidic, the secret language of druids."
+        },
+        {
+          "id": "wild_shape",
+          "name": "Wild Shape",
+          "level": 2,
+          "description": "Use an action to magically assume the shape of a beast you have seen before."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "land",
+          "name": "Circle of the Land",
+          "description": "Mystics and sages who safeguard ancient nature lore.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "fighter-2024",
+      "name": "Fighter (2024)",
+      "description": "A master of martial combat, skilled with a variety of weapons and armor.",
+      "hitDie": 10,
+      "primaryAbility": "Strength or Dexterity",
+      "savingThrows": [
+        "strength",
+        "constitution"
+      ],
+      "armorProficiencies": [
+        "light",
+        "medium",
+        "heavy",
+        "shields"
+      ],
+      "weaponProficiencies": [
+        "simple",
+        "martial"
+      ],
+      "features": [
+        {
+          "id": "second_wind",
+          "name": "Second Wind",
+          "level": 1,
+          "description": "Regain hit points equal to 1d10 + your fighter level as a bonus action once per rest."
+        },
+        {
+          "id": "action_surge",
+          "name": "Action Surge",
+          "level": 2,
+          "description": "Take one additional action on your turn once per short or long rest."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "champion",
+          "name": "Champion",
+          "description": "Focuses on raw physical power honed to deadly perfection.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "monk-2024",
+      "name": "Monk (2024)",
+      "description": "A master of martial arts, harnessing the power of the body in pursuit of physical and spiritual perfection.",
+      "hitDie": 8,
+      "primaryAbility": "Dexterity & Wisdom",
+      "savingThrows": [
+        "strength",
+        "dexterity"
+      ],
+      "armorProficiencies": [],
+      "weaponProficiencies": [
+        "simple",
+        "shortswords"
+      ],
+      "features": [
+        {
+          "id": "unarmored_defense_monk",
+          "name": "Unarmored Defense",
+          "level": 1,
+          "description": "While not wearing armor and not wielding a shield, your AC equals 10 + Dex modifier + Wis modifier."
+        },
+        {
+          "id": "martial_arts",
+          "name": "Martial Arts",
+          "level": 1,
+          "description": "Use Dex instead of Str for unarmed strikes and monk weapons, roll d4 for unarmed strikes, and make bonus unarmed attacks."
+        },
+        {
+          "id": "ki",
+          "name": "Ki",
+          "level": 2,
+          "description": "Harness ki energy to fuel Flurry of Blows, Patient Defense, and Step of the Wind."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "open_hand",
+          "name": "Way of the Open Hand",
+          "description": "Masters of unarmed martial combat techniques.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "paladin-2024",
+      "name": "Paladin (2024)",
+      "description": "A holy warrior bound to a sacred oath.",
+      "hitDie": 10,
+      "primaryAbility": "Strength & Charisma",
+      "savingThrows": [
+        "wisdom",
+        "charisma"
+      ],
+      "armorProficiencies": [
+        "light",
+        "medium",
+        "heavy",
+        "shields"
+      ],
+      "weaponProficiencies": [
+        "simple",
+        "martial"
+      ],
+      "spellcastingAbility": "charisma",
+      "features": [
+        {
+          "id": "divine_sense",
+          "name": "Divine Sense",
+          "level": 1,
+          "description": "Detect the presence of celestials, fiends, and undead within 60 feet."
+        },
+        {
+          "id": "lay_on_hands",
+          "name": "Lay on Hands",
+          "level": 1,
+          "description": "Heal creatures from a pool of healing power equal to your paladin level × 5."
+        },
+        {
+          "id": "divine_smite",
+          "name": "Divine Smite",
+          "level": 2,
+          "description": "Expend a spell slot to deal 2d8 radiant damage on a melee weapon hit (+1d8 per slot level above 1st)."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "devotion",
+          "name": "Oath of Devotion",
+          "description": "Upholds the ideals of justice, virtue, and order.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "ranger-2024",
+      "name": "Ranger (2024)",
+      "description": "A warrior who uses martial prowess and nature magic to combat threats on the edges of civilization.",
+      "hitDie": 10,
+      "primaryAbility": "Dexterity & Wisdom",
+      "savingThrows": [
+        "strength",
+        "dexterity"
+      ],
+      "armorProficiencies": [
+        "light",
+        "medium",
+        "shields"
+      ],
+      "weaponProficiencies": [
+        "simple",
+        "martial"
+      ],
+      "spellcastingAbility": "wisdom",
+      "features": [
+        {
+          "id": "favored_enemy",
+          "name": "Favored Enemy",
+          "level": 1,
+          "description": "Gain advantage on survival and knowledge checks against your favored enemy type."
+        },
+        {
+          "id": "natural_explorer",
+          "name": "Natural Explorer",
+          "level": 1,
+          "description": "Difficult terrain doesn't slow your group's travel in favored terrain."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "hunter",
+          "name": "Hunter",
+          "description": "Emulates the specialized tactics of apex wilderness predators.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "rogue-2024",
+      "name": "Rogue (2024)",
+      "description": "A scoundrel who uses stealth and trickery to overcome obstacles and enemies.",
+      "hitDie": 8,
+      "primaryAbility": "Dexterity",
+      "savingThrows": [
+        "dexterity",
+        "intelligence"
+      ],
+      "armorProficiencies": [
+        "light"
+      ],
+      "weaponProficiencies": [
+        "simple",
+        "hand crossbows",
+        "longswords",
+        "rapiers",
+        "shortswords"
+      ],
+      "features": [
+        {
+          "id": "expertise",
+          "name": "Expertise",
+          "level": 1,
+          "description": "Double your proficiency bonus for checks using two chosen skill proficiencies or thieves' tools."
+        },
+        {
+          "id": "sneak_attack",
+          "name": "Sneak Attack",
+          "level": 1,
+          "description": "Deal an extra 1d6 damage to one creature you hit with an attack if you have advantage or an ally is adjacent."
+        },
+        {
+          "id": "cunning_action",
+          "name": "Cunning Action",
+          "level": 2,
+          "description": "Take a bonus action on each of your turns to Dash, Disengage, or Hide."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "thief",
+          "name": "Thief",
+          "description": "Hones skills in the larcenous arts of burglary and agility.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "sorcerer-2024",
+      "name": "Sorcerer (2024)",
+      "description": "A spellcaster who draws on inherent magic from a gift or bloodline.",
+      "hitDie": 6,
+      "primaryAbility": "Charisma",
+      "savingThrows": [
+        "constitution",
+        "charisma"
+      ],
+      "armorProficiencies": [],
+      "weaponProficiencies": [
+        "daggers",
+        "darts",
+        "slings",
+        "quarterstaffs",
+        "light crossbows"
+      ],
+      "spellcastingAbility": "charisma",
+      "features": [
+        {
+          "id": "sorcerous_origin",
+          "name": "Sorcerous Origin",
+          "level": 1,
+          "description": "Choose a magical origin, such as Draconic Bloodline or Wild Magic."
+        },
+        {
+          "id": "font_of_magic",
+          "name": "Font of Magic",
+          "level": 2,
+          "description": "Tap into an inner well of sorcery points to create spell slots or fuel Metamagic."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "draconic",
+          "name": "Draconic Bloodline",
+          "description": "Infused with the primal draconic magic of dragon ancestors.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "warlock-2024",
+      "name": "Warlock (2024)",
+      "description": "A wielder of magic derived from a bargain with an otherworldly entity.",
+      "hitDie": 8,
+      "primaryAbility": "Charisma",
+      "savingThrows": [
+        "wisdom",
+        "charisma"
+      ],
+      "armorProficiencies": [
+        "light"
+      ],
+      "weaponProficiencies": [
+        "simple"
+      ],
+      "spellcastingAbility": "charisma",
+      "features": [
+        {
+          "id": "otherworldly_patron",
+          "name": "Otherworldly Patron",
+          "level": 1,
+          "description": "Strike a bargain with an otherworldly being such as The Fiend or The Archfey."
+        },
+        {
+          "id": "pact_magic",
+          "name": "Pact Magic",
+          "level": 1,
+          "description": "Your spell slots are all of the same level and recharge on a short or long rest."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "fiend",
+          "name": "The Fiend",
+          "description": "Bound to a lord of the Lower Planes of malice and fire.",
+          "features": []
+        }
+      ]
+    },
+    {
+      "id": "wizard-2024",
+      "name": "Wizard (2024)",
+      "description": "A scholarly magic-user capable of manipulating the structures of reality.",
+      "hitDie": 6,
+      "primaryAbility": "Intelligence",
+      "savingThrows": [
+        "intelligence",
+        "wisdom"
+      ],
+      "armorProficiencies": [],
+      "weaponProficiencies": [
+        "daggers",
+        "darts",
+        "slings",
+        "quarterstaffs",
+        "light crossbows"
+      ],
+      "spellcastingAbility": "intelligence",
+      "features": [
+        {
+          "id": "arcane_recovery",
+          "name": "Arcane Recovery",
+          "level": 1,
+          "description": "Regain expended spell slots equal to half your wizard level after a short rest."
+        },
+        {
+          "id": "spellbook",
+          "name": "Spellbook",
+          "level": 1,
+          "description": "You possess a grimoire containing the arcane formulas for your spells."
+        }
+      ],
+      "subclasses": [
+        {
+          "id": "evocation",
+          "name": "School of Evocation",
+          "description": "Focuses magic that creates powerful elemental effects.",
+          "features": []
+        }
+      ]
+    }
+  ],
+  "automation": {
+    "deathSavesEnabled": true,
+    "deathSaveSuccessThreshold": 3,
+    "deathSaveFailureThreshold": 3,
+    "criticalHitRule": "double_dice",
+    "encumbranceRule": "standard_5e",
+    "shortRestRecoveryFormula": "hit_dice",
+    "longRestFullHeal": true
+  }
+}

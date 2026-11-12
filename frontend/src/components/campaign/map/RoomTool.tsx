@@ -7,7 +7,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { WallSegment, WallType } from '@/types/walls';
 import { api } from '@/services/api';
 import { randomId } from '@/utils/uuid';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/contexts/ToastContext';
 import Button from '@/components/ui/Button';
 
 interface RoomToolProps {

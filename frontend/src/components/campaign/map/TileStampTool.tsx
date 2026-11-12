@@ -5,7 +5,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { api } from '@/services/api';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/contexts/ToastContext';
 import TilePalette from './TilePalette';
 import Button from '@/components/ui/Button';
 

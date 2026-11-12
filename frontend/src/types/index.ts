@@ -296,6 +296,14 @@ export interface TokenVariant {
   flipV: boolean;
 }
 
+export type TileVariant = {
+  id: string;
+  name: string;
+  rotation: 0 | 90 | 180 | 270;
+  flipH: boolean;
+  flipV: boolean;
+};
+
 export interface WangConnections {
   north: boolean;
   south: boolean;
@@ -310,6 +318,215 @@ export interface TileDefinition {
   category: string;
   connections: WangConnections;
   variants?: Record<number, string>;
+}
+
+// ============================================
+// Map Drawing System (Phase 1 - Shmeppy-style)
+// ============================================
+
+export type DrawingMode = 'brush' | 'shape' | 'freehand' | 'text' | 'erase' | 'select';
+
+export type ShapeType = 'rect' | 'circle' | 'polygon' | 'line' | 'arrow' | 'room';
+
+export interface ShapeDefinition {
+  id: string;
+  type: ShapeType;
+  points: Array<{ x: number; y: number }>; // In map pixels
+  color: string;
+  fillColor?: string;
+  strokeWidth: number;
+  label?: string;
+  labelPosition?: { x: number; y: number };
+  rotation: number;
+  locked: boolean;
+}
+
+export interface FreehandStroke {
+  id: string;
+  points: Array<{ x: number; y: number }>;
+  color: string;
+  strokeWidth: number;
+}
+
+export interface TextAnnotation {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  fontSize: number;
+  color: string;
+  fontFamily: string;
+  rotation: number;
+  backgroundColor?: string;
+  backgroundOpacity?: number;
+}
+
+export interface BrushSettings {
+  tileId: string;
+  variant?: string;
+  size: number; // Brush radius in grid cells
+  shape: 'circle' | 'square';
+  opacity: number;
+  autoTile: boolean;
+}
+
+export interface GridSettings {
+  enabled: boolean;
+  size: number; // pixels per cell
+  color: string;
+  opacity: number;
+  snapMode: 'intersections' | 'centers' | 'off';
+  showCoordinates: boolean;
+}
+
+export interface LayerOpacity {
+  layerId: string;
+  opacity: number; // 0-1
+}
+
+export interface ImageMapData {
+  id: string;
+  assetId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  scale: number;
+  opacity: number;
+  gridAligned: boolean;
+  gridSize?: number;
+  gridOffsetX?: number;
+  gridOffsetY?: number;
+}
+
+export interface DrawingHistoryEntry {
+  id: string;
+  timestamp: number;
+  action: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'delete' | 'layer' | 'image';
+  data: unknown;
+  inverseData: unknown; // For undo
+  description: string;
+}
+
+export interface MapDrawingState {
+  activeLayerId: string | null;
+  drawingMode: DrawingMode;
+  brushSettings: BrushSettings;
+  shapeSettings: { type: ShapeType; color: string; fillColor: string; strokeWidth: number };
+  freehandSettings: { color: string; strokeWidth: number };
+  textSettings: { fontSize: number; color: string; fontFamily: string; backgroundColor?: string; backgroundOpacity?: number };
+  gridSettings: GridSettings;
+  history: DrawingHistoryEntry[];
+  historyIndex: number;
+  maxHistorySize: number;
+}
+
+// WebSocket Events for drawing sync
+export interface MapTilePlaceEvent {
+  mapId: string;
+  layerId: string;
+  tileId: string;
+  x: number;
+  y: number;
+  rotation?: 0 | 90 | 180 | 270;
+  flipH?: boolean;
+  flipV?: boolean;
+  variant?: string;
+  autoTile?: boolean;
+}
+
+export interface MapTileRemoveEvent {
+  mapId: string;
+  layerId: string;
+  x: number;
+  y: number;
+}
+
+export interface MapTileRectangleEvent {
+  mapId: string;
+  layerId: string;
+  tileId: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  rotation?: 0 | 90 | 180 | 270;
+  flipH?: boolean;
+  flipV?: boolean;
+  variant?: string;
+}
+
+export interface MapShapeDrawEvent {
+  mapId: string;
+  layerId: string;
+  shape: ShapeDefinition;
+}
+
+export interface MapShapeUpdateEvent {
+  mapId: string;
+  layerId: string;
+  shapeId: string;
+  updates: Partial<ShapeDefinition>;
+}
+
+export interface MapShapeDeleteEvent {
+  mapId: string;
+  layerId: string;
+  shapeId: string;
+}
+
+export interface MapLayerCreateEvent {
+  mapId: string;
+  name: string;
+  type: LayerType;
+  order?: number;
+}
+
+export interface MapLayerUpdateEvent {
+  mapId: string;
+  layerId: string;
+  updates: { name?: string; visible?: boolean; locked?: boolean; opacity?: number; order?: number };
+}
+
+export interface MapLayerDeleteEvent {
+  mapId: string;
+  layerId: string;
+}
+
+export interface MapLayerReorderEvent {
+  mapId: string;
+  layerIds: string[];
+}
+
+export interface MapImageUploadEvent {
+  mapId: string;
+  assetId: string;
+  imageMap: ImageMapData;
+}
+
+export interface MapImageUpdateEvent {
+  mapId: string;
+  imageId: string;
+  updates: Partial<ImageMapData>;
+}
+
+export interface MapDrawingStrokeEvent {
+  mapId: string;
+  layerId: string;
+  stroke: FreehandStroke;
+}
+
+export interface MapTextAnnotationEvent {
+  mapId: string;
+  layerId: string;
+  annotation: TextAnnotation;
+}
+
+export interface MapUndoRedoEvent {
+  mapId: string;
+  action: 'undo' | 'redo';
+  entryId: string;
 }
 
 /** NPC stat block — game-system-agnostic container for combat stats. */

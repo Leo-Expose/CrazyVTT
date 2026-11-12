@@ -198,7 +198,16 @@ export default function CharacterSheetViewerModal({
   const renderCharacterSheet = () => {
     switch (character.gameSystem) {
       case 'DND_5E':
-        return <DnD5eCharacterView character={character} onEdit={canEdit ? handleEdit : undefined} onRoll={rollHandler} rollMode={rollMode} onSpendHitDie={spendHitDie} />;
+        return (
+          <DnD5eCharacterView
+            character={character}
+            onEdit={canEdit ? handleEdit : undefined}
+            onRoll={rollHandler}
+            rollMode={rollMode}
+            onSpendHitDie={spendHitDie}
+            onRest={canRoll && socket ? (type) => socket.emit('character.rest', { characterId: character.id, restType: type }) : undefined}
+          />
+        );
       case 'PATHFINDER_2E':
         return <Pathfinder2eCharacterView character={character} onEdit={canEdit ? handleEdit : undefined} onRoll={rollHandler} rollMode={rollMode} />;
       case 'SHADOWRUN_6E':

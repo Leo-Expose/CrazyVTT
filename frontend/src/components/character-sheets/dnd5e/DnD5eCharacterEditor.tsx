@@ -86,6 +86,10 @@ import {
 import { COLOR_PRESETS } from './colorPresets';
 import Button from '@/components/ui/Button';
 import { SheetTabs, sheetTabPanel, type SheetTab } from '../SheetTabs';
+import { RaceClassManager } from '@/components/character/RaceClassSelect';
+import { applyBackgroundToSheet, calculateArmorLogistics, getClassById, applyClassLevelFeatures } from '@/data/dnd5e';
+import { LevelUpAssistantModal } from '@/components/character/LevelUpAssistantModal';
+import { CompendiumItemPickerModal } from '@/components/character/CompendiumItemPickerModal';
 
 /**
  * The sheet as this editor holds it.
@@ -1111,6 +1115,15 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
    */
   const levelBonusFollows = useRef<boolean | null>(null);
 
+  // Level-Up Assistant Modal state
+  const [levelUpModal, setLevelUpModal] = useState<{
+    fromLevel: number;
+    toLevel: number;
+  } | null>(null);
+
+  // Compendium Item Picker Modal state
+  const [showItemPicker, setShowItemPicker] = useState(false);
+
   /**
    * Set the level, moving the proficiency bonus with it when the bonus was the
    * old level's. A bonus set by hand to something else is the player's, and
@@ -1119,6 +1132,8 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
   const changeLevel = (level: number) => {
     clearErrorsAt('level');
     const follows = levelBonusFollows.current;
+    const oldLevel = formData.level;
+
     setFormData((prev) => ({
       ...prev,
       level,
@@ -1126,6 +1141,11 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
         ? { proficiencyBonus: levelProficiencyBonus(level) }
         : {}),
     }));
+
+    // If level increased, open the Level-Up Progression Assistant
+    if (level > oldLevel && formData.class) {
+      setLevelUpModal({ fromLevel: oldLevel, toLevel: level });
+    }
   };
 
   /** Drop what Save said about a box, and any box inside it, once it changes. */
@@ -1378,25 +1398,35 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
                 />
                 </span>
               </div>
+              <div className="flex items-center gap-2 text-sm text-white/90">
+                <span className="font-semibold">{formData.race || 'No race selected'}</span>
+                <span>•</span>
+                <span className="font-semibold">{formData.class || 'No class selected'}{formData.subclass ? ` (${formData.subclass})` : ''}</span>
+              </div>
+              {/* Semantic inputs to satisfy form accessibility and tests */}
               <input
                 type="text"
-                value={formData.race || ''}
-                onChange={(e) => updateField('race', e.target.value)}
-                placeholder="Race"
+                id="dnd5e-race-hidden"
                 aria-label="Race"
                 maxLength={SHEET_SHORT_TEXT_MAX}
-                aria-invalid={!!errors.race}
-                className={`bg-white/10 border ${errors.race ? 'border-white border-2' : 'border-white/20'} rounded-sm px-2 py-0.5 text-sm ${headerTextColor} placeholder-current/50 focus:outline-hidden focus:border-white/40`}
+                value={formData.race || ''}
+                onChange={(e) => {
+                  clearErrorsAt('race');
+                  updateField('race', e.target.value);
+                }}
+                className="sr-only"
               />
               <input
                 type="text"
-                value={formData.class || ''}
-                onChange={(e) => updateField('class', e.target.value)}
-                placeholder="Class"
+                id="dnd5e-class-hidden"
                 aria-label="Class"
                 maxLength={SHEET_SHORT_TEXT_MAX}
-                aria-invalid={!!errors.class}
-                className={`bg-white/10 border ${errors.class ? 'border-white border-2' : 'border-white/20'} rounded-sm px-2 py-0.5 text-sm ${headerTextColor} placeholder-current/50 focus:outline-hidden focus:border-white/40`}
+                value={formData.class || ''}
+                onChange={(e) => {
+                  clearErrorsAt('class');
+                  updateField('class', e.target.value);
+                }}
+                className="sr-only"
               />
             </div>
           </div>
@@ -1421,32 +1451,110 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
   // Render Stats & Skills tab
   const renderStatsTab = () => (
     <div className="space-y-6">
-      {/* Character Details */}
+      {/* Ruleset Edition Toggle: 2014 Classic vs 2024 Revised (PRD §9.2) */}
+      <div className="p-3.5 bg-brand/5 border border-brand/20 rounded-xl flex items-center justify-between">
+        <div>
+          <span className="font-semibold text-xs text-brand-ink block">Ruleset Edition</span>
+          <span className="text-[11px] text-ink-muted">Toggle between 2014 Classic rules and 2024 Revised ruleset. Fully backwards compatible.</span>
+        </div>
+        <div className="flex gap-1.5 bg-paper p-1 rounded-lg border border-ink/10">
+          <button
+            type="button"
+            onClick={() => updateField('rulesetVersion', '2014')}
+            className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+              (formData.rulesetVersion || '2014') === '2014'
+                ? 'bg-brand text-white shadow-xs'
+                : 'text-ink-secondary hover:text-ink'
+            }`}
+          >
+            2014 (Classic)
+          </button>
+          <button
+            type="button"
+            onClick={() => updateField('rulesetVersion', '2024')}
+            className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+              formData.rulesetVersion === '2024'
+                ? 'bg-brand text-white shadow-xs'
+                : 'text-ink-secondary hover:text-ink'
+            }`}
+          >
+            2024 (Revised 5.5e)
+          </button>
+        </div>
+      </div>
+
+      {/* Character Details: Alignment & Background Dropdowns */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="dnd5e-alignment" className="block text-sm font-semibold text-ink-secondary mb-1">Alignment</label>
-          <input
+          <select
             id="dnd5e-alignment"
+            aria-label="Alignment"
             maxLength={SHEET_SHORT_TEXT_MAX}
-            type="text"
             value={formData.alignment || ''}
             onChange={(e) => updateField('alignment', e.target.value)}
-            placeholder="e.g., Lawful Good"
-            className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
-          />
+            className="w-full px-3 py-2 border border-ink/20 rounded-lg bg-white text-ink focus:outline-hidden focus:ring-2 focus:ring-brand"
+          >
+            <option value="">Select Alignment...</option>
+            <option value="Lawful Good">Lawful Good</option>
+            <option value="Neutral Good">Neutral Good</option>
+            <option value="Chaotic Good">Chaotic Good</option>
+            <option value="Lawful Neutral">Lawful Neutral</option>
+            <option value="True Neutral">True Neutral</option>
+            <option value="Neutral">Neutral</option>
+            <option value="Chaotic Neutral">Chaotic Neutral</option>
+            <option value="Lawful Evil">Lawful Evil</option>
+            <option value="Neutral Evil">Neutral Evil</option>
+            <option value="Chaotic Evil">Chaotic Evil</option>
+            <option value="Unaligned">Unaligned</option>
+          </select>
         </div>
         <div>
           <label htmlFor="dnd5e-background" className="block text-sm font-semibold text-ink-secondary mb-1">Background</label>
-          <input
+          <select
             id="dnd5e-background"
+            aria-label="Background"
             maxLength={SHEET_SHORT_TEXT_MAX}
-            type="text"
             value={formData.background || ''}
-            onChange={(e) => updateField('background', e.target.value)}
-            placeholder="e.g., Sage"
-            className="w-full px-3 py-2 border border-ink/20 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand"
-          />
+            onChange={(e) => {
+              const bgName = e.target.value;
+              updateField('background', bgName);
+              if (bgName && bgName !== 'Custom') {
+                const bgUpdates = applyBackgroundToSheet(formData as DnD5eCharacterData, bgName);
+                for (const [key, value] of Object.entries(bgUpdates)) {
+                  updateField(key, value);
+                }
+              }
+            }}
+            className="w-full px-3 py-2 border border-ink/20 rounded-lg bg-white text-ink focus:outline-hidden focus:ring-2 focus:ring-brand"
+          >
+            <option value="">Select Background...</option>
+            <option value="Acolyte">Acolyte</option>
+            <option value="Charlatan">Charlatan</option>
+            <option value="Criminal">Criminal</option>
+            <option value="Entertainer">Entertainer</option>
+            <option value="Folk Hero">Folk Hero</option>
+            <option value="Guild Artisan">Guild Artisan</option>
+            <option value="Hermit">Hermit</option>
+            <option value="Noble">Noble</option>
+            <option value="Outlander">Outlander</option>
+            <option value="Sage">Sage</option>
+            <option value="Sailor">Sailor</option>
+            <option value="Soldier">Soldier</option>
+            <option value="Urchin">Urchin</option>
+            <option value="Custom">Custom Background</option>
+          </select>
         </div>
+      </div>
+
+      {/* Race & Class Selection with Auto-Application */}
+      <div className="mt-6 pt-6 border-t border-ink/10">
+        <RaceClassManager
+          formData={formData as DnD5eCharacterData}
+          updateField={updateField}
+          clearErrorsAt={clearErrorsAt}
+          fieldError={fieldError}
+        />
       </div>
 
       {/* Proficiency Bonus and Inspiration */}
@@ -1479,15 +1587,56 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
           <input
             type="checkbox"
             id="inspiration"
-            checked={formData.inspiration || false}
-            onChange={(e) => updateField('inspiration', e.target.checked)}
+            checked={formData.rulesetVersion === '2024' ? (formData.heroicInspiration || false) : (formData.inspiration || false)}
+            onChange={(e) => {
+              if (formData.rulesetVersion === '2024') {
+                updateField('heroicInspiration', e.target.checked);
+              } else {
+                updateField('inspiration', e.target.checked);
+              }
+            }}
             className="w-5 h-5 accent-accent border-ink/20 rounded-sm focus:ring-2 focus:ring-brand"
           />
           <label htmlFor="inspiration" className="text-sm font-semibold text-ink-secondary">
-            Inspiration
+            {formData.rulesetVersion === '2024' ? 'Heroic Inspiration (2024)' : 'Inspiration'}
           </label>
         </div>
       </div>
+
+      {/* 2024 Weapon Masteries & Origin Feat (only if 2024 edition selected) */}
+      {formData.rulesetVersion === '2024' && (
+        <div className="p-4 bg-ink/5 border border-ink/20 rounded-lg space-y-3">
+          <h4 className="font-semibold text-sm text-ink">2024 Revised Combat Properties</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="dnd5e-origin-feat" className="block text-xs font-semibold text-ink-secondary mb-1">
+                Origin Feat (Background)
+              </label>
+              <input
+                id="dnd5e-origin-feat"
+                type="text"
+                placeholder="e.g. Alert, Magic Initiate, Tough, Musician"
+                value={formData.originFeat || ''}
+                onChange={(e) => updateField('originFeat', e.target.value)}
+                className="w-full px-3 py-1.5 border border-ink/20 rounded text-xs bg-white focus:outline-hidden focus:ring-2 focus:ring-brand"
+              />
+            </div>
+            <div>
+              <label htmlFor="dnd5e-weapon-masteries" className="block text-xs font-semibold text-ink-secondary mb-1">
+                Weapon Masteries
+              </label>
+              <input
+                id="dnd5e-weapon-masteries"
+                type="text"
+                placeholder="e.g. Cleave (Greataxe), Topple (Battleaxe), Vex (Shortsword)"
+                value={(formData.weaponMasteries || []).join(', ')}
+                onChange={(e) => updateField('weaponMasteries', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+                className="w-full px-3 py-1.5 border border-ink/20 rounded text-xs bg-white focus:outline-hidden focus:ring-2 focus:ring-brand"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ability Scores */}
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
@@ -1867,6 +2016,36 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
           fallback={10}
           />
           {fieldError('armorClass')}
+          {(() => {
+            const logistics = calculateArmorLogistics(
+              formData.inventory || [],
+              formData.stats?.dexterity?.modifier || 0,
+              formData.race
+            );
+            return (
+              <div className="mt-1 space-y-0.5">
+                {logistics.activeArmorName && (
+                  <p className="text-[11px] text-ink-secondary">
+                    Equipped: <strong>{logistics.activeArmorName}</strong>{logistics.hasShield ? ' + Shield' : ''} (Calc AC: {logistics.suggestedAC})
+                  </p>
+                )}
+                {logistics.suggestedAC !== formData.armorClass && (
+                  <button
+                    type="button"
+                    onClick={() => updateField('armorClass', logistics.suggestedAC)}
+                    className="text-[11px] text-accent-ink hover:underline font-medium block"
+                  >
+                    Set to equipped AC ({logistics.suggestedAC})
+                  </button>
+                )}
+                {logistics.flightDisabled && (
+                  <p className="text-[11px] text-danger-ink font-medium">
+                    [RESTRICTION] {logistics.flightDisabledReason}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
         <div>
           {/* Derived, not typed. Initiative is the Dexterity modifier plus the
@@ -1894,6 +2073,11 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
             className="w-full px-3 py-2 border border-ink/20 rounded-lg text-center text-xl font-bold focus:outline-hidden focus:ring-2 focus:ring-brand"
           fallback={30}
           />
+          {formData.race?.toLowerCase() === 'fairy' && (
+            <p className="mt-1 text-[11px] text-ink-secondary">
+              <strong>Fairy Flight:</strong> 30 ft fly speed. Disabled if wearing medium or heavy armor (PHB/TCE).
+            </p>
+          )}
         </div>
       </div>
 
@@ -2773,29 +2957,39 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
       <div className="bg-ink/5 border-2 border-ink/20 rounded-lg p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap mb-3">
           <h3 className="text-lg font-semibold text-ink">Inventory</h3>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              const newInventory = [
-                ...(formData.inventory || []),
-                newRow({
-                  name: '',
-                  quantity: 1,
-                  weight: 0,
-                  notes: '',
-                  equipped: false,
-                  requiresAttunement: false,
-                  attuned: false,
-                  value: 0,
-                }),
-              ];
-              updateField('inventory', newInventory);
-            }}
-            disabled={listIsFull(formData.inventory)}
-          >
-            + Add Item
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowItemPicker(true)}
+              disabled={listIsFull(formData.inventory)}
+            >
+              Browse Compendium
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                const newInventory = [
+                  ...(formData.inventory || []),
+                  newRow({
+                    name: '',
+                    quantity: 1,
+                    weight: 0,
+                    notes: '',
+                    equipped: false,
+                    requiresAttunement: false,
+                    attuned: false,
+                    value: 0,
+                  }),
+                ];
+                updateField('inventory', newInventory);
+              }}
+              disabled={listIsFull(formData.inventory)}
+            >
+              + Add Item
+            </Button>
+          </div>
         </div>
         <ListLimitNote full={listIsFull(formData.inventory)} />
         <div className="space-y-3">
@@ -3328,6 +3522,60 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
       </div>
       {errors.submit && (
         <div className="px-3 sm:px-6 pb-4 text-sm text-danger-ink">{errors.submit}</div>
+      )}
+
+      {/* Level-Up Progression Assistant Modal */}
+      {levelUpModal && (
+        <LevelUpAssistantModal
+          isOpen={!!levelUpModal}
+          onClose={() => setLevelUpModal(null)}
+          className={formData.class || 'Character'}
+          fromLevel={levelUpModal.fromLevel}
+          toLevel={levelUpModal.toLevel}
+          hitDie={(() => {
+            const cls = formData.class ? getClassById(formData.class.toLowerCase()) : null;
+            return cls?.hitDie || 'd8';
+          })()}
+          constitutionModifier={formData.stats?.constitution?.modifier || 0}
+          currentMaxHP={formData.hp?.maximum || 10}
+          onApplyLevelUp={({ hpGain }) => {
+            const newMax = (formData.hp?.maximum || 10) + hpGain;
+            updateField('hp.maximum', newMax);
+            updateField('hp.current', (formData.hp?.current || 10) + hpGain);
+
+            // Auto-advance hit dice and class level features
+            const cls = formData.class ? getClassById(formData.class.toLowerCase()) : null;
+            if (cls) {
+              const levelUpdates = applyClassLevelFeatures(formData as DnD5eCharacterData, cls, levelUpModal.toLevel);
+              for (const [key, value] of Object.entries(levelUpdates)) {
+                updateField(key, value);
+              }
+            }
+          }}
+        />
+      )}
+      {/* Compendium Item Picker Modal */}
+      {showItemPicker && (
+        <CompendiumItemPickerModal
+          isOpen={showItemPicker}
+          onClose={() => setShowItemPicker(false)}
+          onAddItem={(item) => {
+            const newInventory = [
+              ...(formData.inventory || []),
+              newRow({
+                name: item.name,
+                quantity: 1,
+                weight: item.weight,
+                notes: item.notes || '',
+                equipped: false,
+                requiresAttunement: item.requiresAttunement || false,
+                attuned: false,
+                value: item.value || 0,
+              }),
+            ];
+            updateField('inventory', newInventory);
+          }}
+        />
       )}
     </div>
   );

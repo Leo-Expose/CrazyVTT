@@ -34,6 +34,11 @@ import SlideOver, { SlideOverClose, SlideOverTitle } from '@/components/ui/Slide
 import { apiErrorMessage } from '@/utils/errors';
 import { CAMPAIGN_ROLE_LABEL, isCampaignOwner } from '@/utils/campaignRoles';
 import { CAMPAIGN_LIMITS } from '@/constants/campaignLimits';
+import { QualitativeHealthSettings } from './QualitativeHealthSettings';
+import type { HealthDisplayMode, HealthThresholds } from '@/utils/rules/qualitativeHealth';
+import { DEFAULT_THRESHOLDS } from '@/utils/rules/qualitativeHealth';
+import { RulesetRegistry, type RulesetPack } from '@/data/rulesets';
+import { CustomRulesetEditor } from '@/data/rulesets/CustomRulesetEditor';
 
 interface CampaignSettingsModalProps {
   isOpen: boolean;
@@ -50,7 +55,7 @@ interface CampaignSettingsModalProps {
 // Tab type
 // ============================================
 
-type SettingsTab = 'general' | 'chat' | 'members' | 'danger';
+type SettingsTab = 'general' | 'health' | 'rulesets' | 'chat' | 'members' | 'danger';
 
 /** A switch's press, a finger's height around its 24 px pill on a touch screen. */
 const SWITCH_PRESS = "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-2.5 pointer-coarse:after:content-['']";
@@ -90,6 +95,11 @@ export default function CampaignSettingsModal({
   // value otherwise, which the settings broadcast keeps current.
   const [playersMayDrawShown, setPlayersMayDrawShown] = useState<boolean | null>(null);
 
+  // ── Health representation (PRD §14.1, §14.3) ──
+  const [healthDisplayMode, setHealthDisplayMode] = useState<HealthDisplayMode>('qualitative');
+  const [healthThresholds, setHealthThresholds] = useState<HealthThresholds>(DEFAULT_THRESHOLDS);
+  const [savingHealth, setSavingHealth] = useState(false);
+
   // ── Chat settings ────────────────────────────
   const [chatCooldownEnabled, setChatCooldownEnabled] = useState(false);
   const [chatCooldownSeconds, setChatCooldownSeconds] = useState(5);
@@ -127,6 +137,13 @@ export default function CampaignSettingsModal({
       setDescription(campaign.description ?? '');
       setChatCooldownEnabled(campaign.chatCooldownEnabled);
       setChatCooldownSeconds(campaign.chatCooldownSeconds);
+      const vibe = campaign.vibeSettings as Record<string, unknown> | undefined;
+      if (vibe?.healthDisplayMode && typeof vibe.healthDisplayMode === 'string') {
+        setHealthDisplayMode(vibe.healthDisplayMode as HealthDisplayMode);
+      }
+      if (vibe?.healthThresholds && typeof vibe.healthThresholds === 'object') {
+        setHealthThresholds(vibe.healthThresholds as HealthThresholds);
+      }
       setDeleteConfirmName('');
       setActiveTab(isDmViewer ? 'general' : 'members');
     }
@@ -198,6 +215,28 @@ export default function CampaignSettingsModal({
       showToast(apiErrorMessage(err) ?? 'Could not change who may draw on the map', 'error');
     } finally {
       setPlayersMayDrawShown(null);
+    }
+  };
+
+  const handleSaveHealth = async (newMode?: HealthDisplayMode, newThresholds?: HealthThresholds) => {
+    setSavingHealth(true);
+    const mode = newMode ?? healthDisplayMode;
+    const thresh = newThresholds ?? healthThresholds;
+    try {
+      const currentVibe = (campaign.vibeSettings as Record<string, unknown>) ?? {};
+      await campaignService.updateCampaign(campaign.id, {
+        vibeSettings: {
+          ...currentVibe,
+          healthDisplayMode: mode,
+          healthThresholds: thresh,
+        },
+      });
+      await refreshCampaign();
+      showToast('Health representation settings saved', 'success');
+    } catch (err) {
+      showToast(apiErrorMessage(err) ?? 'Failed to save health settings', 'error');
+    } finally {
+      setSavingHealth(false);
     }
   };
 
@@ -329,6 +368,8 @@ export default function CampaignSettingsModal({
                 ...(isDmViewer
                   ? [
                       { id: 'general', label: 'General' },
+                      { id: 'health', label: 'Enemy Health' },
+                      { id: 'rulesets', label: 'Rulesets' },
                       { id: 'chat', label: 'Chat' },
                     ]
                   : []),
@@ -499,6 +540,62 @@ export default function CampaignSettingsModal({
                     </>
                   )}
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ════ ENEMY HEALTH TAB (PRD §14.1, §14.3) ════ */}
+          {activeTab === 'health' && (
+            <div className="space-y-6">
+              <QualitativeHealthSettings
+                healthDisplayMode={healthDisplayMode}
+                onHealthDisplayModeChange={(mode) => {
+                  setHealthDisplayMode(mode);
+                  void handleSaveHealth(mode, healthThresholds);
+                }}
+                thresholds={healthThresholds}
+                onThresholdsChange={(thresholds) => {
+                  setHealthThresholds(thresholds);
+                  void handleSaveHealth(healthDisplayMode, thresholds);
+                }}
+                disabled={savingHealth}
+              />
+            </div>
+          )}
+
+          {/* ════ RULESETS TAB (PRD §9.1-9.3) ════ */}
+          {activeTab === 'rulesets' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-brand-ink">Ruleset Packs</h3>
+                  <p className="text-xs text-stone-gray">Modular rules, actions, conditions, and automation settings.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {RulesetRegistry.getAllPacks().map((p) => (
+                  <div key={p.id} className="p-3.5 rounded-xl border border-moss-green/20 bg-moss-green/5 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-sm text-brand-ink flex items-center gap-2">
+                        {p.name}
+                        <span className="text-[10px] px-1.5 py-0.2 bg-moss-green/20 text-brand-ink rounded font-mono font-normal">v{p.version}</span>
+                      </div>
+                      <p className="text-xs text-stone-gray mt-0.5">{p.description}</p>
+                      <p className="text-[10px] text-warm-gray mt-1">
+                        Source: {p.attribution.source} &bull; License: {p.attribution.license}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-4 border-t border-moss-green/20">
+                <CustomRulesetEditor
+                  onSave={(newPack) => {
+                    showToast(`Custom ruleset pack ${newPack.name} saved!`, 'success');
+                  }}
+                />
               </div>
             </div>
           )}

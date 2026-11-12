@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="vttGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a7c59" />
+      <stop offset="100%" stop-color="#2d5a3c" />
+    </linearGradient>
+  </defs>
+  <!-- Tabletop Round Table Ring -->
+  <circle cx="60" cy="60" r="54" fill="none" stroke="#4a7c59" stroke-width="4" stroke-dasharray="2 6" opacity="0.6"/>
+  
+  <!-- Minimalist Geometric d20 Polyhedron Icon -->
+  <g stroke="#2d5a3c" stroke-width="2.5" stroke-linejoin="round" fill="none">
+    <!-- Outer Hexagon Silhouette -->
+    <polygon points="60,18 96,38 96,82 60,102 24,82 24,38" fill="#f8f6f0" />
+    
+    <!-- Central Triangle Face -->
+    <polygon points="60,38 82,78 38,78" fill="#e8ede9" fill-opacity="0.7" stroke="#2d5a3c" stroke-width="2.5" />
+    
+    <!-- Connecting Internal Facet Edges -->
+    <line x1="60" y1="18" x2="60" y2="38" />
+    <line x1="60" y1="18" x2="24" y2="38" />
+    <line x1="60" y1="18" x2="96" y2="38" />
+    
+    <line x1="24" y1="38" x2="38" y2="78" />
+    <line x1="96" y1="38" x2="82" y2="78" />
+    
+    <line x1="24" y1="38" x2="24" y2="82" />
+    <line x1="96" y1="38" x2="96" y2="82" />
+    
+    <line x1="24" y1="82" x2="38" y2="78" />
+    <line x1="96" y1="82" x2="82" y2="78" />
+    
+    <line x1="38" y1="78" x2="60" y2="102" />
+    <line x1="82" y1="78" x2="60" y2="102" />
+    <line x1="24" y1="82" x2="60" y2="102" />
+    <line x1="96" y1="82" x2="60" y2="102" />
+  </g>
+  
+  <!-- Central Subtle Core Dot -->
+  <circle cx="60" cy="65" r="3" fill="#4a7c59" />
+</svg>

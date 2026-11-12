@@ -125,11 +125,11 @@ const skillsSchema = z.object({
  * sheet written against the old declaration still loads.
  */
 const ritualSchema = z.union([
-  shortText.min(1),
   z.object({
     name: shortText.min(1),
     rank: z.number().int().min(1).max(10),
   }),
+  shortText.min(1).transform((name) => ({ name, rank: 1 })),
 ]);
 
 const loreSkillSchema = z.object({
@@ -318,8 +318,11 @@ const inventoryItemSchema = z.object({
   // Magic
   magical: z.boolean().optional(),
   charges: chargesSchema.optional(),
-  // Value
-  value: itemValueSchema.optional(),
+  // Value - accepts either structured object { amount, currency } or plain number (gp) for backward compatibility
+  value: z.union([
+    itemValueSchema,
+    z.number().min(0).transform((amount) => ({ amount, currency: 'GP' as const })),
+  ]).optional(),
   // Legacy value field for backward compatibility
   valueLegacy: z.number().min(0).optional(),
 });

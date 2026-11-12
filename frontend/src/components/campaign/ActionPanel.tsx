@@ -19,6 +19,7 @@ import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { ActionType, type CharacterAction, type ActionCost, type AttackPreview } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
+import { useGameStore, useTargetTokenId } from '@/stores/gameStore';
 
 interface ActionPanelProps {
   characterId: string;
@@ -73,7 +74,13 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
   const [selectedAction, setSelectedAction] = useState<CharacterAction | null>(null);
   const [preview, setPreview] = useState<AttackPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [lastRollResult, setLastRollResult] = useState<{ total: number; d20: number; isCrit: boolean; isFumble: boolean; hitsAC?: boolean } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Active target token ID from store
+  const targetTokenId = useTargetTokenId();
+  const allTokens = useGameStore((s) => s.tokens);
+  const targetToken = targetTokenId ? allTokens[targetTokenId] : null;
 
   // Fetch actions on mount and when characterId changes
   useEffect(() => {
@@ -257,6 +264,28 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                 {totalActions}
               </span>
             )}
+            {/* Custom Action / DM Ruling Button (PRD §10.3-10.5) */}
+            <button
+              type="button"
+              onClick={() => {
+                const customAction: CharacterAction = {
+                  id: `custom-ruling-${Date.now()}`,
+                  characterId,
+                  name: 'DM Ruling / Custom Action',
+                  type: ActionType.OTHER,
+                  cost: 'ACTION' as ActionCost,
+                  data: {
+                    description: 'Ad-hoc ruling or extraordinary action granted by the DM.',
+                    damageExpression: '1d6',
+                  },
+                };
+                handleActionClick(customAction);
+              }}
+              className="text-[11px] px-2 py-0.5 bg-warm-amber/20 text-warm-amber-ink hover:bg-warm-amber/30 rounded border border-warm-amber/40 font-medium transition-colors"
+              title="Declare custom action or DM ruling"
+            >
+              + DM Ruling
+            </button>
           </div>
           {onClose && (
             <button 
@@ -447,6 +476,139 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                 ))}
               </div>
             )}
+
+            {/* Target Selection & Live AC Comparison */}
+            <div className="pt-2 border-t border-ink-muted/10">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="font-semibold text-ink">Target:</span>
+                {targetToken ? (
+                  <span className="text-brand font-medium">
+                    {targetToken.name}{targetToken.statBlock ? ` (AC ${(targetToken.statBlock as any).ac || 10})` : ''}
+                  </span>
+                ) : (
+                  <span className="text-ink-muted italic">None (click map token to target)</span>
+                )}
+              </div>
+            </div>
+
+            {/* Attack Roll Button & AC Comparison */}
+            {preview.attackRoll && (
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d20 = Math.floor(Math.random() * 20) + 1;
+                    const bonusMatch = preview.attackRoll?.expression.match(/\+(\d+)/);
+                    const bonus = bonusMatch ? parseInt(bonusMatch[1], 10) : 0;
+                    const total = d20 + bonus;
+                    const targetAC = targetToken?.statBlock ? ((targetToken.statBlock as any).ac || 10) : 10;
+                    const hitsAC = d20 === 20 ? true : d20 === 1 ? false : total >= targetAC;
+
+                    setLastRollResult({
+                      total,
+                      d20,
+                      isCrit: d20 === 20,
+                      isFumble: d20 === 1,
+                      hitsAC,
+                    });
+
+                    // Broadcast roll event to chat/table
+                    socket?.emit('dice.roll', {
+                      expression: `1d20+${bonus}`,
+                      characterName: selectedAction?.name,
+                      purpose: `Attack vs ${targetToken ? targetToken.name : 'Target'}`,
+                    });
+                  }}
+                  className="w-full py-1.5 px-3 rounded-lg border border-brand/40 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Target className="w-3.5 h-3.5" />
+                  Roll Attack ({preview.attackRoll.expression})
+                </button>
+
+                {lastRollResult && (
+                  <div className={`p-2 rounded-lg text-xs border ${
+                    lastRollResult.isCrit
+                      ? 'bg-success/15 border-success/40 text-success-ink font-bold'
+                      : lastRollResult.isFumble
+                      ? 'bg-danger/15 border-danger/40 text-danger-ink font-bold'
+                      : lastRollResult.hitsAC
+                      ? 'bg-brand/10 border-brand/30 text-brand'
+                      : 'bg-stone-gray/10 border-stone-gray/20 text-stone-gray'
+                  }`}>
+                    <div className="flex items-center justify-between font-mono text-[11px] tracking-wider uppercase">
+                      <span>Roll: <strong>{lastRollResult.total}</strong> (d20: {lastRollResult.d20})</span>
+                      <span className="font-semibold">
+                        {lastRollResult.isCrit
+                          ? '[CRITICAL HIT]'
+                          : lastRollResult.isFumble
+                          ? '[CRITICAL FUMBLE]'
+                          : lastRollResult.hitsAC
+                          ? '[HIT]'
+                          : '[MISS]'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Apply Action Effects Button (PRD §10.3) */}
+            <div className="pt-3 border-t border-ink-muted/20">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!socket || !selectedAction) return;
+                  try {
+                    // Extract damage estimate or roll result from preview
+                    let damageEstimate = 0;
+                    if (preview.damageRoll?.expression) {
+                      const match = preview.damageRoll.expression.match(/(\d+)d(\d+)(?:\s*\+\s*(\d+))?/);
+                      if (match) {
+                        const count = parseInt(match[1], 10);
+                        const sides = parseInt(match[2], 10);
+                        const bonus = match[3] ? parseInt(match[3], 10) : 0;
+                        damageEstimate = Math.round(count * ((sides + 1) / 2)) + bonus;
+                        if (lastRollResult?.isCrit) damageEstimate *= 2; // Critical hit double dice
+                      }
+                    }
+
+                    const targetPayload = targetToken
+                      ? [{ id: targetToken.id, name: targetToken.name }]
+                      : [{ id: characterId, name: 'Target' }];
+
+                    const response = await socket.emitWithAck<{ ok: boolean; error?: string }>('action:resolve', {
+                      actionId: selectedAction.id,
+                      actionName: selectedAction.name,
+                      initiatorId: characterId,
+                      targets: targetPayload,
+                      effects: {
+                        damage: damageEstimate,
+                        damageType: preview.damageRoll?.damageType,
+                        conditions: preview.conditions?.map((c) => ({ name: c.name, duration: c.duration })),
+                      },
+                    }, 5000);
+
+                    if (response.ok) {
+                      // If action is a leveled spell, auto-deduct spell slot
+                      const spellLvl = parseInt(String((selectedAction.data as ActionDisplayData)?.spellLevel || ''), 10);
+                      if (!isNaN(spellLvl) && spellLvl >= 1 && spellLvl <= 9) {
+                        socket.emit('character.spellslot.use', { characterId, level: spellLvl, delta: 1 });
+                      }
+
+                      showToast(`Applied ${damageEstimate} damage to ${targetPayload[0].name}`, 'success');
+                    } else {
+                      showToast(response.error || 'Failed to apply effects', 'error');
+                    }
+                  } catch {
+                    showToast('Failed to apply effects', 'error');
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-brand text-white font-medium text-xs hover:bg-brand-hover shadow-sm transition-all"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Apply Damage / Effects to {targetToken ? targetToken.name : 'Target'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -57,6 +57,7 @@ import { BottomSheet, type SheetEdges, type SheetHeight } from './BottomSheet';
 import BottomBar, { BAR_PANELS, BOTTOM_BAR_HEIGHT, onTheBar, type BottomBarProps, type CompactTab } from './BottomBar';
 import CompactHeader from './CompactHeader';
 import MoreSheet, { type MorePanel } from './MoreSheet';
+import { MobileActionFab } from './MobileActionFab';
 
 /** The arrangement's sheets, of which one at most is open. */
 type CompactSheet = 'session' | 'party' | 'more';
@@ -175,6 +176,15 @@ export default function CompactTable({ campaign, isOwner, onOpenTool, onOpenDocu
 
       {/* The map is the page's, moved in here (tableHosts.tsx). */}
       <main ref={mapSlot.ref} className="finger-controls relative min-h-0 flex-1 overflow-hidden" />
+
+      {/* Floating Action Button for mobile players to trigger instant actions/rolls over the map */}
+      {!sideways && (
+        <MobileActionFab
+          onOpenDice={() => select('dice')}
+          onOpenInitiative={() => select('initiative')}
+          onOpenCombatAction={() => select('chat')}
+        />
+      )}
 
       {!sideways && bar}
 

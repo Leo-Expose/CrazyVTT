@@ -1,5 +1,5 @@
 // ============================================
-// Layer Panel - Map layer management UI
+// Layer Panel - Map layer management UI with opacity, merge, reorder
 // ============================================
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -8,7 +8,6 @@ import {
   EyeOff,
   Lock,
   LockOpen,
-  Layers,
   GripVertical,
   Plus,
   Trash2,
@@ -22,13 +21,16 @@ import {
   Users,
   PenTool,
   ChevronDown,
+  Layers as LayersIcon,
+  Merge,
+  Circle as OpacityIcon,
 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { LayerType } from '@/types';
 import { api } from '@/services/api';
 import Button from '@/components/ui/Button';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/contexts/ToastContext';
 
 interface MapLayer {
   id: string;
@@ -38,6 +40,7 @@ interface MapLayer {
   order: number;
   visible: boolean;
   locked: boolean;
+  opacity: number;
   data: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -47,6 +50,8 @@ interface LayerPanelProps {
   mapId: string;
   isDM: boolean;
   onClose?: () => void;
+  activeLayerId?: string | null;
+  onActiveLayerChange?: (layerId: string) => void;
 }
 
 const LAYER_TYPE_ICONS: Record<LayerType, React.ReactNode> = {
@@ -73,7 +78,9 @@ const LAYER_TYPE_LABELS: Record<LayerType, string> = {
 
 const PROTECTED_LAYER_TYPES = ['WALLS', 'LIGHTING', 'FOG', 'TOKENS'];
 
-export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
+
+
+export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActiveLayerChange }: LayerPanelProps) {
   const { campaign } = useCampaign();
   const { socket } = useWebSocket();
   const { showToast } = useToast();
@@ -84,8 +91,9 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
   const [contextMenu, setContextMenu] = useState<{ layerId: string; x: number; y: number } | null>(null);
   const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
   const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null);
+  const [opacityValues, setOpacityValues] = useState<Record<string, number>>({});
+  const [expandedLayerId, setExpandedLayerId] = useState<string | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
-
 
   // Listen for layer events from WebSocket
   useEffect(() => {
@@ -99,13 +107,18 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
 
     const handleLayerUpdated = (data: { mapId: string; layer: MapLayer }) => {
       if (data.mapId === mapId) {
-        setLayers(prev => prev.map(l => l.id === data.layer.id ? data.layer : l).sort((a, b) => a.order - b.order));
+        setLayers(prev => prev.map(l => l.id === data.layer.id ? { ...data.layer, opacity: opacityValues[data.layer.id] ?? data.layer.opacity } : l).sort((a, b) => a.order - b.order));
       }
     };
 
     const handleLayerRemoved = (data: { mapId: string; layerId: string }) => {
       if (data.mapId === mapId) {
         setLayers(prev => prev.filter(l => l.id !== data.layerId));
+        setOpacityValues(prev => {
+          const next = { ...prev };
+          delete next[data.layerId];
+          return next;
+        });
       }
     };
 
@@ -136,7 +149,7 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
       socket.off('layers:reordered', handleLayersReordered);
       socket.off('layer:data:updated', handleLayerDataUpdated);
     };
-  }, [socket, mapId]);
+  }, [socket, mapId, opacityValues]);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -153,7 +166,14 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
     try {
       setLoading(true);
       const response = await api.get<{ layers: MapLayer[] }>(`/campaigns/${campaign?.id}/maps/${mapId}/layers`);
-      setLayers(response.data.layers || []);
+      const fetchedLayers = response.data.layers || [];
+      setLayers(fetchedLayers);
+      // Initialize opacity values
+      const opacityMap: Record<string, number> = {};
+      fetchedLayers.forEach(layer => {
+        opacityMap[layer.id] = layer.opacity ?? 100;
+      });
+      setOpacityValues(opacityMap);
     } catch {
       console.error('Failed to fetch layers');
       showToast('Failed to load layers', 'error');
@@ -202,6 +222,18 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
     }
   };
 
+  const mergeLayerDown = async (layerId: string) => {
+    if (!isDM) return;
+
+    try {
+      await api.post(`/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}/merge-down`);
+      showToast('Layer merged down', 'success');
+    } catch {
+      console.error('Failed to merge layer');
+      showToast('Failed to merge layer', 'error');
+    }
+  };
+
   const reorderLayers = async (layerIds: string[]) => {
     if (!isDM) return;
 
@@ -223,6 +255,22 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
     } catch {
       console.error('Failed to initialize layers');
       showToast('Failed to initialize layers', 'error');
+    }
+  };
+
+  const createLayer = async (name: string, type: LayerType) => {
+    if (!isDM) return;
+
+    try {
+      await api.post(`/campaigns/${campaign?.id}/maps/${mapId}/layers`, {
+        name,
+        type,
+        order: layers.length,
+      });
+      showToast('Layer created', 'success');
+    } catch {
+      console.error('Failed to create layer');
+      showToast('Failed to create layer', 'error');
     }
   };
 
@@ -306,7 +354,10 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
         await duplicateLayer(layerId);
         break;
       case 'delete':
-        if (confirm('Delete this layer?')) await deleteLayer(layerId);
+        if (confirm('Delete this layer? This cannot be undone.')) await deleteLayer(layerId);
+        break;
+      case 'mergeDown':
+        if (confirm('Merge this layer down into the layer below? This cannot be undone.')) await mergeLayerDown(layerId);
         break;
       case 'lock':
         await updateLayer(layerId, { locked: true });
@@ -314,11 +365,42 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
       case 'unlock':
         await updateLayer(layerId, { locked: false });
         break;
+      case 'createAbove':
+        await createLayer(`New ${LAYER_TYPE_LABELS[layers.find(l => l.id === layerId)?.type || 'ANNOTATIONS']}`, LayerType.ANNOTATIONS);
+        break;
     }
     setContextMenu(null);
   };
 
   const isProtected = (layer: MapLayer) => PROTECTED_LAYER_TYPES.includes(layer.type);
+
+  const canMergeDown = (layer: MapLayer, index: number) => {
+    if (!isDM || isProtected(layer) || layer.locked) return false;
+    const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
+    const currentIndex = sortedLayers.findIndex(l => l.id === layer.id);
+    if (currentIndex === 0) return false; // Bottom layer
+    const layerBelow = sortedLayers[currentIndex - 1];
+    return !isProtected(layerBelow) && !layerBelow.locked;
+  };
+
+  const getLayerOpacity = (layerId: string) => opacityValues[layerId] ?? 100;
+
+  const handleOpacityChange = (layerId: string, opacity: number) => {
+    setOpacityValues(prev => ({ ...prev, [layerId]: opacity }));
+    updateLayer(layerId, { opacity: opacity / 100 });
+  };
+
+  const handleVisibilityChange = (layerId: string, visible: boolean) => {
+    updateLayer(layerId, { visible });
+  };
+
+  const handleLockChange = (layerId: string, locked: boolean) => {
+    updateLayer(layerId, { locked });
+  };
+
+  const handleActiveLayerClick = (layerId: string) => {
+    onActiveLayerChange?.(layerId);
+  };
 
   if (loading) {
     return (
@@ -328,12 +410,16 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
     );
   }
 
+  // Sort layers by order (bottom to top for display, but render top to bottom visually)
+  const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
+  const displayLayers = [...sortedLayers].reverse(); // Top layer first visually
+
   return (
     <div className="flex flex-col h-full bg-surface border-r border-border">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h3 className="font-medium text-foreground flex items-center gap-2">
-          <Layers className="w-5 h-5" />
+          <LayersIcon className="w-5 h-5" />
           Layers
         </h3>
         <div className="flex items-center gap-1">
@@ -360,7 +446,7 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
       <div className="flex-1 overflow-y-auto p-2">
         {layers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 gap-2">
-            <Layers className="w-12 h-12" />
+            <LayersIcon className="w-12 h-12" />
             <p className="text-sm">No layers yet</p>
             {isDM && (
               <Button variant="outline" size="sm" onClick={initializeLayers}>
@@ -370,33 +456,46 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
           </div>
         ) : (
           <ul className="space-y-1" role="list">
-            {/* Render in reverse order (top layer first visually) */}
-            {[...layers].sort((a, b) => b.order - a.order).map((layer, index) => (
-              <LayerItem
-                key={layer.id}
-                layer={layer}
-                index={index}
-                isDM={isDM}
-                isEditing={editingLayerId === layer.id}
-                editName={editName}
-                setEditName={setEditName}
-                draggingLayerId={draggingLayerId}
-                dragOverLayerId={dragOverLayerId}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onDragEnd={handleDragEnd}
-                onStartEdit={startEditing}
-                onSaveEdit={saveEdit}
-                onCancelEdit={cancelEdit}
-                onKeyDown={handleKeyDown}
-                onContextMenu={showContextMenu}
-                onVisibilityChange={(visible) => updateLayer(layer.id, { visible })}
-                onLockChange={(locked) => updateLayer(layer.id, { locked })}
-                isProtected={isProtected(layer)}
-              />
-            ))}
+            {displayLayers.map((layer) => {
+              const actualIndex = sortedLayers.findIndex(l => l.id === layer.id);
+              const canMerge = canMergeDown(layer, actualIndex);
+              const isActive = activeLayerId === layer.id;
+              
+              return (
+                <LayerItem
+                  key={layer.id}
+                  layer={layer}
+                  isDM={isDM}
+                  isEditing={editingLayerId === layer.id}
+                  isActive={isActive}
+                  isExpanded={expandedLayerId === layer.id}
+                  editName={editName}
+                  setEditName={setEditName}
+                  opacity={getLayerOpacity(layer.id)}
+                  draggingLayerId={draggingLayerId}
+                  dragOverLayerId={dragOverLayerId}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDragEnd}
+                  onStartEdit={startEditing}
+                  onCancelEdit={cancelEdit}
+                  onKeyDown={handleKeyDown}
+                  onContextMenu={showContextMenu}
+                  onVisibilityChange={handleVisibilityChange}
+                  onLockChange={handleLockChange}
+                  onOpacityChange={handleOpacityChange}
+                  onActiveLayerClick={() => handleActiveLayerClick(layer.id)}
+                  onToggleExpand={() => setExpandedLayerId(expandedLayerId === layer.id ? null : layer.id)}
+                  onMergeDown={canMerge ? () => mergeLayerDown(layer.id) : undefined}
+                  onDuplicate={() => duplicateLayer(layer.id)}
+                  onDelete={() => deleteLayer(layer.id)}
+                  isProtected={isProtected(layer)}
+                  canMerge={canMerge}
+                />
+              );
+            })}
           </ul>
         )}
       </div>
@@ -405,7 +504,7 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
       {contextMenu && (
         <div
           ref={contextMenuRef}
-          className="fixed z-50 bg-surface border border-border rounded-md shadow-lg py-1 min-w-[160px]"
+          className="fixed z-50 bg-surface border border-border rounded-md shadow-lg py-1 min-w-[180px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           role="menu"
         >
@@ -416,6 +515,14 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
           >
             <Copy className="w-4 h-4 inline mr-2" /> Duplicate
           </button>
+          <button
+            role="menuitem"
+            className="w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-accent focus:outline-none focus:bg-accent"
+            onClick={() => handleContextAction('mergeDown')}
+          >
+            <Merge className="w-4 h-4 inline mr-2" /> Merge Down
+          </button>
+          <hr className="my-1 border-border" />
           <button
             role="menuitem"
             className="w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-accent focus:outline-none focus:bg-accent"
@@ -433,11 +540,26 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
           <hr className="my-1 border-border" />
           <button
             role="menuitem"
+            className="w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-accent focus:outline-none focus:bg-accent"
+            onClick={() => handleContextAction('createAbove')}
+          >
+            <Plus className="w-4 h-4 inline mr-2" /> New Layer Above
+          </button>
+          <hr className="my-1 border-border" />
+          <button
+            role="menuitem"
             className="w-full px-3 py-1.5 text-left text-sm text-destructive hover:bg-accent focus:outline-none focus:bg-accent"
             onClick={() => handleContextAction('delete')}
           >
             <Trash2 className="w-4 h-4 inline mr-2" /> Delete
           </button>
+        </div>
+      )}
+
+      {/* Add Layer Footer (DM only) */}
+      {isDM && (
+        <div className="p-3 border-t border-border">
+          <AddLayerMenu mapId={mapId} campaignId={campaign?.id} onLayerCreate={createLayer} />
         </div>
       )}
     </div>
@@ -446,11 +568,13 @@ export default function LayerPanel({ mapId, isDM, onClose }: LayerPanelProps) {
 
 interface LayerItemProps {
   layer: MapLayer;
-  index: number;
   isDM: boolean;
   isEditing: boolean;
+  isActive: boolean;
+  isExpanded: boolean;
   editName: string;
   setEditName: (name: string) => void;
+  opacity: number;
   draggingLayerId: string | null;
   dragOverLayerId: string | null;
   onDragStart: (e: React.DragEvent, layerId: string) => void;
@@ -459,22 +583,30 @@ interface LayerItemProps {
   onDrop: (e: React.DragEvent, layerId: string) => void;
   onDragEnd: () => void;
   onStartEdit: (layer: MapLayer) => void;
-  onSaveEdit: (layerId: string) => void;
   onCancelEdit: () => void;
   onKeyDown: (e: React.KeyboardEvent, layerId: string) => void;
   onContextMenu: (e: React.MouseEvent, layerId: string) => void;
-  onVisibilityChange: (visible: boolean) => void;
-  onLockChange: (locked: boolean) => void;
+  onVisibilityChange: (layerId: string, visible: boolean) => void;
+  onLockChange: (layerId: string, locked: boolean) => void;
+  onOpacityChange: (layerId: string, opacity: number) => void;
+  onActiveLayerClick: () => void;
+  onToggleExpand: () => void;
+  onMergeDown: (() => void) | undefined;
+  onDuplicate: () => void;
+  onDelete: () => void;
   isProtected: boolean;
+  canMerge: boolean;
 }
 
 function LayerItem({
   layer,
-  index: _index,
   isDM,
   isEditing,
+  isActive,
+  isExpanded,
   editName,
   setEditName,
+  opacity,
   draggingLayerId,
   dragOverLayerId,
   onDragStart,
@@ -483,27 +615,35 @@ function LayerItem({
   onDrop,
   onDragEnd,
   onStartEdit,
-  onSaveEdit: _onSaveEdit,
   onCancelEdit,
   onKeyDown,
   onContextMenu,
   onVisibilityChange,
   onLockChange,
+  onOpacityChange,
+  onActiveLayerClick,
+  onToggleExpand,
+  onMergeDown,
+  onDuplicate,
+  onDelete,
   isProtected,
+  canMerge,
 }: LayerItemProps) {
   const isDragging = draggingLayerId === layer.id;
   const isDragOver = dragOverLayerId === layer.id;
 
   const handleDoubleClick = () => {
     if (isDM && !layer.locked) onStartEdit(layer);
+    else onActiveLayerClick();
   };
 
   return (
     <li
       className={`
-        relative group flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors
+        relative group flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors
         ${isDragging ? 'opacity-50 bg-accent' : ''}
         ${isDragOver ? 'bg-accent/50 ring-2 ring-accent' : ''}
+        ${isActive ? 'bg-ring/10 ring-1 ring-ring' : ''}
         ${!isDM ? 'cursor-default' : 'cursor-grab'}
         ${layer.locked && !isDM ? 'opacity-60' : ''}
       `}
@@ -516,13 +656,17 @@ function LayerItem({
       onDoubleClick={handleDoubleClick}
       onContextMenu={(e) => onContextMenu(e, layer.id)}
       onKeyDown={(e) => onKeyDown(e, layer.id)}
+      onClick={onActiveLayerClick}
     >
       {/* Drag handle */}
       {isDM && !layer.locked && (
-        <GripVertical
-          className="w-4 h-4 text-muted-foreground/50 hover:text-foreground cursor-grab active:cursor-grabbing flex-shrink-0"
-          aria-hidden="true"
-        />
+        <button
+          className="w-6 h-6 flex items-center justify-center text-muted-foreground/50 hover:text-foreground cursor-grab active:cursor-grabbing flex-shrink-0 p-0.5"
+          onMouseDown={(e) => e.stopPropagation()}
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
       )}
 
       {/* Visibility toggle */}
@@ -530,7 +674,7 @@ function LayerItem({
         className="p-1 rounded hover:bg-accent transition-colors flex-shrink-0"
         onClick={(e) => {
           e.stopPropagation();
-          onVisibilityChange(!layer.visible);
+          onVisibilityChange(layer.id, !layer.visible);
         }}
         onDoubleClick={(e) => e.stopPropagation()}
         title={layer.visible ? 'Hide layer' : 'Show layer'}
@@ -549,7 +693,7 @@ function LayerItem({
           className="p-1 rounded hover:bg-accent transition-colors flex-shrink-0"
           onClick={(e) => {
             e.stopPropagation();
-            onLockChange(!layer.locked);
+            onLockChange(layer.id, !layer.locked);
           }}
           onDoubleClick={(e) => e.stopPropagation()}
           title={layer.locked ? 'Unlock layer' : 'Lock layer'}
@@ -564,9 +708,18 @@ function LayerItem({
       )}
 
       {/* Layer type icon */}
-      <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-muted-foreground/70">
-        {LAYER_TYPE_ICONS[layer.type]}
-      </span>
+      <button
+        className="p-1 rounded hover:bg-accent transition-colors flex-shrink-0"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleExpand();
+        }}
+        title="Expand layer options"
+      >
+        <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/70">
+          {LAYER_TYPE_ICONS[layer.type]}
+        </span>
+      </button>
 
       {/* Layer name */}
       {isEditing ? (
@@ -582,13 +735,66 @@ function LayerItem({
       ) : (
         <span
           className={`
-            flex-1 text-sm truncate min-w-0
+            flex-1 text-sm truncate min-w-0 cursor-pointer
             ${layer.locked ? 'text-muted-foreground' : 'text-foreground'}
             ${isProtected ? 'font-medium' : ''}
           `}
         >
           {layer.name}
         </span>
+      )}
+
+      {/* Expandable controls */}
+      {isExpanded && (
+        <div className="flex items-center gap-1 ml-2 pt-1 border-l border-border pl-2">
+          {/* Opacity */}
+          <div className="flex items-center gap-1">
+            <OpacityIcon className="w-3 h-3 text-muted-foreground" />
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={opacity}
+              onChange={(e) => { e.stopPropagation(); onOpacityChange(layer.id, Number(e.target.value)); }}
+              className="w-20 h-1 accent-ring"
+              title="Opacity"
+            />
+            <span className="text-xs text-muted-foreground font-mono w-8">{opacity}%</span>
+          </div>
+
+          {/* Merge down */}
+          {canMerge && onMergeDown && (
+            <button
+              className="p-1 rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              onClick={(e) => { e.stopPropagation(); onMergeDown(); }}
+              title="Merge down"
+            >
+              <Merge className="w-3 h-3" />
+            </button>
+          )}
+
+          {/* Duplicate */}
+          {isDM && (
+            <button
+              className="p-1 rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+              title="Duplicate"
+            >
+              <Copy className="w-3 h-3" />
+            </button>
+          )}
+
+          {/* Delete */}
+          {isDM && !isProtected && (
+            <button
+              className="p-1 rounded hover:bg-accent transition-colors text-muted-foreground hover:text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              title="Delete"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       )}
 
       {/* Layer type badge */}
@@ -621,5 +827,105 @@ function LayerItem({
         </button>
       )}
     </li>
+  );
+}
+
+interface AddLayerMenuProps {
+  mapId: string;
+  campaignId: string | undefined;
+  onLayerCreate: (name: string, type: LayerType) => void;
+}
+
+function AddLayerMenu({ mapId, campaignId, onLayerCreate }: AddLayerMenuProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [selectedType, setSelectedType] = useState<LayerType>(LayerType.ANNOTATIONS);
+  const [newLayerName, setNewLayerName] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const layerTypes: { type: LayerType; label: string; icon: React.ReactNode }[] = [
+    { type: LayerType.TERRAIN, label: 'Terrain (Ground)', icon: <Image className="w-4 h-4" /> },
+    { type: LayerType.STRUCTURE, label: 'Structure (Walls/Corners)', icon: <Square className="w-4 h-4" /> },
+    { type: LayerType.FURNITURE, label: 'Furniture/Props', icon: <Box className="w-4 h-4" /> },
+    { type: LayerType.ANNOTATIONS, label: 'Annotations (Drawings)', icon: <PenTool className="w-4 h-4" /> },
+  ];
+
+  const handleCreate = () => {
+    if (newLayerName.trim()) {
+      onLayerCreate(newLayerName.trim(), selectedType);
+      setNewLayerName('');
+      setShowMenu(false);
+    }
+  };
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full justify-start gap-2"
+        onClick={() => { setShowMenu(!showMenu); setNewLayerName(`Layer ${Date.now().toString(36).toUpperCase()}`); }}
+      >
+        <Plus className="w-4 h-4" />
+        <span>Add Layer</span>
+        <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${showMenu ? 'rotate-180' : ''}`} />
+      </Button>
+
+      {showMenu && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-surface border border-border rounded-md shadow-lg p-3 z-10 animate-slide-down">
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Layer Name</label>
+              <input
+                type="text"
+                value={newLayerName}
+                onChange={(e) => setNewLayerName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+                className="w-full px-2 py-1.5 text-sm bg-background border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Layer Type</label>
+              <div className="grid grid-cols-2 gap-1">
+                {layerTypes.map(({ type, label, icon }) => (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedType(type)}
+                    className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded transition-colors ${
+                      selectedType === type
+                        ? 'bg-ring text-ring-foreground'
+                        : 'text-muted-foreground hover:bg-accent'
+                    }`}
+                  >
+                    {icon}
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-border">
+              <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowMenu(false); setNewLayerName(''); }}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" className="flex-1" onClick={handleCreate}>
+                Create
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

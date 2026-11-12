@@ -75,9 +75,23 @@ interface DiceTerm {
 }
 
 /**
- * Roll a single die
+ * Roll a single die using Cryptographically Secure Pseudo-Random Number Generation (CSPRNG)
+ * with rejection sampling to eliminate modulo bias.
  */
 function rollDie(sides: number): number {
+  if (sides <= 1) return 1;
+  if (typeof crypto !== 'undefined') {
+    // Rejection sampling for uniform distribution without modulo bias
+    const maxUint32 = 0xffffffff;
+    const limit = maxUint32 - (maxUint32 % sides);
+    const buffer = new Uint32Array(1);
+    let rand = 0;
+    do {
+      crypto.getRandomValues(buffer);
+      rand = buffer[0];
+    } while (rand >= limit);
+    return (rand % sides) + 1;
+  }
   return Math.floor(Math.random() * sides) + 1;
 }
 

@@ -257,9 +257,16 @@ function ChatMessageInner({ message, isCurrentUser = false, isPending = false, n
             <span className="sr-only">{onlyYou}</span>
           </>
         ) : (
-        /* Username */
+        /* Username / Character Name (PRD §8, §18) */
         <span className={`text-xs font-semibold ${nameColor}`}>
-          {displayName}
+          {message.metadata?.characterName ? (
+            <>
+              <span>{String(message.metadata.characterName)}</span>
+              <span className="text-[10px] font-normal text-stone-gray ml-1">({displayName})</span>
+            </>
+          ) : (
+            displayName
+          )}
           {isCurrentUser && !isSystem && ' (You)'}
         </span>
         )}

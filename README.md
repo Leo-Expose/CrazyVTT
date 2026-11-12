@@ -1,14 +1,15 @@
 <p align="center">
-  <img src="frontend/public/default-logo.png" alt="CrazyVTT Logo" width="300" />
+  <img src="frontend/public/logo.svg" alt="VTT Logo" width="160" />
 </p>
 
 <p align="center">
-  <a href="https://crazyvtt.com">crazyvtt.com</a>
+  <strong>A lightweight, self-hosted, open-source Virtual Tabletop (VTT).</strong><br>
+  <em>"Automate the bookkeeping. Leave the game’s authority with the people at the table."</em>
 </p>
 
-A self-hosted, browser-based Virtual Tabletop (VTT) platform. Designed for ease of use and narrative-driven tabletop RPG campaigns where atmosphere matters more than mechanics.
+An agile, browser-based Virtual Tabletop platform for D&D 5e, D&D 5.5e (2024), Pirate Borg, Pathfinder 2e, and custom RPG campaigns.
 
-> **Self-hosted** — you own your data. One instance can host multiple concurrent campaigns run by different GMs for different player groups.
+> **100% Self-hosted** — You own your data. Complete privacy, zero vendor lock-in, stateful real-time WebSockets, and durable PostgreSQL storage. Free and open source under the [GNU AGPL-3.0 License](LICENSE). No AI artwork, no paid features, no subscriptions.
 
 ---
 
@@ -112,15 +113,16 @@ If you find a security issue, please report it privately per [SECURITY.md](SECUR
 
 ---
 
-## Game Systems
+## Game Systems & Ruleset Packs
 
-| System | Character Sheet | Status |
-|--------|----------------|--------|
-| D&D 5th Edition | Full | Available |
-| Pathfinder 2nd Edition | Full | Available |
-| Call of Cthulhu 7th Edition | Full | Available |
-| Flexible / Custom | JSON freeform | Available |
-| Shadowrun 6th Edition | — | Planned |
+| System | Character Sheet | Ruleset Pack | Status |
+|--------|----------------|--------------|--------|
+| **D&D 5th Edition (2014)** | Full Sheet + Auto Race/Class | Modular Pack (`dnd5e-2014`) | Available |
+| **D&D 5.5e (2024 Revised)** | Full Sheet + Weapon Masteries | Modular Pack (`dnd5e-2024`) | Available |
+| **Pirate Borg** | Full System + Relics + Scurvy | Modular Pack (`pirate-borg`) | Available |
+| **Pathfinder 2nd Edition** | Full Sheet + Bulk Tracking | Rules Engine | Available |
+| **Call of Cthulhu 7th Edition** | Full Sheet + Sanity/Luck | Rules Engine | Available |
+| **Flexible / Custom** | Custom Ruleset Editor | User-Defined JSON Pack | Available |
 
 ---
 

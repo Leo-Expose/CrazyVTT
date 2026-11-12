@@ -122,6 +122,9 @@ interface GameState {
    * sends the whole map again after any change to a token.
    */
   selectedTokenId: string | null;
+  /** Targeted token ID for combat actions and spell resolution (PRD §10.3) */
+  targetTokenId: string | null;
+  setTargetTokenId: (tokenId: string | null) => void;
   /**
    * Characters' hit points by character id, seeded from the roster and
    * kept current by `character.hp.updated`. Read by the roster and the
@@ -254,6 +257,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   peekTokenId: null,
   peekSource: null,
   selectedTokenId: null,
+  targetTokenId: null,
+  setTargetTokenId: (targetTokenId) => set({ targetTokenId }),
   characterHp: {},
   setCampaignId: (campaignId) => set({ campaignId }),
   onlineUserIds: new Set(),
@@ -527,6 +532,10 @@ export function usePeekTokenId(): string | null {
 /** The token this page has selected, or null. */
 export function useSelectedTokenId(): string | null {
   return useGameStore((s) => s.selectedTokenId);
+}
+
+export function useTargetTokenId(): string | null {
+  return useGameStore((s) => s.targetTokenId);
 }
 
 /**
