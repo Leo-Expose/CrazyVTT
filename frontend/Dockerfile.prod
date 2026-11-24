@@ -2,6 +2,7 @@
 # Output: frontend/dist/, served by the nginx stage below
 FROM node:26-alpine AS builder
 
+ARG CACHE_BUST=1
 WORKDIR /app
 
 COPY package*.json .npmrc ./
@@ -10,6 +11,9 @@ RUN npm ci
 COPY . .
 
 RUN npm run build
+
+# Verify main.tsx has error handlers
+RUN grep -q "crazyvtt-error-display" /app/src/main.tsx && echo "ERROR HANDLERS FOUND" || (echo "ERROR HANDLERS MISSING!" && exit 1)
 
 # Serve via Nginx (lightweight serving of built static files). nginx's stable
 # line, the same as the proxy's in docker-compose.yml; move both together.

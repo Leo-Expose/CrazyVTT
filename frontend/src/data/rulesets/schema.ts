@@ -92,6 +92,13 @@ export const RulesetFeatureSchema = z.object({
   grantsActions: z.array(RulesetActionDefinitionSchema).optional(),
 });
 
+export const RulesetSubclassSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  features: z.array(RulesetFeatureSchema).default([]),
+});
+
 export const RulesetRaceSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -119,12 +126,7 @@ export const RulesetClassSchema = z.object({
   weaponProficiencies: z.array(z.string()).default([]),
   spellcastingAbility: z.string().optional(),
   features: z.array(RulesetFeatureSchema).default([]),
-  subclasses: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string(),
-    features: z.array(RulesetFeatureSchema).default([]),
-  })).default([]),
+  subclasses: z.array(RulesetSubclassSchema).default([]),
 });
 
 export const RulesetAutomationSettingsSchema = z.object({
@@ -135,6 +137,44 @@ export const RulesetAutomationSettingsSchema = z.object({
   encumbranceRule: z.enum(['none', 'standard_5e', 'variant_5e']).default('standard_5e'),
   shortRestRecoveryFormula: z.string().default('hit_dice'),
   longRestFullHeal: z.boolean().default(true),
+});
+
+export const RulesetSpellRefSchema = z.object({
+  id: z.string(), // matches CompendiumSpell.id
+  name: z.string(),
+  level: z.number().int().min(0).max(9),
+  school: z.string(),
+});
+
+export const RulesetFeatRefSchema = z.object({
+  id: z.string(), // matches CompendiumFeat.id
+  name: z.string(),
+  prerequisites: z.array(z.string()).default([]),
+});
+
+export const RulesetEquipmentRefSchema = z.object({
+  id: z.string(), // matches CompendiumEquipment.id
+  name: z.string(),
+  category: z.string(),
+  costGP: z.number().nonnegative(),
+  weight: z.number().nonnegative(),
+});
+
+export const RulesetMonsterRefSchema = z.object({
+  id: z.string(), // matches CompendiumMonster.id
+  name: z.string(),
+  size: z.string(),
+  type: z.string(),
+  challenge: z.number(),
+  xp: z.number(),
+});
+
+export const RulesetMagicItemRefSchema = z.object({
+  id: z.string(), // matches CompendiumMagicItem.id
+  name: z.string(),
+  category: z.string(),
+  rarity: z.string(),
+  attunement: z.boolean(),
 });
 
 export const RulesetPackSchema = z.object({
@@ -150,6 +190,23 @@ export const RulesetPackSchema = z.object({
   actions: z.array(RulesetActionDefinitionSchema).default([]),
   races: z.array(RulesetRaceSchema).default([]),
   classes: z.array(RulesetClassSchema).default([]),
+  subclasses: z.array(RulesetSubclassSchema).default([]), // Flattened subclasses for reference
+  backgrounds: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    abilityScores: z.array(z.string()).optional(),
+    skillProficiencies: z.array(z.string()).optional(),
+    toolProficiencies: z.array(z.string()).optional(),
+    feature: z.object({
+      name: z.string(),
+      description: z.string(),
+    }).nullable().optional(),
+  })).default([]),
+  feats: z.array(RulesetFeatRefSchema).default([]),
+  equipment: z.array(RulesetEquipmentRefSchema).default([]),
+  monsters: z.array(RulesetMonsterRefSchema).default([]),
+  magicItems: z.array(RulesetMagicItemRefSchema).default([]),
+  spells: z.array(RulesetSpellRefSchema).default([]),
   automation: RulesetAutomationSettingsSchema.default({}),
 });
 
@@ -160,4 +217,10 @@ export type RulesetCondition = z.infer<typeof RulesetConditionSchema>;
 export type RulesetActionDefinition = z.infer<typeof RulesetActionDefinitionSchema>;
 export type RulesetRace = z.infer<typeof RulesetRaceSchema>;
 export type RulesetClass = z.infer<typeof RulesetClassSchema>;
+export type RulesetSubclass = z.infer<typeof RulesetSubclassSchema>;
 export type RulesetAutomationSettings = z.infer<typeof RulesetAutomationSettingsSchema>;
+export type RulesetSpellRef = z.infer<typeof RulesetSpellRefSchema>;
+export type RulesetFeatRef = z.infer<typeof RulesetFeatRefSchema>;
+export type RulesetEquipmentRef = z.infer<typeof RulesetEquipmentRefSchema>;
+export type RulesetMonsterRef = z.infer<typeof RulesetMonsterRefSchema>;
+export type RulesetMagicItemRef = z.infer<typeof RulesetMagicItemRefSchema>;
