@@ -78,7 +78,7 @@ beforeEach(() => {
 });
 
 function fight(...combatants: CombatantEntry[]) {
-  useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants });
+  useGameStore.getState().setCombatState({ active: false, round: 0, currentIndex: 0, currentTokenId: null, combatants });
 }
 
 describe("a combatant whose token is on the table's map, while the DM prepares another", () => {

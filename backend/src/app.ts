@@ -37,6 +37,9 @@ import mapRoutes from './routes/maps';
 import creatureRoutes from './routes/creatures';
 import tokenTemplateRoutes from './routes/tokenTemplates';
 import inventoryRoutes from './routes/inventory';
+import partyPoolRoutes from './routes/partyPool';
+import journalRoutes from './routes/journal';
+import characterAdvancementRoutes from './routes/characterAdvancement';
 import shopRoutes from './routes/shops';
 import adminRoutes from './routes/admin';
 import adminStorageRoutes from './routes/adminStorage';
@@ -244,6 +247,15 @@ export function createApp(options: AppOptions): express.Express {
 
   // Inventory (nested under campaigns)
   app.use('/api/campaigns', inventoryRoutes);
+
+  // Party Resource Pools (nested under campaigns)
+  app.use('/api/campaigns', partyPoolRoutes);
+
+  // Journal (nested under campaigns)
+  app.use('/api/campaigns', journalRoutes);
+
+  // Character Advancement (nested under campaigns)
+  app.use('/api/campaigns', characterAdvancementRoutes);
 
   // Characters
   app.use('/api/characters', characterRoutes);

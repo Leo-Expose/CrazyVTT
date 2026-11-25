@@ -49,7 +49,7 @@ beforeEach(() => {
   emitInitiativeRoll.mockClear();
   emitInitiativeSet.mockClear();
   useGameStore.getState().setTokens([token('hero', 'Hero')]);
-  useGameStore.getState().setCombatState({ active: false, round: 0, currentTokenId: null, combatants: [moved] });
+  useGameStore.getState().setCombatState({ active: false, round: 0, currentIndex: 0, currentTokenId: null, combatants: [moved] });
 });
 
 describe('a combatant whose token is on another map', () => {

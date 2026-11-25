@@ -1,4 +1,8 @@
-import type { ClassData } from './classes';
+import type { ClassData, SkillProficiencyOption, SavingThrowProficiency } from './classes';
+import type { DnD5eCharacterData } from '@/types/game-systems';
+
+const statKeys = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const;
+const skillKeys = ['acrobatics', 'animalHandling', 'arcana', 'athletics', 'deception', 'history', 'insight', 'intimidation', 'investigation', 'medicine', 'nature', 'perception', 'performance', 'persuasion', 'religion', 'sleightOfHand', 'stealth', 'survival'] as const;
 
 export const ADDITIONAL_5E_CLASSES: ClassData[] = [
   {
@@ -6,14 +10,14 @@ export const ADDITIONAL_5E_CLASSES: ClassData[] = [
     name: 'Druid',
     description: 'A priest of the Old Faith, wielding the powers of nature and adopting animal forms.',
     hitDie: 'd8',
-    primaryAbility: ['wisdom'],
-    savingThrows: [{ ability: 'intelligence' }, { ability: 'wisdom' }],
+    primaryAbility: ['wisdom'] as (keyof DnD5eCharacterData['stats'])[],
+    savingThrows: [{ ability: 'intelligence' }, { ability: 'wisdom' }] as SavingThrowProficiency[],
     armorProficiencies: ['Light Armor', 'Medium Armor', 'Shields (non-metal)'],
     weaponProficiencies: ['Clubs', 'Daggers', 'Darts', 'Javelins', 'Maces', 'Quarterstaffs', 'Scimitars', 'Sickles', 'Slings', 'Spears'],
     toolProficiencies: ['Herbalism kit'],
     skillChoices: [{
       choose: 2,
-      from: ['arcana', 'animalHandling', 'insight', 'medicine', 'nature', 'perception', 'religion', 'survival'],
+      from: ['arcana', 'animalHandling', 'insight', 'medicine', 'nature', 'perception', 'religion', 'survival'] as (keyof DnD5eCharacterData['skills'])[],
     }],
     startingEquipment: [
       '(a) a wooden shield or (b) any simple weapon',
@@ -68,14 +72,14 @@ export const ADDITIONAL_5E_CLASSES: ClassData[] = [
     name: 'Fighter',
     description: 'A master of martial combat, skilled with a variety of weapons and armor.',
     hitDie: 'd10',
-    primaryAbility: ['strength', 'dexterity'],
-    savingThrows: [{ ability: 'strength' }, { ability: 'constitution' }],
+    primaryAbility: ['strength', 'dexterity'] as (keyof DnD5eCharacterData['stats'])[],
+    savingThrows: [{ ability: 'strength' }, { ability: 'constitution' }] as SavingThrowProficiency[],
     armorProficiencies: ['All Armor', 'Shields'],
     weaponProficiencies: ['Simple Weapons', 'Martial Weapons'],
     toolProficiencies: [],
     skillChoices: [{
       choose: 2,
-      from: ['acrobatics', 'animalHandling', 'athletics', 'history', 'insight', 'intimidation', 'perception', 'survival'],
+      from: ['acrobatics', 'animalHandling', 'athletics', 'history', 'insight', 'intimidation', 'perception', 'survival'] as (keyof DnD5eCharacterData['skills'])[],
     }],
     startingEquipment: [
       '(a) chain mail or (b) leather armor, longbow, and 20 arrows',

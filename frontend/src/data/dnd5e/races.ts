@@ -3,7 +3,8 @@
  * Complete PHB races with ability score increases, features, and traits
  */
 
-import type { DnD5eCharacterData } from '@/types/game-systems';
+import type { DnD5eCharacterData, DnD5eSkills } from '@/types/game-systems';
+import type { FeatureEntry } from '@/utils/featureEntries';
 
 export interface RaceFeature {
   name: string;
@@ -32,57 +33,31 @@ export interface RaceData {
   source: 'PHB' | 'EE' | 'SCAG' | 'XGtE' | 'TCE';
 }
 
-/** Helper to create a feature that adds to proficienciesAndLanguages */
-const languageFeature = (language: string): RaceFeature => ({
-  name: language,
-  description: `You can speak, read, and write ${language}.`,
-  effect: (sheet) => {
-    const langs = sheet.proficienciesAndLanguages || [];
-    if (!langs.includes(language)) {
-      return { proficienciesAndLanguages: [...langs, language] };
-    }
-    return {};
-  }
-});
+/** Return an empty skills object with all 18 skills initialized */
+function getEmptySkills(): DnD5eSkills {
+  return {
+    acrobatics: { proficient: false, expertise: false, bonus: 0 },
+    animalHandling: { proficient: false, expertise: false, bonus: 0 },
+    arcana: { proficient: false, expertise: false, bonus: 0 },
+    athletics: { proficient: false, expertise: false, bonus: 0 },
+    deception: { proficient: false, expertise: false, bonus: 0 },
+    history: { proficient: false, expertise: false, bonus: 0 },
+    insight: { proficient: false, expertise: false, bonus: 0 },
+    intimidation: { proficient: false, expertise: false, bonus: 0 },
+    investigation: { proficient: false, expertise: false, bonus: 0 },
+    medicine: { proficient: false, expertise: false, bonus: 0 },
+    nature: { proficient: false, expertise: false, bonus: 0 },
+    perception: { proficient: false, expertise: false, bonus: 0 },
+    performance: { proficient: false, expertise: false, bonus: 0 },
+    persuasion: { proficient: false, expertise: false, bonus: 0 },
+    religion: { proficient: false, expertise: false, bonus: 0 },
+    sleightOfHand: { proficient: false, expertise: false, bonus: 0 },
+    stealth: { proficient: false, expertise: false, bonus: 0 },
+    survival: { proficient: false, expertise: false, bonus: 0 },
+  };
+}
 
-/** Helper for skill proficiency */
-const skillProficiencyFeature = (skillName: string, skillKey: keyof DnD5eCharacterData['skills']): RaceFeature => ({
-  name: `${skillName} Proficiency`,
-  description: `You gain proficiency in the ${skillName} skill.`,
-  effect: (sheet) => {
-    const skills = { ...sheet.skills };
-    if (skills[skillKey]) {
-      return { skills: { ...skills, [skillKey]: { ...skills[skillKey], proficient: true } } };
-    }
-    return {};
-  }
-});
 
-/** Helper for tool proficiency */
-const toolProficiencyFeature = (toolName: string): RaceFeature => ({
-  name: `${toolName} Proficiency`,
-  description: `You gain proficiency with ${toolName}.`,
-  effect: (sheet) => {
-    const profs = sheet.proficienciesAndLanguages || [];
-    if (!profs.includes(toolName)) {
-      return { proficienciesAndLanguages: [...profs, toolName] };
-    }
-    return {};
-  }
-});
-
-/** Helper for weapon proficiency */
-const weaponProficiencyFeature = (weaponName: string): RaceFeature => ({
-  name: `${weaponName} Proficiency`,
-  description: `You have proficiency with the ${weaponName}.`,
-  effect: (sheet) => {
-    const profs = sheet.proficienciesAndLanguages || [];
-    if (!profs.includes(weaponName)) {
-      return { proficienciesAndLanguages: [...profs, weaponName] };
-    }
-    return {};
-  }
-});
 
 // ============================================
 // PHB RACES
@@ -165,9 +140,8 @@ export const DND5E_RACES: RaceData[] = [
             name: 'Dwarven Toughness',
             description: 'Your hit point maximum increases by 1, and it increases by 1 every time you gain a level.',
             effect: (sheet) => {
-              const hp = { ...sheet.hp };
-              hp.maximum = (hp.maximum || 0) + 1;
-              return { hp };
+              const currentHp = sheet.hp || { maximum: 0, current: 0, temporary: 0 };
+              return { hp: { ...currentHp, maximum: (currentHp.maximum || 0) + 1 } };
             }
           },
         ],
@@ -214,9 +188,15 @@ export const DND5E_RACES: RaceData[] = [
       {
         name: 'Keen Senses',
         description: 'You have proficiency in the Perception skill.',
-        effect: (sheet) => ({
-          skills: { ...sheet.skills, perception: { ...sheet.skills?.perception, proficient: true } }
-        }),
+        effect: (sheet) => {
+          const baseSkills = sheet.skills || getEmptySkills();
+          return {
+            skills: {
+              ...baseSkills,
+              perception: { ...baseSkills.perception, proficient: true },
+            },
+          };
+        },
       },
       {
         name: 'Fey Ancestry',
@@ -282,7 +262,7 @@ export const DND5E_RACES: RaceData[] = [
           {
             name: 'Fleet of Foot',
             description: 'Your base walking speed increases to 35 feet.',
-            effect: (sheet) => ({ speed: 35 }),
+            effect: () => ({ speed: 35 }),
           },
           {
             name: 'Mask of the Wild',
@@ -436,9 +416,15 @@ export const DND5E_RACES: RaceData[] = [
       {
         name: 'Menacing',
         description: 'You gain proficiency in the Intimidation skill.',
-        effect: (sheet) => ({
-          skills: { ...sheet.skills, intimidation: { ...sheet.skills?.intimidation, proficient: true } }
-        }),
+        effect: (sheet) => {
+          const baseSkills = sheet.skills || getEmptySkills();
+          return {
+            skills: {
+              ...baseSkills,
+              intimidation: { ...baseSkills.intimidation, proficient: true },
+            },
+          };
+        },
       },
       {
         name: 'Relentless Endurance',
@@ -677,7 +663,7 @@ export function applyRaceToSheet(sheet: DnD5eCharacterData, race: RaceData): Par
         Object.assign(updates, effect);
       }
       // Add feature to list
-      const existingFeature = featureData.find(f => f.name === feature.name);
+      const existingFeature = featureData.find((f): f is FeatureEntry => typeof f === 'object' && f !== null && f.name === feature.name);
       if (!existingFeature) {
         featureData = [...featureData, { name: feature.name, description: feature.description }];
       }

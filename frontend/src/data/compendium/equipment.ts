@@ -11,19 +11,29 @@ export interface CompendiumEquipment {
   costGP: number;
   weight: number;
   description: string;
-  properties: string[];
+  /** Raw D&D 5e API shape: property reference objects, plus a trailing string[] of "special" descriptions on some weapons. */
+  properties: Array<{ index: string; name: string; url: string } | string[]>;
   contents?: string[];
-  // Armor fields
-  armorClass?: { base: number; dexBonus?: boolean; maxBonus?: number } | number;
+  // Armor fields (raw API keys: dex_bonus / max_bonus)
+  armorClass?: { base: number; dex_bonus?: boolean; max_bonus?: number } | number;
   strengthRequirement?: number;
   stealthDisadvantage?: boolean;
-  // Weapon fields
-  damage?: { dice: string; type: string };
-  range?: { normal: number; long: number };
-  twoHandedDamage?: { dice: string; type: string };
+  // Weapon fields (raw API shape)
+  damage?: { damage_dice: string; damage_type: { index: string; name: string; url: string } };
+  range?: { normal: number; long?: number };
+  twoHandedDamage?: { damage_dice: string; damage_type: { index: string; name: string; url: string } };
   weaponProperty?: string;
+  /** Serialized weapon-mastery property JSON (2024 data). */
   mastery?: string;
-  utilize?: Record<string, unknown>;
+  /** Tool "utilize" entries with optional DC checks. */
+  utilize?: Array<{
+    name: string;
+    dc?: {
+      dc_type: { index: string; name: string; url: string };
+      dc_value: number;
+      success_type: string;
+    };
+  }>;
   version: '2014' | '2024';
 }
 

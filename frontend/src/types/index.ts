@@ -1045,6 +1045,7 @@ export interface Campaign {
   characters?: Character[];
   /** Most recent open (non-ended) session, if any — populated by GET /campaigns/:id */
   activeSession?: { id: string; sessionNumber: number; startedAt: string } | null;
+  resourcePools?: PartyResourcePool[];
 }
 
 export interface VibeSettings {
@@ -2295,6 +2296,7 @@ export interface CombatState {
   active: boolean;
   round: number;
   currentTokenId: string | null;
+  currentIndex: number;
   combatants: CombatantEntry[];
 }
 
@@ -2824,4 +2826,135 @@ export interface DiceRollMetadata {
   deckPosition?: number | null;
   /** Total deck size for the expression (WEIGHTED_DECK only) */
   deckSize?: number | null;
+}
+
+// ============================================
+// Party Resource Pool Types
+// ============================================
+
+export type PoolTransactionType = 'CONTRIBUTE' | 'WITHDRAW' | 'DM_ADJUST' | 'SPEND' | 'LOOT_DEPOSIT';
+
+export interface PartyResourcePool {
+  id: string;
+  campaignId: string;
+  name: string;
+  description: string | null;
+  // D&D currencies
+  cp: number;
+  sp: number;
+  ep: number;
+  gp: number;
+  pp: number;
+  // Shadowrun
+  nuyen: number;
+  // Call of Cthulhu
+  cash: number;
+  // Custom currency (JSON for extensibility)
+  custom: Record<string, number> | null;
+  // Settings
+  isDefault: boolean;
+  allowPlayerWithdraw: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdById: string;
+  createdBy?: { id: string; displayName: string };
+}
+
+export interface PartyResourceTransaction {
+  id: string;
+  poolId: string;
+  characterId: string | null;
+  character?: { id: string; name: string } | null;
+  type: PoolTransactionType;
+  // Amounts (always positive)
+  cp: number;
+  sp: number;
+  ep: number;
+  gp: number;
+  pp: number;
+  nuyen: number;
+  cash: number;
+  custom: Record<string, number> | null;
+  description: string;
+  sourceType: string | null;
+  sourceId: string | null;
+  createdById: string;
+  createdBy: { id: string; displayName: string };
+  createdAt: string;
+}
+
+export interface PoolCurrencyAmount {
+  cp: number;
+  sp: number;
+  ep: number;
+  gp: number;
+  pp: number;
+  nuyen: number;
+  cash: number;
+  custom?: Record<string, number>;
+}
+
+export interface FormattedPoolCurrency {
+  display: string;
+  shortDisplay: string;
+  breakdown: PoolCurrencyAmount;
+  totalInLowest: number;
+}
+
+// ============================================
+// Journal Types
+// ============================================
+
+export type JournalVisibility = 'PUBLIC' | 'DM_ONLY' | 'PLAYER_SPECIFIC';
+
+export interface JournalFolder {
+  id: string;
+  campaignId: string;
+  name: string;
+  parentId: string | null;
+  color: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  children?: JournalFolder[];
+  entryCount?: number;
+}
+
+export interface JournalImage {
+  id: string;
+  entryId: string;
+  assetId: string;
+  caption: string | null;
+  sortOrder: number;
+  createdAt: string;
+  asset?: {
+    id: string;
+    filePath: string;
+    thumbnailPath: string | null;
+    mimeType: string;
+  };
+}
+
+export interface JournalEntry {
+  id: string;
+  campaignId: string;
+  title: string;
+  content: string; // HTML from TipTap
+  visibility: JournalVisibility;
+  allowedPlayerIds: string[];
+  folderId: string | null;
+  tags: string[];
+  createdById: string;
+  createdBy?: { id: string; displayName: string } | null;
+  updatedById: string | null;
+  updatedBy?: { id: string; displayName: string } | null;
+  createdAt: string;
+  updatedAt: string;
+  folder?: JournalFolder | null;
+  images?: JournalImage[];
+}
+
+export interface JournalTree {
+  folders: JournalFolder[];
+  unassignedEntries: JournalEntry[];
 }

@@ -3,13 +3,16 @@
  * Standard PHB backgrounds with automatic skill proficiencies, tool proficiencies, languages, and starting equipment.
  */
 
-import type { DnD5eCharacterData } from '@/types/game-systems';
+import type { DnD5eCharacterData, DnD5eSkills } from '@/types/game-systems';
+import type { FeatureEntry } from '@/utils/featureEntries';
+
+type DnD5eSkillKey = keyof DnD5eSkills;
 
 export interface BackgroundData {
   id: string;
   name: string;
   description: string;
-  skillProficiencies: (keyof DnD5eCharacterData['skills'])[];
+  skillProficiencies: DnD5eSkillKey[];
   toolProficiencies?: string[];
   languages?: number; // Number of free languages to choose
   startingEquipment: Array<{
@@ -18,10 +21,7 @@ export interface BackgroundData {
     weight: number;
     value?: number;
   }>;
-  feature: {
-    name: string;
-    description: string;
-  };
+  feature: FeatureEntry;
 }
 
 export const DND5E_BACKGROUNDS: Record<string, BackgroundData> = {
@@ -149,8 +149,9 @@ export function applyBackgroundToSheet(
 
   const updates: Partial<DnD5eCharacterData> = {};
 
-  // 1. Skill Proficiencies
-  const skills = { ...sheet.skills };
+  // 1. Skill Proficiencies - ensure we have a complete skills object
+  const baseSkills = sheet.skills || getEmptySkills();
+  const skills = { ...baseSkills };
   let skillsChanged = false;
   for (const skillKey of bg.skillProficiencies) {
     if (skills[skillKey] && !skills[skillKey].proficient) {
@@ -174,7 +175,7 @@ export function applyBackgroundToSheet(
 
   // 3. Background Feature
   const features = sheet.featuresAndTraits ? [...sheet.featuresAndTraits] : [];
-  if (!features.some((f) => f.name === bg.feature.name)) {
+  if (!features.some((f): f is FeatureEntry => typeof f === 'object' && f.name === bg.feature.name)) {
     features.push(bg.feature);
     updates.featuresAndTraits = features;
   }
@@ -196,4 +197,28 @@ export function applyBackgroundToSheet(
   updates.inventory = inventory;
 
   return updates;
+}
+
+/** Return an empty skills object with all 18 skills initialized */
+function getEmptySkills(): DnD5eSkills {
+  return {
+    acrobatics: { proficient: false, expertise: false, bonus: 0 },
+    animalHandling: { proficient: false, expertise: false, bonus: 0 },
+    arcana: { proficient: false, expertise: false, bonus: 0 },
+    athletics: { proficient: false, expertise: false, bonus: 0 },
+    deception: { proficient: false, expertise: false, bonus: 0 },
+    history: { proficient: false, expertise: false, bonus: 0 },
+    insight: { proficient: false, expertise: false, bonus: 0 },
+    intimidation: { proficient: false, expertise: false, bonus: 0 },
+    investigation: { proficient: false, expertise: false, bonus: 0 },
+    medicine: { proficient: false, expertise: false, bonus: 0 },
+    nature: { proficient: false, expertise: false, bonus: 0 },
+    perception: { proficient: false, expertise: false, bonus: 0 },
+    performance: { proficient: false, expertise: false, bonus: 0 },
+    persuasion: { proficient: false, expertise: false, bonus: 0 },
+    religion: { proficient: false, expertise: false, bonus: 0 },
+    sleightOfHand: { proficient: false, expertise: false, bonus: 0 },
+    stealth: { proficient: false, expertise: false, bonus: 0 },
+    survival: { proficient: false, expertise: false, bonus: 0 },
+  };
 }

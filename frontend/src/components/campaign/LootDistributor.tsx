@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCampaign } from '../../contexts/CampaignContext';
 import { api } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 import { Button, Modal, Select, Input, Checkbox, Tabs, TabList, Tab, TabPanel } from '../ui';
 import {
   Package,
@@ -108,6 +109,7 @@ const SUGGESTION_METHODS: SuggestionMethod[] = [
 
 export function LootDistributor({ distributionId, onClose }: { distributionId: string; onClose?: () => void }) {
   const { currentCampaign } = useCampaign();
+  const { showToast } = useToast();
   const [distribution, setDistribution] = useState<LootDistribution | null>(null);
   const [characters, setCharacters] = useState<CharacterSummary[]>([]);
   const [suggestions, setSuggestions] = useState<Record<string, { items: LootItem[]; currency: LootCurrency }>>({});
@@ -116,6 +118,11 @@ export function LootDistributor({ distributionId, onClose }: { distributionId: s
   const [editingItem, setEditingItem] = useState<LootItem | null>(null);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'items' | 'currency' | 'assignments' | 'summary'>('items');
+  // Party Pool integration
+  const [partyPools, setPartyPools] = useState<Array<{ id: string; name: string; formatted: { display: string; shortDisplay: string } }>>([]);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [depositPoolId, setDepositPoolId] = useState<string>('');
+  const [depositing, setDepositing] = useState(false);
 
   // Load distribution and characters
   useEffect(() => {
@@ -136,6 +143,20 @@ export function LootDistributor({ distributionId, onClose }: { distributionId: s
 
     loadData();
   }, [distributionId, currentCampaign]);
+
+  // Load party pools for deposit option
+  useEffect(() => {
+    if (!currentCampaign) return;
+    const loadPools = async () => {
+      try {
+        const { pools } = await api.listPartyPools(currentCampaign.id);
+        setPartyPools(pools);
+      } catch {
+        console.error('Failed to load party pools');
+      }
+    };
+    loadPools();
+  }, [currentCampaign]);
 
   // Generate suggestions when method changes
   useEffect(() => {
@@ -298,6 +319,33 @@ export function LootDistributor({ distributionId, onClose }: { distributionId: s
     }
   };
 
+  const completeAndDepositToPool = async () => {
+    if (!currentCampaign || partyPools.length === 0) {
+      showToast('No party pools available. Create one first in the Resources tab.', 'error');
+      return;
+    }
+    if (!window.confirm('Complete this distribution and deposit currency to a party pool?')) return;
+    setShowDepositModal(true);
+  };
+
+  const handleDepositToPool = async () => {
+    if (!currentCampaign || !depositPoolId) return;
+    setDepositing(true);
+    try {
+      await api.depositLootToPool(currentCampaign.id, {
+        distributionId,
+        poolId: depositPoolId,
+      });
+      showToast('Distribution completed and currency deposited to party pool', 'success');
+      setShowDepositModal(false);
+      if (onClose) onClose();
+    } catch (err) {
+      showToast('Failed to deposit to pool', 'error');
+    } finally {
+      setDepositing(false);
+    }
+  };
+
   const cancelDistribution = async () => {
     if (!currentCampaign || !window.confirm('Cancel this distribution? All assignments will be lost.')) return;
     try {
@@ -446,6 +494,16 @@ export function LootDistributor({ distributionId, onClose }: { distributionId: s
           <Button variant="secondary" onClick={cancelDistribution} disabled={distribution.status === 'COMPLETED'}>
             <X className="w-4 h-4 mr-1" /> Cancel
           </Button>
+          {partyPools.length > 0 && distribution.status !== 'COMPLETED' && unassignedItems.length === 0 && (
+            <Button 
+              onClick={completeAndDepositToPool} 
+              variant="secondary"
+              className="gap-1"
+            >
+              <Package className="w-4 h-4 mr-1" />
+              Complete & Deposit to Pool
+            </Button>
+          )}
           <Button onClick={completeDistribution} disabled={distribution.status === 'COMPLETED' || unassignedItems.length > 0}>
             <Check className="w-4 h-4 mr-1" /> Complete
           </Button>
@@ -730,6 +788,48 @@ export function LootDistributor({ distributionId, onClose }: { distributionId: s
           </div>
         </div>
       </Modal>
+
+      {/* Deposit to Party Pool Modal */}
+      {showDepositModal && partyPools.length > 0 && (
+        <Modal isOpen={showDepositModal} onClose={() => { setShowDepositModal(false); setDepositPoolId(''); }} title="Complete & Deposit to Party Pool" size="md">
+          <div className="space-y-4">
+            <p className="text-sm text-ink-secondary">
+              The distribution will be completed and all currency will be deposited to the selected party pool.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Select Party Pool</label>
+              <select
+                value={depositPoolId}
+                onChange={e => setDepositPoolId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-edge rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand"
+                required
+              >
+                <option value="">Choose a pool...</option>
+                {partyPools.map(pool => (
+                  <option key={pool.id} value={pool.id}>
+                    {pool.name} ({pool.formatted.shortDisplay})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="p-3 bg-surface-light rounded-lg border">
+              <div className="font-medium mb-2">Currency to Deposit</div>
+              <div className="text-lg font-mono font-semibold text-warning-ink">
+                {formatCurrency(distribution.currency as LootCurrency)}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => { setShowDepositModal(false); setDepositPoolId(''); }} disabled={depositing}>
+                Cancel
+              </Button>
+              <Button onClick={handleDepositToPool} disabled={depositing || !depositPoolId}>
+                {depositing ? 'Depositing…' : 'Complete & Deposit'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }

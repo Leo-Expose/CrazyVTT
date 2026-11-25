@@ -32,6 +32,8 @@ import InitiativeTracker from './InitiativeTracker';
 import SessionControls from './SessionControls';
 import SessionHistory from './SessionHistory';
 import PersonalNotes from './PersonalNotes';
+import PartyPoolPanel from './PartyPoolPanel';
+import JournalPanel from './JournalPanel';
 import type { ChatMessageBroadcast } from '@/types';
 
 /**
@@ -130,6 +132,28 @@ export default function SessionPanels() {
         <SessionControls />
         {/* Everyone: the notes the DM wrote when each session ended */}
         <SessionHistory />
+      </div>
+
+      <div
+        id="session-tabpanel-pool"
+        {...panel('pool')}
+        className={cn(
+          'absolute inset-0', pad, 'overflow-y-auto',
+          activeTab === 'pool' ? 'animate-fade-in' : 'invisible'
+        )}
+      >
+        <PartyPoolPanel />
+      </div>
+
+      <div
+        id="session-tabpanel-journal"
+        {...panel('journal')}
+        className={cn(
+          'absolute inset-0', pad, 'overflow-y-auto',
+          activeTab === 'journal' ? 'animate-fade-in' : 'invisible'
+        )}
+      >
+        <JournalPanel />
       </div>
     </>
   );

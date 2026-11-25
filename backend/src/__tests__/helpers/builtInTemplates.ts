@@ -14,6 +14,7 @@ import { getCoC7eTemplates } from '../../utils/character-templates/callOfCthulhu
 
 const BUILT_IN: Record<GameSystem, () => CharacterTemplate[]> = {
   [GameSystem.DND_5E]: getDnD5eTemplates,
+  [GameSystem.DND_5E_2024]: getDnD5eTemplates,
   [GameSystem.PATHFINDER_2E]: getPF2eTemplates,
   [GameSystem.SHADOWRUN_6E]: getSR6Templates,
   [GameSystem.CALL_OF_CTHULHU_7E]: getCoC7eTemplates,

@@ -35,7 +35,7 @@ export interface CompendiumMonster {
   xp: number;
   xpInLair?: number;
   specialAbilities: Array<{ name: string; desc: string }>;
-  actions: Array<{ name: string; desc: string; attack_bonus?: number; damage?: any }>;
+  actions: Array<{ name: string; desc: string; attack_bonus?: number | null; damage?: any }>;
   bonusActions?: Array<{ name: string; desc: string }>;
   reactions?: Array<{ name: string; desc: string }>;
   legendaryActions: Array<{ name: string; desc: string }>;

@@ -68,6 +68,7 @@ enum LogLevel {
 
 enum GameSystem {
   DND_5E
+  DND_5E_2024
   PATHFINDER_2E
   SHADOWRUN_6E
   CALL_OF_CTHULHU_7E
@@ -462,6 +463,8 @@ model User {
   lootAssignments            LootAssignment[]      @relation("LootAssignmentAuthor")
   confirmedLootAssignments   LootAssignment[]      @relation("LootAssignmentConfirmer")
   currencyTransactions       CurrencyTransaction[] @relation("CurrencyTransactionAuthor")
+  createdResourcePools       PartyResourcePool[]   @relation("PoolCreator")
+  poolTransactions           PartyResourceTransaction[] @relation("PoolTransactionAuthor")
   createdShops               Shop[]                @relation("ShopCreatedBy")
   shopVisits                 ShopVisit[]
   shopTransactions           ShopTransaction[]
@@ -470,6 +473,8 @@ model User {
   revertedOverrides          DMOverride[]          @relation("DMOverrideRevertedBy")
   receivedMessages    Message[]              @relation("MessageRecipient")
   drawings            MapDrawing[]
+  journalEntries      JournalEntry[]       @relation("JournalEntryAuthor")
+  updatedJournalEntries JournalEntry[]       @relation("JournalEntryUpdater")
 
   @@index([email])
 }
@@ -595,9 +600,12 @@ model Campaign {
   actionResolutions   ActionResolution[]   @relation("ActionResolutions")
   lootDistributions   LootDistribution[]   @relation("CampaignLootDistributions")
   shops               Shop[]
-  spellTemplates      SpellTemplate[]      @relation("CampaignSpellTemplates")
-  dmOverrides         DMOverride[]         @relation("CampaignDMOverrides")
-  diceDecks           DiceDeck[]           @relation("CampaignDiceDecks")
+  spellTemplates      SpellTemplate[]       @relation("CampaignSpellTemplates")
+  dmOverrides         DMOverride[]          @relation("CampaignDMOverrides")
+  diceDecks           DiceDeck[]            @relation("CampaignDiceDecks")
+  resourcePools       PartyResourcePool[]   @relation("CampaignResourcePools")
+  journalFolders      JournalFolder[]       @relation("CampaignJournalFolders")
+  journalEntries      JournalEntry[]        @relation("CampaignJournalEntries")
 
   @@index([ownerId])
   @@index([status])
@@ -796,8 +804,10 @@ model Character {
   containers           InventoryContainer[]  @relation("CharacterContainers")
   currencyContainers   CurrencyContainer[]   @relation("CharacterCurrencyContainers")
   currencyTransactions CurrencyTransaction[] @relation("CharacterCurrencyTransactions")
+  poolTransactions     PartyResourceTransaction[] @relation("CharacterPoolTransactions")
   lootAssignments      LootAssignment[]      @relation("CharacterLootAssignments")
   attunementSlots      AttunementSlot[]      @relation("CharacterAttunementSlots")
+  advancement          CharacterAdvancement? @relation("CharacterAdvancement")
 
   @@index([userId])
   @@index([campaignId])
@@ -996,6 +1006,7 @@ model Asset {
   /// to read a document that is otherwise private to its uploader.
   campaignLinks CampaignDocument[]
   mapTiles      MapTile[]          @relation("MapTileAsset")
+  journalImages JournalImage[]   @relation("JournalImageAsset")
 
   /// When a document's text was last read for the assets it names
   /// (DocumentPicture). Null on every other asset, and on a document stored
@@ -1438,6 +1449,78 @@ model LootAssignment {
   @@index([characterId])
 }
 
+// ============================================
+// PARTY RESOURCE POOL (Shared Party Funds/Resources)
+// ============================================
+
+model PartyResourcePool {
+  id                   String                       @id @default(uuid())
+  campaignId           String
+  campaign             Campaign                     @relation("CampaignResourcePools", fields: [campaignId], references: [id], onDelete: Cascade)
+  name                 String                       // "Party Gold", "Shared Consumables", "Ship Fund"
+  description          String?                      @db.Text
+  // D&D currencies
+  cp                   Int                          @default(0)
+  sp                   Int                          @default(0)
+  ep                   Int                          @default(0)
+  gp                   Int                          @default(0)
+  pp                   Int                          @default(0)
+  // Shadowrun
+  nuyen                Int                          @default(0)
+  // Call of Cthulhu
+  cash                 Float                        @default(0)
+  // Custom currency (JSON for extensibility)
+  custom               Json?
+  // Settings
+  isDefault            Boolean                      @default(false) // Auto-created "Party Fund"
+  allowPlayerWithdraw  Boolean                      @default(true)  // Players can withdraw, or DM-only
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  createdById          String
+  createdBy            User                         @relation("PoolCreator", fields: [createdById], references: [id])
+  // Relations
+  transactions         PartyResourceTransaction[]
+
+  @@index([campaignId])
+  @@unique([campaignId, isDefault]) // Only one default pool per campaign
+}
+
+model PartyResourceTransaction {
+  id           String                 @id @default(uuid())
+  poolId       String
+  pool         PartyResourcePool      @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  characterId  String?                // Null for DM manual adjustments
+  character    Character?             @relation("CharacterPoolTransactions", fields: [characterId], references: [id], onDelete: SetNull)
+  type         PoolTransactionType    // CONTRIBUTE, WITHDRAW, DM_ADJUST, SPEND, LOOT_DEPOSIT
+  // Amounts (always positive)
+  cp           Int                    @default(0)
+  sp           Int                    @default(0)
+  ep           Int                    @default(0)
+  gp           Int                    @default(0)
+  pp           Int                    @default(0)
+  nuyen        Int                    @default(0)
+  cash         Float                  @default(0)
+  custom       Json?
+  description  String                 @db.Text
+  // Reference
+  sourceType   String?                // "LOOT", "SHOP", "MANUAL", "QUEST_REWARD"
+  sourceId     String?
+  createdById  String
+  createdBy    User                   @relation("PoolTransactionAuthor", fields: [createdById], references: [id])
+  createdAt    DateTime               @default(now())
+
+  @@index([poolId, createdAt])
+  @@index([characterId])
+}
+
+enum PoolTransactionType {
+  CONTRIBUTE
+  WITHDRAW
+  DM_ADJUST
+  SPEND
+  LOOT_DEPOSIT
+}
+
 model AttunementSlot {
   id          String    @id @default(uuid())
   characterId String
@@ -1454,6 +1537,92 @@ model AttunementSlot {
 
   @@unique([characterId, slotNumber])
   @@index([characterId])
+}
+
+// ============================================
+// CHARACTER ADVANCEMENT (Step 3 - XP/Level-Up System)
+// ============================================
+
+model CharacterAdvancement {
+  id             String   @id @default(uuid())
+  characterId    String   @unique
+  character      Character @relation("CharacterAdvancement", fields: [characterId], references: [id], onDelete: Cascade)
+  // XP System (D&D 5e, etc.)
+  currentXp      BigInt   @default(0)
+  lifetimeXp     BigInt   @default(0) // Never decreases
+  // Milestone System (PF2e, narrative)
+  level          Int      @default(1)
+  milestones     Json?    // Array of {name, description, date, xpAwarded?}
+  // Level-up tracking
+  pendingLevelUp Boolean  @default(false)
+  pendingChoices Json?    // Selections awaiting confirmation: {classFeatures: [], feats: [], asi: [], hpRoll: [], spells: []}
+  // History
+  advancementLog Json?    // Array of {level, xpAtLevel, date, choices: {}}
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([characterId])
+}
+
+// ============================================
+// JOURNAL SYSTEM (Step 2 - Rich Text Journal/Handouts with Secrets)
+// ============================================
+
+enum JournalVisibility {
+  PUBLIC
+  DM_ONLY
+  PLAYER_SPECIFIC
+}
+
+model JournalFolder {
+  id          String         @id @default(uuid())
+  campaignId  String
+  campaign    Campaign       @relation("CampaignJournalFolders", fields: [campaignId], references: [id], onDelete: Cascade)
+  name        String
+  parentId    String?
+  parent      JournalFolder? @relation("FolderNesting", fields: [parentId], references: [id], onDelete: SetNull)
+  children    JournalFolder[] @relation("FolderNesting")
+  entries     JournalEntry[] @relation("FolderEntries")
+  color       String?
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([campaignId, parentId])
+}
+
+model JournalEntry {
+  id              String   @id @default(uuid())
+  campaignId      String
+  campaign        Campaign @relation("CampaignJournalEntries", fields: [campaignId], references: [id], onDelete: Cascade)
+  title           String
+  content         String   @db.Text // HTML from TipTap
+  visibility      JournalVisibility @default(PUBLIC)
+  allowedPlayerIds String[] // For PLAYER_SPECIFIC
+  folderId        String?
+  folder          JournalFolder? @relation("FolderEntries", fields: [folderId], references: [id], onDelete: SetNull)
+  tags            String[]
+  createdById     String
+  createdBy       User     @relation("JournalEntryAuthor", fields: [createdById], references: [id])
+  updatedById     String?
+  updatedBy       User?    @relation("JournalEntryUpdater", fields: [updatedById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  images          JournalImage[]
+
+  @@index([campaignId, folderId])
+  @@index([campaignId, visibility])
+}
+
+model JournalImage {
+  id           String       @id @default(uuid())
+  entryId      String
+  entry        JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  assetId      String
+  asset        Asset        @relation("JournalImageAsset", fields: [assetId], references: [id], onDelete: Cascade)
+  caption      String?
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
 }
 
 // ============================================

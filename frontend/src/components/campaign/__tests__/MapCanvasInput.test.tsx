@@ -379,7 +379,7 @@ describe('the card a hovered token shows', () => {
   const hover = (point: { clientX: number; clientY: number }) => mouse.move(surface(), point);
   const inOrder = (initiative: number | null) => act(() => {
     useGameStore.getState().setCombatState({
-      active: true, round: 1, currentTokenId: null,
+      active: true, round: 1, currentIndex: 0, currentTokenId: null,
       combatants: [{ tokenId: 'tok-goblin', mapId: 'map-a', name: 'Goblin Scout', imageUrl: '', initiative, hp: null, type: 'npc', disposition: null, characterId: null }],
     });
   });

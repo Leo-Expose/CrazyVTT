@@ -41,7 +41,7 @@ export interface ClassData {
   /** Hit die type (e.g., 'd8', 'd10', 'd12') */
   hitDie: string;
   /** Primary ability score */
-  primaryAbility: (keyof DnD5eCharacterData['stats'])[];
+  primaryAbility: Array<keyof DnD5eCharacterData['stats']>;
   /** Saving throw proficiencies */
   savingThrows: SavingThrowProficiency[];
   /** Armor proficiencies */
@@ -140,14 +140,14 @@ export const DND5E_CLASSES: ClassData[] = [
     name: 'Barbarian',
     description: 'A fierce warrior of primitive background who can enter a battle rage.',
     hitDie: 'd12',
-    primaryAbility: ['strength'],
+    primaryAbility: ['strength'] as const,
     savingThrows: [{ ability: 'strength' }, { ability: 'constitution' }],
     armorProficiencies: ['Light Armor', 'Medium Armor', 'Shields'],
     weaponProficiencies: ['Simple Weapons', 'Martial Weapons'],
     toolProficiencies: [],
     skillChoices: [{
       choose: 2,
-      from: ['animalHandling', 'athletics', 'intimidation', 'nature', 'perception', 'survival'],
+      from: ['animalHandling', 'athletics', 'intimidation', 'nature', 'perception', 'survival'] as const,
     }],
     startingEquipment: [
       '(a) a greataxe or (b) any martial melee weapon',
