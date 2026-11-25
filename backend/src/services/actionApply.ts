@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { rollDice } from '../utils/dice-parser';
+import { withMapsLocked } from '../utils/mapTokens';
 
 interface DamageRoll {
   targetId: string;
@@ -42,7 +43,7 @@ interface TokenCondition {
 interface ActionToken {
   id: string;
   name: string;
-  hp?: { current: number; max: number; temp?: number };
+  hp?: { current: number; max?: number; maximum?: number; temp?: number; temporary?: number };
   conditions?: TokenCondition[];
   resistances?: string[];
   immunities?: string[];
@@ -58,12 +59,15 @@ interface ActionToken {
 }
 
 interface CharacterActionData {
-  hp?: { current: number; max: number; temp?: number };
+  hp?: { current: number; max?: number; maximum?: number; temp?: number; temporary?: number };
   resistances?: string[];
   immunities?: string[];
   vulnerabilities?: string[];
   conditions?: TokenCondition[];
   spellSlots?: Record<string, { used: number; max: number }>;
+  spellcasting?: {
+    slots?: Record<string, { total: number; expended?: number; used?: number }>;
+  };
   hitDice?: Array<{ remaining: number }>;
   superiorityDice?: { current: number };
   ki?: { current: number };
@@ -157,13 +161,14 @@ export async function applyActionResolution(
   };
 
   // Get initiator (for resource consumption)
-  const initiator = await getInitiator(resolution.initiatorId);
+  const initiator = await getInitiator(resolution.initiatorId, resolution.campaignId);
 
   // Apply damage rolls
   const damageRolls = resolution.damageRolls as DamageRoll[] | null;
   if (damageRolls && Array.isArray(damageRolls)) {
     for (const damageRoll of damageRolls) {
       const applied = await applyDamage(
+        resolution.campaignId,
         damageRoll.targetId,
         damageRoll.expression,
         damageRoll.type || 'untyped',
@@ -197,6 +202,7 @@ export async function applyActionResolution(
         const targetConditions = conditions.filter((c) => c.targetId === saveRoll.targetId);
         for (const cond of targetConditions) {
           const applied = await applyCondition(
+            resolution.campaignId,
             saveRoll.targetId,
             cond.name,
             cond.duration,
@@ -218,6 +224,7 @@ export async function applyActionResolution(
       );
       if (!alreadyHandled) {
         const applied = await applyCondition(
+          resolution.campaignId,
           cond.targetId,
           cond.name,
           cond.duration,
@@ -234,6 +241,7 @@ export async function applyActionResolution(
   if (resources && Array.isArray(resources)) {
     for (const resource of resources) {
       const consumed = await consumeResource(
+        resolution.campaignId,
         resolution.initiatorId,
         resource.type,
         resource.amount,
@@ -270,240 +278,257 @@ export async function applyActionResolution(
  * Apply damage to a token/character
  */
 async function applyDamage(
+  campaignId: string,
   targetId: string,
   damageExpression: string,
   damageType: string,
   shouldApply: boolean,
   _sourceName: string
 ): Promise<AppliedDamage | null> {
-  // Find the token on the map
+  // Find the token on a map in this campaign
   const maps = await prisma.map.findMany({
-    where: { tokens: { path: '$[*].id', equals: targetId } },
+    where: { campaignId, tokens: { path: '$[*].id', equals: targetId } },
     select: { id: true, tokens: true },
   });
 
   if (maps.length === 0) {
-    // Try to find as character
-    return applyDamageToCharacter(targetId, damageExpression, damageType, shouldApply, _sourceName);
+    // Try to find as character in this campaign
+    return applyDamageToCharacter(campaignId, targetId, damageExpression, damageType, shouldApply, _sourceName);
   }
 
-  const map = maps[0];
-  const tokens = map.tokens as unknown as ActionToken[];
-  const tokenIndex = tokens.findIndex((token) => token.id === targetId);
-  
-  if (tokenIndex === -1) return null;
+  const mapId = maps[0].id;
+  return withMapsLocked([mapId], async (tx) => {
+    const freshMap = await tx.map.findUnique({ where: { id: mapId }, select: { tokens: true } });
+    if (!freshMap) return null;
+    const tokens = (Array.isArray(freshMap.tokens) ? freshMap.tokens : []) as unknown as ActionToken[];
+    const tokenIndex = tokens.findIndex((token) => token.id === targetId);
+    if (tokenIndex === -1) return null;
 
-  const token = tokens[tokenIndex];
-  const previousHP = token.hp?.current ?? 0;
-  const maxHP = token.hp?.max ?? 0;
-  const tempHP = token.hp?.temp ?? 0;
+    const token = tokens[tokenIndex];
+    const previousHP = token.hp?.current ?? 0;
+    const maxHP = token.hp?.maximum ?? token.hp?.max ?? 0;
+    const tempHP = token.hp?.temporary ?? token.hp?.temp ?? 0;
 
-  if (!shouldApply) {
+    if (!shouldApply) {
+      return {
+        targetId,
+        targetName: token.name,
+        damage: 0,
+        damageType,
+        previousHP,
+        newHP: previousHP,
+        tempHP,
+        killed: false,
+        unconscious: false,
+      };
+    }
+
+    const damageResult = rollDice(damageExpression);
+    let damage = damageResult.total;
+
+    const resistances = token.resistances || [];
+    const immunities = token.immunities || [];
+    const vulnerabilities = token.vulnerabilities || [];
+
+    if (immunities.includes(damageType)) {
+      damage = 0;
+    } else if (resistances.includes(damageType)) {
+      damage = Math.floor(damage / 2);
+    } else if (vulnerabilities.includes(damageType)) {
+      damage *= 2;
+    }
+
+    let remainingDamage = damage;
+    let newTempHP = tempHP;
+
+    if (tempHP > 0) {
+      if (tempHP >= remainingDamage) {
+        newTempHP = tempHP - remainingDamage;
+        remainingDamage = 0;
+      } else {
+        remainingDamage -= tempHP;
+        newTempHP = 0;
+      }
+    }
+
+    let newHP = previousHP - remainingDamage;
+    let killed = false;
+    let unconscious = false;
+
+    if (newHP <= 0) {
+      const leftover = remainingDamage - previousHP;
+      newHP = 0;
+      unconscious = true;
+
+      if (maxHP > 0 && leftover >= maxHP) {
+        killed = true;
+      }
+    }
+
+    const existingHp = token.hp ?? { current: 0 };
+    tokens[tokenIndex] = {
+      ...token,
+      hp: {
+        ...existingHp,
+        current: newHP,
+        ...(existingHp.maximum !== undefined ? { maximum: maxHP } : { max: maxHP }),
+        ...(existingHp.temporary !== undefined ? { temporary: newTempHP } : { temp: newTempHP }),
+      },
+    };
+
+    await tx.map.update({
+      where: { id: mapId },
+      data: { tokens: jsonForPrisma(tokens) },
+    });
+
     return {
       targetId,
       targetName: token.name,
-      damage: 0,
+      damage,
       damageType,
       previousHP,
-      newHP: previousHP,
-      tempHP,
-      killed: false,
-      unconscious: false,
+      newHP,
+      tempHP: newTempHP,
+      killed,
+      unconscious,
     };
-  }
-
-  // Roll damage
-  const damageResult = rollDice(damageExpression);
-  let damage = damageResult.total;
-
-  // Apply resistance/immunity/vulnerability (simplified)
-  const resistances = token.resistances || [];
-  const immunities = token.immunities || [];
-  const vulnerabilities = token.vulnerabilities || [];
-
-  if (immunities.includes(damageType)) {
-    damage = 0;
-  } else if (resistances.includes(damageType)) {
-    damage = Math.floor(damage / 2);
-  } else if (vulnerabilities.includes(damageType)) {
-    damage *= 2;
-  }
-
-  // Apply to temp HP first
-  let remainingDamage = damage;
-  let newTempHP = tempHP;
-  
-  if (tempHP > 0) {
-    if (tempHP >= remainingDamage) {
-      newTempHP = tempHP - remainingDamage;
-      remainingDamage = 0;
-    } else {
-      remainingDamage -= tempHP;
-      newTempHP = 0;
-    }
-  }
-
-  // Apply to actual HP
-  let newHP = previousHP - remainingDamage;
-  let killed = false;
-  let unconscious = false;
-
-  if (newHP <= 0) {
-    newHP = 0;
-    unconscious = true;
-    
-    // Check for massive damage (instant death)
-    if (remainingDamage >= maxHP) {
-      killed = true;
-    }
-  }
-
-  // Update token
-  tokens[tokenIndex] = {
-    ...token,
-    hp: {
-      current: newHP,
-      max: maxHP,
-      temp: newTempHP,
-    },
-  };
-
-  await prisma.map.update({
-    where: { id: map.id },
-      data: { tokens: jsonForPrisma(tokens) },
   });
-
-  return {
-    targetId,
-    targetName: token.name,
-    damage,
-    damageType,
-    previousHP,
-    newHP,
-    tempHP: newTempHP,
-    killed,
-    unconscious,
-  };
 }
 
 /**
  * Apply damage to a character (not on map)
  */
 async function applyDamageToCharacter(
+  campaignId: string,
   characterId: string,
   damageExpression: string,
   damageType: string,
   shouldApply: boolean,
   _sourceName: string
 ): Promise<AppliedDamage | null> {
-  const character = await prisma.character.findUnique({
-    where: { id: characterId },
-    select: { data: true, name: true },
-  });
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
+    const character = await tx.character.findUnique({
+      where: { id: characterId },
+      select: { data: true, name: true, campaignId: true },
+    });
 
-  if (!character) return null;
+    if (!character || character.campaignId !== campaignId) return null;
 
-  const data = character.data as unknown as CharacterActionData;
-  const hp = data.hp || { current: 0, max: 0, temp: 0 };
-  const previousHP = hp.current;
-  const maxHP = hp.max;
-  const tempHP = hp.temp ?? 0;
+    const data = character.data as unknown as CharacterActionData;
+    const hp = data.hp || { current: 0, maximum: 0, temporary: 0 };
+    const previousHP = hp.current;
+    const maxHP = hp.maximum ?? hp.max ?? 0;
+    const tempHP = hp.temporary ?? hp.temp ?? 0;
 
-  if (!shouldApply) {
+    if (!shouldApply) {
+      return {
+        targetId: characterId,
+        targetName: character.name,
+        damage: 0,
+        damageType,
+        previousHP,
+        newHP: previousHP,
+        tempHP,
+        killed: false,
+        unconscious: false,
+      };
+    }
+
+    const damageResult = rollDice(damageExpression);
+    let damage = damageResult.total;
+
+    const resistances = data.resistances || [];
+    const immunities = data.immunities || [];
+    const vulnerabilities = data.vulnerabilities || [];
+
+    if (immunities.includes(damageType)) damage = 0;
+    else if (resistances.includes(damageType)) damage = Math.floor(damage / 2);
+    else if (vulnerabilities.includes(damageType)) damage *= 2;
+
+    let remainingDamage = damage;
+    let newTempHP = tempHP;
+
+    if (tempHP > 0) {
+      if (tempHP >= remainingDamage) {
+        newTempHP = tempHP - remainingDamage;
+        remainingDamage = 0;
+      } else {
+        remainingDamage -= tempHP;
+        newTempHP = 0;
+      }
+    }
+
+    let newHP = previousHP - remainingDamage;
+    let killed = false;
+    let unconscious = false;
+
+    if (newHP <= 0) {
+      const leftover = remainingDamage - previousHP;
+      newHP = 0;
+      unconscious = true;
+      if (maxHP > 0 && leftover >= maxHP) killed = true;
+    }
+
+    const updatedData = {
+      ...data,
+      hp: {
+        ...hp,
+        current: newHP,
+        maximum: maxHP,
+        temporary: newTempHP,
+      },
+    };
+    await tx.character.update({
+      where: { id: characterId },
+      data: { data: jsonForPrisma(updatedData) },
+    });
+
     return {
       targetId: characterId,
       targetName: character.name,
-      damage: 0,
+      damage,
       damageType,
       previousHP,
-      newHP: previousHP,
-      tempHP,
-      killed: false,
-      unconscious: false,
+      newHP,
+      tempHP: newTempHP,
+      killed,
+      unconscious,
     };
-  }
-
-  const damageResult = rollDice(damageExpression);
-  let damage = damageResult.total;
-
-  // Apply resistances/immunities from character data
-  const resistances = data.resistances || [];
-  const immunities = data.immunities || [];
-  const vulnerabilities = data.vulnerabilities || [];
-
-  if (immunities.includes(damageType)) damage = 0;
-  else if (resistances.includes(damageType)) damage = Math.floor(damage / 2);
-  else if (vulnerabilities.includes(damageType)) damage *= 2;
-
-  // Apply to temp HP first
-  let remainingDamage = damage;
-  let newTempHP = tempHP;
-  
-  if (tempHP > 0) {
-    if (tempHP >= remainingDamage) {
-      newTempHP = tempHP - remainingDamage;
-      remainingDamage = 0;
-    } else {
-      remainingDamage -= tempHP;
-      newTempHP = 0;
-    }
-  }
-
-  let newHP = previousHP - remainingDamage;
-  let killed = false;
-  let unconscious = false;
-
-  if (newHP <= 0) {
-    newHP = 0;
-    unconscious = true;
-    if (remainingDamage >= maxHP) killed = true;
-  }
-
-  // Update character
-  const updatedData = { ...data, hp: { current: newHP, max: maxHP, temp: newTempHP } };
-  await prisma.character.update({
-    where: { id: characterId },
-    data: { data: jsonForPrisma(updatedData) },
   });
-
-  return {
-    targetId: characterId,
-    targetName: character.name,
-    damage,
-    damageType,
-    previousHP,
-    newHP,
-    tempHP: newTempHP,
-    killed,
-    unconscious,
-  };
 }
 
 /**
  * Apply a condition to a target
  */
 async function applyCondition(
+  campaignId: string,
   targetId: string,
   conditionName: string,
   duration: string,
   saveEnds: boolean,
   saveDC?: number
 ): Promise<AppliedCondition | null> {
-  // Try token first
+  // Try token first in this campaign
   const maps = await prisma.map.findMany({
-    where: { tokens: { path: '$[*].id', equals: targetId } },
+    where: { campaignId, tokens: { path: '$[*].id', equals: targetId } },
     select: { id: true, tokens: true },
   });
 
   if (maps.length > 0) {
-    return applyConditionToToken(maps[0], targetId, conditionName, duration, saveEnds, saveDC);
+    return withMapsLocked([maps[0].id], async (tx) => {
+      const freshMap = await tx.map.findUnique({ where: { id: maps[0].id }, select: { id: true, tokens: true } });
+      if (!freshMap) return null;
+      return applyConditionToToken(tx, freshMap, targetId, conditionName, duration, saveEnds, saveDC);
+    });
   }
 
-  // Try character
-  return applyConditionToCharacter(targetId, conditionName, duration, saveEnds, saveDC);
+  // Try character in this campaign
+  return applyConditionToCharacter(campaignId, targetId, conditionName, duration, saveEnds, saveDC);
 }
 
 async function applyConditionToToken(
+  tx: Prisma.TransactionClient,
   map: { id: string; tokens: Prisma.JsonValue },
   targetId: string,
   conditionName: string,
@@ -511,18 +536,16 @@ async function applyConditionToToken(
   saveEnds: boolean,
   saveDC?: number
 ): Promise<AppliedCondition | null> {
-  const tokens = map.tokens as unknown as ActionToken[];
+  const tokens = (Array.isArray(map.tokens) ? map.tokens : []) as unknown as ActionToken[];
   const tokenIndex = tokens.findIndex((token) => token.id === targetId);
-  
+
   if (tokenIndex === -1) return null;
 
   const token = tokens[tokenIndex];
-  const conditions = token.conditions || [];
-  
-  // Check if already has condition
+  const conditions = Array.isArray(token.conditions) ? [...token.conditions] : [];
+
   const existingIndex = conditions.findIndex((condition) => condition.name === conditionName);
   if (existingIndex >= 0) {
-    // Update duration if new one is longer
     return {
       targetId,
       targetName: token.name,
@@ -537,9 +560,9 @@ async function applyConditionToToken(
   conditions.push({ name: conditionName, duration, saveEnds, saveDC });
   tokens[tokenIndex] = { ...token, conditions };
 
-  await prisma.map.update({
+  await tx.map.update({
     where: { id: map.id },
-      data: { tokens: jsonForPrisma(tokens) },
+    data: { tokens: jsonForPrisma(tokens) },
   });
 
   return {
@@ -554,24 +577,46 @@ async function applyConditionToToken(
 }
 
 async function applyConditionToCharacter(
+  campaignId: string,
   characterId: string,
   conditionName: string,
   duration: string,
   saveEnds: boolean,
   saveDC?: number
 ): Promise<AppliedCondition | null> {
-  const character = await prisma.character.findUnique({
-    where: { id: characterId },
-    select: { data: true, name: true },
-  });
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
+    const character = await tx.character.findUnique({
+      where: { id: characterId },
+      select: { data: true, name: true, campaignId: true },
+    });
 
-  if (!character) return null;
+    if (!character || character.campaignId !== campaignId) return null;
 
-  const data = character.data as unknown as CharacterActionData;
-  const conditions = data.conditions || [];
-  
-  const existingIndex = conditions.findIndex((condition) => condition.name === conditionName);
-  if (existingIndex >= 0) {
+    const data = character.data as unknown as CharacterActionData;
+    const conditions = Array.isArray(data.conditions) ? [...data.conditions] : [];
+
+    const existingIndex = conditions.findIndex((condition) => condition.name === conditionName);
+    if (existingIndex >= 0) {
+      return {
+        targetId: characterId,
+        targetName: character.name,
+        condition: conditionName,
+        duration,
+        saveEnds,
+        saveDC,
+        added: false,
+      };
+    }
+
+    conditions.push({ name: conditionName, duration, saveEnds, saveDC });
+    const updatedData = { ...data, conditions };
+
+    await tx.character.update({
+      where: { id: characterId },
+      data: { data: jsonForPrisma(updatedData) },
+    });
+
     return {
       targetId: characterId,
       targetName: character.name,
@@ -579,127 +624,114 @@ async function applyConditionToCharacter(
       duration,
       saveEnds,
       saveDC,
-      added: false,
+      added: true,
     };
-  }
-
-  conditions.push({ name: conditionName, duration, saveEnds, saveDC });
-  const updatedData = { ...data, conditions };
-
-  await prisma.character.update({
-    where: { id: characterId },
-    data: { data: jsonForPrisma(updatedData) },
   });
-
-  return {
-    targetId: characterId,
-    targetName: character.name,
-    condition: conditionName,
-    duration,
-    saveEnds,
-    saveDC,
-    added: true,
-  };
 }
 
 /**
  * Consume a resource (spell slot, charge, etc.)
  */
 async function consumeResource(
+  campaignId: string,
   characterId: string,
   type: ConsumedResource['type'],
   amount: number,
   details: string
 ): Promise<ConsumedResource | null> {
-  const character = await prisma.character.findUnique({
-    where: { id: characterId },
-    select: { data: true },
-  });
-
-  if (!character) return null;
-
-  const data = character.data as unknown as CharacterActionData;
-  let consumed = false;
-
-  switch (type) {
-    case 'spell_slot': {
-      const slots = data.spellSlots || {};
-      const level = parseInt(details.match(/(\d+)/)?.[1] || '1', 10);
-      if (slots[level] && slots[level].used < slots[level].max) {
-        slots[level].used += amount;
-        consumed = true;
-      }
-      break;
-    }
-    case 'charge': {
-      // For items with charges - would need to find specific item
-      consumed = true; // Simplified
-      break;
-    }
-    case 'use': {
-      // For features with limited uses
-      consumed = true; // Simplified
-      break;
-    }
-    case 'hit_dice': {
-      const hitDice = data.hitDice || [];
-      // Find first pool with remaining dice
-      for (const hd of hitDice) {
-        if (hd.remaining > 0) {
-          hd.remaining -= amount;
-          consumed = true;
-          break;
-        }
-      }
-      break;
-    }
-    case 'superiority_dice': {
-      if (data.superiorityDice && data.superiorityDice.current >= amount) {
-        data.superiorityDice.current -= amount;
-        consumed = true;
-      }
-      break;
-    }
-    case 'ki': {
-      if (data.ki && data.ki.current >= amount) {
-        data.ki.current -= amount;
-        consumed = true;
-      }
-      break;
-    }
-    case 'channel_divinity': {
-      if (data.channelDivinity && data.channelDivinity.current >= amount) {
-        data.channelDivinity.current -= amount;
-        consumed = true;
-      }
-      break;
-    }
-  }
-
-  if (consumed) {
-    await prisma.character.update({
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
+    const character = await tx.character.findUnique({
       where: { id: characterId },
-      data: { data: jsonForPrisma(data) },
+      select: { data: true, campaignId: true },
     });
-  }
 
-  return consumed ? { characterId, type, details, amount } : null;
+    if (!character || character.campaignId !== campaignId) return null;
+
+    const data = character.data as unknown as CharacterActionData;
+    let consumed = false;
+
+    switch (type) {
+      case 'spell_slot': {
+        const level = String(parseInt(details.match(/(\d+)/)?.[1] || '1', 10));
+        const scSlots = data.spellcasting?.slots;
+        if (scSlots?.[level]) {
+          const currentExpended = scSlots[level].expended ?? scSlots[level].used ?? 0;
+          if (currentExpended + amount <= scSlots[level].total) {
+            scSlots[level] = { total: scSlots[level].total, expended: currentExpended + amount };
+            consumed = true;
+          }
+        } else if (data.spellSlots?.[level] && data.spellSlots[level].used + amount <= data.spellSlots[level].max) {
+          data.spellSlots[level].used += amount;
+          consumed = true;
+        }
+        break;
+      }
+      case 'charge': {
+        consumed = true;
+        break;
+      }
+      case 'use': {
+        consumed = true;
+        break;
+      }
+      case 'hit_dice': {
+        const hitDice = data.hitDice || [];
+        for (const hd of hitDice) {
+          if (hd.remaining >= amount) {
+            hd.remaining -= amount;
+            consumed = true;
+            break;
+          }
+        }
+        break;
+      }
+      case 'superiority_dice': {
+        if (data.superiorityDice && data.superiorityDice.current >= amount) {
+          data.superiorityDice.current -= amount;
+          consumed = true;
+        }
+        break;
+      }
+      case 'ki': {
+        if (data.ki && data.ki.current >= amount) {
+          data.ki.current -= amount;
+          consumed = true;
+        }
+        break;
+      }
+      case 'channel_divinity': {
+        if (data.channelDivinity && data.channelDivinity.current >= amount) {
+          data.channelDivinity.current -= amount;
+          consumed = true;
+        }
+        break;
+      }
+    }
+
+    if (consumed) {
+      await tx.character.update({
+        where: { id: characterId },
+        data: { data: jsonForPrisma(data) },
+      });
+    }
+
+    return consumed ? { characterId, type, details, amount } : null;
+  });
 }
 
 /**
  * Get initiator (character or token)
  */
-async function getInitiator(initiatorId: string): Promise<{ id: string; name: string; type: 'character' | 'token' } | null> {
-  // Try character first
+async function getInitiator(initiatorId: string, campaignId: string): Promise<{ id: string; name: string; type: 'character' | 'token' } | null> {
   const character = await prisma.character.findUnique({
     where: { id: initiatorId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, campaignId: true },
   });
-  if (character) return { id: character.id, name: character.name, type: 'character' };
+  if (character && character.campaignId === campaignId) return { id: character.id, name: character.name, type: 'character' };
 
-  // Try token on map
   const maps = await prisma.map.findMany({
-    where: { tokens: { path: '$[*].id', equals: initiatorId } },
+    where: { campaignId, tokens: { path: '$[*].id', equals: initiatorId } },
     select: { tokens: true },
   });
   if (maps.length > 0) {

@@ -48,7 +48,6 @@ export function calculateArmorLogistics(
   raceName?: string
 ): CalculatedArmorLogistics {
   let highestArmorAC = 10;
-  let dexModToAdd = dexterityModifier;
   let activeArmor: ArmorDefinition | null = null;
   let hasShield = false;
   let stealthDisadvantage = false;
@@ -78,7 +77,6 @@ export function calculateArmorLogistics(
         if (calculatedAC > highestArmorAC) {
           highestArmorAC = calculatedAC;
           activeArmor = armor;
-          dexModToAdd = armorDex;
           stealthDisadvantage = armor.stealthDisadvantage;
         }
       }

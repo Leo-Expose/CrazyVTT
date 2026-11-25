@@ -3,7 +3,13 @@
  * Complete PHB classes with hit die, proficiencies, features by level, and spellcasting
  */
 
-import type { DnD5eCharacterData } from '@/types/game-systems';
+import type {
+  DnD5eCharacterData,
+  DnD5eStats,
+  DnD5eSkills,
+  DnD5eSavingThrows,
+  DnD5eSpellSlots,
+} from '@/types/game-systems';
 
 export interface ClassFeature {
   name: string;
@@ -14,18 +20,18 @@ export interface ClassFeature {
 }
 
 export interface SavingThrowProficiency {
-  ability: keyof DnD5eCharacterData['stats'];
+  ability: keyof DnD5eStats;
 }
 
 export interface SkillProficiencyOption {
   /** Number of skills to choose */
   choose: number;
   /** Skills to choose from */
-  from: (keyof DnD5eCharacterData['skills'])[];
+  from: (keyof DnD5eSkills)[];
 }
 
 export interface ClassSpellcasting {
-  ability: keyof DnD5eCharacterData['stats'];
+  ability: keyof DnD5eStats;
   /** Whether the class is a ritual caster */
   ritual?: boolean;
   /** Spell list source */
@@ -41,7 +47,7 @@ export interface ClassData {
   /** Hit die type (e.g., 'd8', 'd10', 'd12') */
   hitDie: string;
   /** Primary ability score */
-  primaryAbility: (keyof DnD5eCharacterData['stats'])[];
+  primaryAbility: (keyof DnD5eStats)[];
   /** Saving throw proficiencies */
   savingThrows: SavingThrowProficiency[];
   /** Armor proficiencies */
@@ -77,46 +83,19 @@ export interface SubclassData {
   source: 'PHB' | 'EE' | 'SCAG' | 'XGtE' | 'TCE';
 }
 
-// ============================================
-// HELPER FUNCTIONS (prefixed with _ to indicate they're available for future use)
-// ============================================
-
-/** Create a feature that adds to proficienciesAndLanguages */
-const _proficiencyFeature = (prof: string): ClassFeature => ({
-  name: prof,
-  description: `You gain proficiency with ${prof}.`,
-  level: 1,
-  effect: (sheet) => {
-    const profs = sheet.proficienciesAndLanguages || [];
-    if (!profs.includes(prof)) {
-      return { proficienciesAndLanguages: [...profs, prof] };
-    }
-    return {};
-  },
-});
-
-/** Create a skill choice feature */
-const _skillChoiceFeature = (choose: number, from: (keyof DnD5eCharacterData['skills'])[]): ClassFeature => ({
-  name: `Skill Proficiency (choose ${choose})`,
-  description: `Choose ${choose} skill(s) from: ${from.join(', ')}.`,
-  level: 1,
-  // Would need UI for selection
-});
-
-/** Create a feature that sets spellcasting ability */
-const _spellcastingFeature = (ability: keyof DnD5eCharacterData['stats'], _spellList: ClassSpellcasting['spellList']): ClassFeature => ({
-  name: 'Spellcasting',
-  description: `You can cast spells using ${ability}.`,
-  level: 1,
-  effect: (sheet) => ({
-    spellcasting: {
-      ...sheet.spellcasting,
-      ability,
-      spellSaveDC: 8 + (sheet.stats?.[ability]?.modifier || 0) + (sheet.proficiencyBonus || 2),
-      spellAttackBonus: (sheet.stats?.[ability]?.modifier || 0) + (sheet.proficiencyBonus || 2),
-    } as DnD5eCharacterData['spellcasting'],
-  }),
-});
+function toSpellSlots(
+  counts: Record<string, number> | undefined,
+  existing?: DnD5eSpellSlots
+): DnD5eSpellSlots {
+  const levels = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
+  const slots = {} as DnD5eSpellSlots;
+  for (const lvl of levels) {
+    const prev = existing?.[lvl];
+    const total = counts?.[lvl] ?? prev?.total ?? 0;
+    slots[lvl] = { total, expended: Math.min(prev?.expended ?? 0, total) };
+  }
+  return slots;
+}
 
 /** Create a feature for hit point calculation */
 const hpFeature = (hitDie: string): ClassFeature => ({
@@ -1045,8 +1024,8 @@ export function applyClassToSheet(sheet: DnD5eCharacterData, classData: ClassDat
   }
 
   // Apply saving throw proficiencies
-  if (classData.savingThrows.length > 0) {
-    const savingThrows = { ...sheet.savingThrows };
+  if (classData.savingThrows.length > 0 && sheet.savingThrows) {
+    const savingThrows: DnD5eSavingThrows = { ...sheet.savingThrows };
     let hasChanges = false;
     for (const st of classData.savingThrows) {
       if (!savingThrows[st.ability].proficient) {
@@ -1068,7 +1047,7 @@ export function applyClassToSheet(sheet: DnD5eCharacterData, classData: ClassDat
       spellSaveDCOtherBonus: 0,
       spellAttackOtherBonus: 0,
       cantrips: [],
-      slots: classData.spellcasting.slotsPerLevel[1] || { '1': { total: 0, expended: 0 } },
+      slots: toSpellSlots(classData.spellcasting.slotsPerLevel[1]),
       spells: [],
     };
   }
@@ -1081,7 +1060,9 @@ export function applyClassToSheet(sheet: DnD5eCharacterData, classData: ClassDat
         const effect = feature.effect(sheet);
         Object.assign(updates, effect);
       }
-      const existingFeature = featureData.find(f => f.name === feature.name);
+      const existingFeature = featureData.find(
+        (f) => (typeof f === 'string' ? f === feature.name : f.name === feature.name)
+      );
       if (!existingFeature) {
         featureData = [...featureData, { name: feature.name, description: feature.description }];
       }
@@ -1099,7 +1080,9 @@ export function applyClassToSheet(sheet: DnD5eCharacterData, classData: ClassDat
         const effect = feature.effect(sheet);
         Object.assign(updates, effect);
       }
-      const existingFeature = featureData.find(f => f.name === feature.name);
+      const existingFeature = featureData.find(
+        (f) => (typeof f === 'string' ? f === feature.name : f.name === feature.name)
+      );
       if (!existingFeature) {
         featureData = [...featureData, { name: feature.name, description: feature.description }];
       }
@@ -1143,7 +1126,9 @@ export function applyClassLevelFeatures(sheet: DnD5eCharacterData, classData: Cl
         const effect = feature.effect(sheet);
         Object.assign(updates, effect);
       }
-      const existingFeature = featureData.find(f => f.name === feature.name);
+      const existingFeature = featureData.find(
+        (f) => (typeof f === 'string' ? f === feature.name : f.name === feature.name)
+      );
       if (!existingFeature) {
         featureData = [...featureData, { name: feature.name, description: feature.description }];
       }
@@ -1161,7 +1146,9 @@ export function applyClassLevelFeatures(sheet: DnD5eCharacterData, classData: Cl
         const effect = feature.effect(sheet);
         Object.assign(updates, effect);
       }
-      const existingFeature = featureData.find(f => f.name === feature.name);
+      const existingFeature = featureData.find(
+        (f) => (typeof f === 'string' ? f === feature.name : f.name === feature.name)
+      );
       if (!existingFeature) {
         featureData = [...featureData, { name: feature.name, description: feature.description }];
       }
@@ -1175,7 +1162,7 @@ export function applyClassLevelFeatures(sheet: DnD5eCharacterData, classData: Cl
   if (classData.spellcasting && classData.spellcasting.slotsPerLevel[level]) {
     updates.spellcasting = {
       ...sheet.spellcasting,
-      slots: { ...sheet.spellcasting?.slots, ...classData.spellcasting.slotsPerLevel[level] },
+      slots: toSpellSlots(classData.spellcasting.slotsPerLevel[level], sheet.spellcasting?.slots),
     };
   }
 

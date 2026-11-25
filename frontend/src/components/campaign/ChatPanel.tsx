@@ -8,7 +8,6 @@ import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { MessageCircle, Send, Loader, AlertCircle, Eraser, X, Lock, Shield } from 'lucide-react';
 import { useParams } from 'react-router';
 import { rollOnTable, ROLLABLE_TABLES } from '@/data/compendium/rollableTables';
-import { Table as TableIcon } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useOnRejoin } from '@/hooks/useOnRejoin';
 import { useAuth } from '@/contexts/AuthContext';

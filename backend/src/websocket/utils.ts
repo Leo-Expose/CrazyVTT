@@ -472,6 +472,11 @@ export async function clearCampaignFromLiveSockets(
     const authed = socket as unknown as AuthenticatedFields;
     if (authed.campaignId === campaignId || socket.rooms.has(campaignId)) {
       socket.leave(campaignId);
+      for (const room of socket.rooms) {
+        if (room.startsWith('character:draft:')) {
+          socket.leave(room);
+        }
+      }
       if (authed.campaignId === campaignId) {
         authed.releaseHeldTokens?.(campaignId);
         authed.campaignId = undefined;
@@ -497,6 +502,11 @@ export async function clearDeletedCampaignFromLiveSockets(campaignId: string): P
   for (const socket of await io.in(campaignId).fetchSockets()) {
     const authed = socket as unknown as AuthenticatedFields;
     socket.leave(campaignId);
+    for (const room of socket.rooms) {
+      if (room.startsWith('character:draft:')) {
+        socket.leave(room);
+      }
+    }
     if (authed.campaignId === campaignId) {
       authed.campaignId = undefined;
       authed.role = undefined;

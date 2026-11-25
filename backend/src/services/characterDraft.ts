@@ -198,13 +198,38 @@ export async function applyPatchToDraft(
     }
 
     // Check for locks on fields being modified
-    await tx.characterLock.findMany({
-      where: {
-        characterId,
-        fieldPath: { in: patches.map((p) => p.path) },
-      },
+    const normalizedTargets = new Set<string>();
+    for (const patch of patches) {
+      const paths = [patch.path, ...(patch.op === 'move' && patch.from ? [patch.from] : [])];
+      for (const path of paths) {
+        const target = normalizeFieldPath(path);
+        normalizedTargets.add(target);
+        // Inserting or removing an array element shifts other locked indices.
+        if ((patch.op === 'add' || patch.op === 'remove' || patch.op === 'move') && /\.(?:\d+|-)$/.test(target)) {
+          normalizedTargets.add(target.replace(/\.(?:\d+|-)$/, ''));
+        }
+      }
+    }
+    const locks = await tx.characterLock.findMany({
+      where: { characterId },
       include: { lockedBy: { select: { id: true, displayName: true } } },
     });
+    const blockingLock = changeType === ChangeType.DM_OVERRIDE ? undefined : locks.find((lock) => {
+      const lockedPath = normalizeFieldPath(lock.fieldPath);
+      for (const target of normalizedTargets) {
+        if (
+          target === '' || target === lockedPath ||
+          target.startsWith(`${lockedPath}.`) ||
+          lockedPath.startsWith(`${target}.`)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    });
+    if (blockingLock) {
+      throw new Error(`Field "${blockingLock.fieldPath}" is locked by ${blockingLock.lockedBy?.displayName ?? 'DM'}`);
+    }
 
     // Apply patches to a copy of the data
     const currentData = deepClone(draft.data as object);
@@ -278,7 +303,7 @@ export async function applyPatchToDraft(
     }) as unknown as DraftWithEditor;
 
     // Get current locks
-    const locks = await tx.characterLock.findMany({
+    const currentLocks = await tx.characterLock.findMany({
       where: { characterId },
       include: { lockedBy: { select: { id: true, displayName: true } } },
     });
@@ -293,7 +318,7 @@ export async function applyPatchToDraft(
       },
       changes,
       conflicts,
-      locks: locks.map((l) => ({
+      locks: currentLocks.map((l) => ({
         id: l.id,
         characterId: l.characterId,
         fieldPath: l.fieldPath,
@@ -1019,21 +1044,22 @@ async function detectPf2eConflicts(
   const d = asRecord(data);
 
   // Check proficiency ranks are valid for level
-  // (simplified - full implementation would need level)
-  if (d.skills && Array.isArray(d.skills)) {
-    const skills = asRecords(d.skills);
-    for (const [index, skill] of skills.entries()) {
-      if (typeof skill.proficiency === 'string' && !['untrained', 'trained', 'expert', 'master', 'legendary'].includes(skill.proficiency)) {
+  if (d.skills && isRecord(d.skills)) {
+    for (const [skillName, rawSkill] of Object.entries(d.skills)) {
+      if (!isRecord(rawSkill)) continue;
+      const rank = rawSkill.proficiencyRank ?? rawSkill.proficiency;
+      if (typeof rank === 'string' && !['untrained', 'trained', 'expert', 'master', 'legendary'].includes(rank)) {
+        const fieldPath = `skills.${skillName}.proficiencyRank`;
         const existing = await tx.characterConflict.findFirst({
-          where: { characterId, fieldPath: `skills[${index}].proficiency`, conflictType: ConflictType.INVALID_VALUE, resolvedAt: null },
+          where: { characterId, fieldPath, conflictType: ConflictType.INVALID_VALUE, resolvedAt: null },
         });
         if (!existing) {
           const conflict = await tx.characterConflict.create({
             data: {
               characterId,
-              fieldPath: `skills[${index}].proficiency`,
+              fieldPath,
               conflictType: ConflictType.INVALID_VALUE,
-              description: `Invalid proficiency rank: ${skill.proficiency}`,
+              description: `Invalid proficiency rank: ${rank}`,
               severity: ConflictSeverity.ERROR,
             },
             include: { resolvedBy: { select: { id: true, displayName: true } } },
@@ -1120,8 +1146,33 @@ function mapConflict(c: Prisma.CharacterConflictGetPayload<{ include: { resolved
   };
 }
 
+const FORBIDDEN_PATH_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function parsePathSegments(path: string): string[] {
+  const segments = path.startsWith('/')
+    ? path.split('/').filter(Boolean)
+    : path.split('.').filter(Boolean);
+  for (const segment of segments) {
+    if (FORBIDDEN_PATH_KEYS.has(segment)) {
+      throw new Error(`Forbidden field path segment: ${segment}`);
+    }
+    const arrayMatch = segment.match(/^(\w+)\[(\d+)\]$/);
+    if (arrayMatch && FORBIDDEN_PATH_KEYS.has(arrayMatch[1])) {
+      throw new Error(`Forbidden field path segment: ${arrayMatch[1]}`);
+    }
+  }
+  return segments;
+}
+
+function normalizeFieldPath(path: string): string {
+  return parsePathSegments(path).flatMap((segment) => {
+    const array = /^(\w+)\[(\d+)\]$/.exec(segment);
+    return array ? [array[1], array[2]] : [segment];
+  }).join('.');
+}
+
 function getValueAtPath(obj: object, path: string): unknown {
-  const keys = path.split('.');
+  const keys = parsePathSegments(path);
   let current: unknown = obj;
   for (const key of keys) {
     // Handle array indices like "feats[2]"
@@ -1129,10 +1180,12 @@ function getValueAtPath(obj: object, path: string): unknown {
     if (arrayMatch) {
       const prop = arrayMatch[1];
       const index = parseInt(arrayMatch[2], 10);
-      const array = isRecord(current) ? current[prop] : undefined;
+      const array = isRecord(current) && Object.hasOwn(current, prop) ? current[prop] : undefined;
       current = Array.isArray(array) ? array[index] : undefined;
+    } else if (Array.isArray(current) && /^\d+$/.test(key)) {
+      current = current[parseInt(key, 10)];
     } else {
-      current = isRecord(current) ? current[key] : undefined;
+      current = isRecord(current) && Object.hasOwn(current, key) ? current[key] : undefined;
     }
     if (current === undefined) return undefined;
   }
@@ -1140,7 +1193,8 @@ function getValueAtPath(obj: object, path: string): unknown {
 }
 
 function setValueAtPath(obj: object, path: string, value: unknown): void {
-  const keys = path.split('.');
+  const keys = parsePathSegments(path);
+  if (keys.length === 0) return;
   let current: Record<string, unknown> = obj as Record<string, unknown>;
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
@@ -1153,7 +1207,7 @@ function setValueAtPath(obj: object, path: string, value: unknown): void {
       if (!isRecord(array[index])) array[index] = {};
       current = array[index] as Record<string, unknown>;
     } else {
-      if (!isRecord(current[key])) current[key] = {};
+      if (!Object.hasOwn(current, key) || !isRecord(current[key])) current[key] = {};
       current = current[key] as Record<string, unknown>;
     }
   }

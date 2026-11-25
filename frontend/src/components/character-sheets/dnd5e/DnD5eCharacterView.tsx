@@ -374,14 +374,14 @@ export const DnD5eCharacterView: React.FC<DnD5eCharacterViewProps> = ({ characte
                 <button
                   type="button"
                   onClick={() => onRest('short')}
-                  className="px-2.5 py-1 text-xs bg-brand/10 hover:bg-brand/20 text-brand rounded font-medium border border-brand/30 transition-colors"
+                  className="px-2.5 py-1 text-xs bg-brand/10 hover:bg-brand/20 text-brand-ink rounded font-medium border border-brand/30 transition-colors"
                 >
                   Short Rest
                 </button>
                 <button
                   type="button"
                   onClick={() => onRest('long')}
-                  className="px-2.5 py-1 text-xs bg-brand text-white hover:bg-brand-hover rounded font-medium shadow-xs transition-colors"
+                  className="px-2.5 py-1 text-xs bg-brand text-brand-text hover:bg-brand-hover rounded font-medium shadow-xs transition-colors"
                 >
                   Long Rest (100% HP)
                 </button>

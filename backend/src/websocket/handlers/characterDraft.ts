@@ -235,10 +235,15 @@ export function registerCharacterDraftHandlers(io: Server, socket: Authenticated
    */
   socket.on('character:draft:leave', async (data: LeaveDraftData) => {
     try {
+      if (!socket.campaignId) return;
+      if (!withinCeiling(socket, 'character:draft:leave')) return;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return;
       const { characterId } = data;
       if (!characterId) return;
+      const room = getDraftRoom(characterId);
+      if (!socket.rooms.has(room)) return;
 
-      socket.leave(getDraftRoom(characterId));
+      socket.leave(room);
 
       // Remove presence
       const presenceMap = getPresenceMap(characterId);
@@ -690,25 +695,33 @@ export function registerCharacterDraftHandlers(io: Server, socket: Authenticated
    * CHARACTER:DRAFT:CURSOR - Update cursor position for presence
    */
   socket.on('character:draft:cursor', (data: { characterId: string; fieldPath?: string; position?: { x: number; y: number } }) => {
-    const { characterId, fieldPath, position } = data;
-    if (!characterId) return;
+    try {
+      if (!socket.campaignId) return;
+      if (!withinCeiling(socket, 'character:draft:cursor')) return;
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.characterId) return;
+      const { characterId, fieldPath, position } = data;
+      const room = getDraftRoom(characterId);
+      if (!socket.rooms.has(room)) return;
 
-    const presenceMap = getPresenceMap(characterId);
-    const presence = presenceMap.get(userId);
-    if (presence) {
-      presence.lastActive = Date.now();
-      if (fieldPath) presence.fieldPath = fieldPath;
-      if (position) presence.cursorPosition = position;
+      const presenceMap = getPresenceMap(characterId);
+      const presence = presenceMap.get(userId);
+      if (presence) {
+        presence.lastActive = Date.now();
+        if (fieldPath) presence.fieldPath = fieldPath;
+        if (position) presence.cursorPosition = position;
+      }
+
+      // Broadcast cursor update to others in room (throttled)
+      socket.to(room).emit('character:draft:cursor', {
+        characterId,
+        userId,
+        userName: displayName,
+        fieldPath,
+        position,
+      });
+    } catch (error) {
+      logger.error('character:draft:cursor failed', { err: error, userId });
     }
-
-    // Broadcast cursor update to others in room (throttled)
-    socket.to(getDraftRoom(characterId)).emit('character:draft:cursor', {
-      characterId,
-      userId,
-      userName: displayName,
-      fieldPath,
-      position,
-    });
   });
 }
 

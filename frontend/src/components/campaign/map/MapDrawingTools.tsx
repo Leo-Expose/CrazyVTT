@@ -9,6 +9,7 @@ import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
+import { errorSummary } from '@/utils/errors';
 import { randomId } from '@/utils/uuid';
 import {
   DrawingMode,
@@ -97,12 +98,12 @@ export function MapDrawingTools({
   markDirty,
   currentMap,
   viewport,
-  dpr,
-  tileImages,
+  dpr: _dpr,
+  tileImages: _tileImages,
 }: MapDrawingToolsProps) {
   const { campaign } = useCampaign();
   const { socket } = useWebSocket();
-  const { user } = useAuth();
+  useAuth();
   const { showToast } = useToast();
   
   // Drawing state
@@ -123,7 +124,7 @@ export function MapDrawingTools({
   }>>([]);
   const [history, setHistory] = useState<Array<{ id: string; action: string; data: unknown }>>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [selectedTile, setSelectedTile] = useState<{ tile: any; variant: TileVariant } | null>(null);
+  const [selectedTile, setSelectedTile] = useState<{ tile: Record<string, unknown>; variant: TileVariant } | null>(null);
   
   // Use ref for isDM to avoid stale closures
   const isDMRef = useRef(isDM);
@@ -133,11 +134,11 @@ export function MapDrawingTools({
   useEffect(() => {
     if (!campaign || !mapId) return;
     let cancelled = false;
-    api.get<{ layers: MapLayer[] }>(`/campaigns/${campaign.id}/maps/${mapId}/layers`)
+    api.get<{ layers: MapLayer[] }>(`/api/campaigns/${campaign.id}/maps/${mapId}/layers`)
       .then(res => {
         if (!cancelled) setLayers(res.data.layers || []);
       })
-      .catch(err => console.error('Failed to fetch layers:', err));
+      .catch(err => console.error('Failed to fetch layers:', errorSummary(err)));
     return () => { cancelled = true; };
   }, [campaign, mapId]);
 
@@ -171,12 +172,23 @@ export function MapDrawingTools({
     };
   }, [socket, mapId]);
 
+  // History management
+  const addToHistory = useCallback((action: string, data: unknown) => {
+    const entry = { id: randomId(), action, data, timestamp: Date.now() };
+    setHistory(prev => [...prev.slice(0, historyIndex + 1), entry]);
+    setHistoryIndex(prev => prev + 1);
+  }, [historyIndex]);
+
   // Tile placement handler
-  const handleTilePlace = useCallback(async (tileId: string, x: number, y: number, variant: TileVariant) => {
+  const handleTilePlace = useCallback(async (tileId: string, x: number, y: number, variant: TileVariant | string) => {
     if (!activeLayerId || !socket || !campaign) return;
     
     const layer = layers.find(l => l.id === activeLayerId);
     if (!layer) return;
+
+    const v: TileVariant = typeof variant === 'string'
+      ? { id: variant, name: variant, rotation: 0, flipH: false, flipV: false }
+      : variant;
 
     // Send via WebSocket
     socket.emit('tile:place', {
@@ -185,25 +197,25 @@ export function MapDrawingTools({
       tileId,
       x,
       y,
-      rotation: variant.rotation,
-      flipH: variant.flipH,
-      flipV: variant.flipV,
-      variant: variant.id,
+      rotation: v.rotation,
+      flipH: v.flipH,
+      flipV: v.flipV,
+      variant: v.id,
     });
 
     // Optimistic update
-    const currentData = layer.data as any;
-    const tiles = currentData?.tiles || [];
-    const newTile = { tileId, x, y, rotation: variant.rotation, flipH: variant.flipH, flipV: variant.flipV, variant: variant.id };
-    const existingIndex = tiles.findIndex((t: any) => t.x === x && t.y === y);
+    const currentData = (layer.data ?? {}) as { tiles?: Array<{ tileId?: string; x: number; y: number; rotation?: number; flipH?: boolean; flipV?: boolean; variant?: string }> };
+    const tiles = [...(currentData.tiles || [])];
+    const newTile = { tileId, x, y, rotation: v.rotation, flipH: v.flipH, flipV: v.flipV, variant: v.id };
+    const existingIndex = tiles.findIndex((t) => t.x === x && t.y === y);
     if (existingIndex >= 0) tiles[existingIndex] = newTile;
     else tiles.push(newTile);
     
     setLayers(prev => prev.map(l => l.id === activeLayerId ? { ...l, data: { ...l.data, tiles } } : l));
     
     // Add to history
-    addToHistory('tile:place', { tileId, x, y, variant });
-  }, [activeLayerId, socket, campaign, mapId, layers]);
+    addToHistory('tile:place', { tileId, x, y, variant: v });
+  }, [activeLayerId, socket, campaign, mapId, layers, addToHistory]);
 
   // Shape draw handler
   const handleShapeDraw = useCallback((shape: ShapeDefinition) => {
@@ -211,7 +223,7 @@ export function MapDrawingTools({
     
     socket.emit('shape:draw', { mapId, layerId: activeLayerId, shape });
     addToHistory('shape:draw', shape);
-  }, [activeLayerId, socket, campaign, mapId]);
+  }, [activeLayerId, socket, campaign, mapId, addToHistory]);
 
   // Freehand draw handler
   const handleFreehandDraw = useCallback((stroke: FreehandStroke) => {
@@ -219,7 +231,7 @@ export function MapDrawingTools({
     
     socket.emit('drawing:stroke', { mapId, layerId: activeLayerId, stroke });
     addToHistory('freehand:draw', stroke);
-  }, [activeLayerId, socket, campaign, mapId]);
+  }, [activeLayerId, socket, campaign, mapId, addToHistory]);
 
   // Text place handler
   const handleTextPlace = useCallback((annotation: TextAnnotation) => {
@@ -227,7 +239,7 @@ export function MapDrawingTools({
     
     socket.emit('text:place', { mapId, layerId: activeLayerId, annotation });
     addToHistory('text:place', annotation);
-  }, [activeLayerId, socket, campaign, mapId]);
+  }, [activeLayerId, socket, campaign, mapId, addToHistory]);
 
   // Erase handler
   const handleErase = useCallback((type: string, id: string) => {
@@ -235,7 +247,7 @@ export function MapDrawingTools({
     
     socket.emit('erase', { mapId, layerId: activeLayerId, type, id });
     addToHistory('erase', { type, id });
-  }, [activeLayerId, socket, campaign, mapId]);
+  }, [activeLayerId, socket, campaign, mapId, addToHistory]);
 
   // Select handler
   const handleSelect = useCallback((type: string, id: string, transform?: { x?: number; y?: number; rotation?: number; scale?: number }) => {
@@ -248,7 +260,7 @@ export function MapDrawingTools({
       updates: transform || {},
     });
     addToHistory('shape:update', { type, id, transform });
-  }, [activeLayerId, socket, campaign, mapId]);
+  }, [activeLayerId, socket, campaign, mapId, addToHistory]);
 
   // Image import handler
   const handleImageImport = useCallback((imageMap: ImageMapData) => {
@@ -256,14 +268,7 @@ export function MapDrawingTools({
     
     socket.emit('image:upload', { mapId, imageMap });
     addToHistory('image:upload', imageMap);
-  }, [socket, campaign, mapId]);
-
-  // History management
-  const addToHistory = useCallback((action: string, data: unknown) => {
-    const entry = { id: randomId(), action, data, timestamp: Date.now() };
-    setHistory(prev => [...prev.slice(0, historyIndex + 1), entry]);
-    setHistoryIndex(prev => prev + 1);
-  }, [historyIndex]);
+  }, [socket, campaign, mapId, addToHistory]);
 
   const undo = useCallback(() => {
     if (historyIndex < 0) return;
@@ -315,7 +320,7 @@ export function MapDrawingTools({
   // Render drawing previews on overlay
   useEffect(() => {
     const previews = drawingTool.getPreviews();
-    setDrawingPreviews(previews);
+    setDrawingPreviews(previews as typeof drawingPreviews);
   }, [drawingTool, activeMode]);
 
   // Render function for overlay canvas
@@ -324,7 +329,7 @@ export function MapDrawingTools({
     drawDrawingPreviews(
       ctx,
       {
-        previews: drawingPreviews as any,
+        previews: drawingPreviews as unknown as Parameters<typeof drawDrawingPreviews>[1]['previews'],
         now: Date.now(),
         reducedMotion: false,
         showDmOnly: isDM,

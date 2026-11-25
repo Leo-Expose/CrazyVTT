@@ -688,7 +688,10 @@ export default function InitiativeTracker() {
 
     // Check for tokens with active conditions and tick durations on round transition
     const combatants = combatState.combatants;
-    if (combatState.currentIndex >= combatants.length - 1) {
+    const currentIdx = combatState.currentTokenId
+      ? combatants.findIndex((c) => c.tokenId === combatState.currentTokenId)
+      : -1;
+    if (combatants.length > 0 && currentIdx >= combatants.length - 1) {
       // Advancing to next round: notify DM of active conditions
       const tokensWithConditions = tokens.filter((t) => t.conditions && t.conditions.length > 0);
       if (tokensWithConditions.length > 0) {
@@ -876,7 +879,7 @@ export default function InitiativeTracker() {
                           isSuccess ? 'success' : 'error'
                         );
                       }}
-                      className="px-2.5 py-1 rounded bg-danger text-white hover:bg-danger-hover font-semibold text-[11px] transition-colors"
+                      className="px-2.5 py-1 rounded bg-danger-fill text-white hover:bg-danger-hover font-semibold text-[11px] transition-colors"
                     >
                       Roll Death Save (d20)
                     </button>

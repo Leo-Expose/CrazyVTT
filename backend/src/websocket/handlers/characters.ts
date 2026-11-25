@@ -339,7 +339,9 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
         return;
       }
 
-      const { characterId, restType } = data ?? {};
+      if (!withinCeiling(socket, 'character.rest')) return;
+
+      const { characterId, restType } = data && typeof data === 'object' && !Array.isArray(data) ? data : { characterId: '', restType: undefined };
       if (!characterId || (restType !== 'short' && restType !== 'long')) {
         socket.emit('error', { message: 'characterId and valid restType ("short" | "long") are required' });
         return;
@@ -353,6 +355,11 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
       );
       if (!character) return;
 
+      if (character.gameSystem !== 'DND_5E') {
+        socket.emit('error', { message: 'Automated rest recovery is only supported for D&D 5e characters' });
+        return;
+      }
+
       const outcome = await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
         const fresh = await tx.character.findUnique({ where: { id: characterId }, select: { data: true } });
@@ -362,19 +369,26 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
 
         if (restType === 'long') {
           // 1. Long Rest restores 100% of maximum HP and clears temporary HP
-          const hp = (sheetData.hp as { current: number; maximum: number; temporary: number }) || { current: 10, maximum: 10, temporary: 0 };
-          sheetData.hp = { ...hp, current: hp.maximum, temporary: 0 };
+          const rawHp = sheetData.hp && typeof sheetData.hp === 'object'
+            ? (sheetData.hp as { current?: unknown; maximum?: unknown; temporary?: unknown })
+            : null;
+          if (rawHp && typeof rawHp.maximum === 'number' && Number.isFinite(rawHp.maximum)) {
+            sheetData.hp = { ...rawHp, current: rawHp.maximum, temporary: 0 };
+          }
 
           // 2. Clear death saves
           sheetData.deathSaves = { successes: 0, failures: 0 };
 
-          // 3. Reset spell slots: reset used count to 0 for all tiers
+          // 3. Reset spell slots: reset expended count to 0 for all tiers
           if (sheetData.spellcasting && typeof sheetData.spellcasting === 'object') {
             const spellcasting = { ...(sheetData.spellcasting as Record<string, unknown>) };
-            const slots = (spellcasting.slots as Record<string, { total: number; used: number }>) || {};
-            const refreshedSlots: Record<string, { total: number; used: number }> = {};
+            const slots = (spellcasting.slots && typeof spellcasting.slots === 'object'
+              ? spellcasting.slots
+              : {}) as Record<string, { total?: unknown; expended?: unknown; used?: unknown }>;
+            const refreshedSlots: Record<string, { total: number; expended: number }> = {};
             for (const [lvl, val] of Object.entries(slots)) {
-              refreshedSlots[lvl] = { ...val, used: 0 };
+              const total = typeof val?.total === 'number' && Number.isFinite(val.total) ? Math.max(0, val.total) : 0;
+              refreshedSlots[lvl] = { total, expended: 0 };
             }
             spellcasting.slots = refreshedSlots;
             sheetData.spellcasting = spellcasting;
@@ -382,10 +396,11 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
 
           // 4. Regain up to half total hit dice (min 1)
           if (Array.isArray(sheetData.hitDice)) {
-            sheetData.hitDice = sheetData.hitDice.map((hd: { maximum: number; remaining: number; class?: string; total?: string; die?: string }) => {
-              const max = hd.maximum || 1;
+            sheetData.hitDice = sheetData.hitDice.map((hd: { maximum?: unknown; remaining?: unknown; class?: string; total?: string; die?: string }) => {
+              const max = typeof hd.maximum === 'number' && Number.isFinite(hd.maximum) && hd.maximum > 0 ? hd.maximum : 1;
+              const rem = typeof hd.remaining === 'number' && Number.isFinite(hd.remaining) && hd.remaining >= 0 ? hd.remaining : 0;
               const regained = Math.max(1, Math.floor(max / 2));
-              return { ...hd, remaining: Math.min(max, (hd.remaining || 0) + regained) };
+              return { ...hd, remaining: Math.min(max, rem + regained) };
             });
           }
         }
@@ -428,9 +443,17 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
         return;
       }
 
-      const { characterId, level, delta } = data ?? {};
-      if (!characterId || typeof level !== 'number' || level < 1 || level > 9 || typeof delta !== 'number') {
-        socket.emit('error', { message: 'characterId, valid level (1-9), and delta are required' });
+      if (!withinCeiling(socket, 'character.spellslot.use')) return;
+
+      const { characterId, level, delta } = data && typeof data === 'object' && !Array.isArray(data)
+        ? data
+        : { characterId: '', level: NaN, delta: NaN };
+      if (
+        !characterId ||
+        typeof level !== 'number' || !Number.isInteger(level) || level < 1 || level > 9 ||
+        typeof delta !== 'number' || !Number.isInteger(delta) || Math.abs(delta) > 100
+      ) {
+        socket.emit('error', { message: 'characterId, integer level (1-9), and integer delta are required' });
         return;
       }
 
@@ -441,6 +464,11 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
         'You do not have permission to modify this character\'s spell slots',
       );
       if (!character) return;
+
+      if (character.gameSystem !== 'DND_5E') {
+        socket.emit('error', { message: 'Spell slot tracking is only supported for D&D 5e characters' });
+        return;
+      }
 
       const outcome = await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "Character" WHERE id = ${characterId} FOR UPDATE`;
@@ -453,12 +481,16 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
         }
 
         const spellcasting = { ...(sheetData.spellcasting as Record<string, unknown>) };
-        const slots = { ...(spellcasting.slots as Record<string, { total: number; used: number }>) };
+        const slots = { ...(spellcasting.slots as Record<string, { total?: unknown; expended?: unknown; used?: unknown }>) };
         const lvlKey = String(level);
-        const slot = slots[lvlKey] || { total: 0, used: 0 };
+        const slot = slots[lvlKey];
+        const total = typeof slot?.total === 'number' && Number.isFinite(slot.total) ? Math.max(0, slot.total) : 0;
+        const currentExpended = typeof slot?.expended === 'number' && Number.isFinite(slot.expended)
+          ? slot.expended
+          : (typeof slot?.used === 'number' && Number.isFinite(slot.used) ? slot.used : 0);
 
-        const newUsed = Math.max(0, Math.min(slot.total, (slot.used || 0) + delta));
-        slots[lvlKey] = { ...slot, used: newUsed };
+        const newExpended = Math.max(0, Math.min(total, currentExpended + delta));
+        slots[lvlKey] = { total, expended: newExpended };
         spellcasting.slots = slots;
         sheetData.spellcasting = spellcasting;
 
@@ -467,7 +499,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
           data: { data: toJson(sheetData) },
         });
 
-        return { updated, newUsed, total: slot.total };
+        return { updated, newExpended, total };
       });
 
       if ('error' in outcome) {
@@ -481,7 +513,7 @@ export function registerCharacterHandlers(io: Server, socket: AuthenticatedSocke
         tokensChanged: false,
       });
 
-      logger.info('character.spellslot.use applied', { characterId, level, delta, newUsed: outcome.newUsed });
+      logger.info('character.spellslot.use applied', { characterId, level, delta, newExpended: outcome.newExpended });
     } catch (error) {
       logger.error('character.spellslot.use failed', { err: error });
       socket.emit('error', { message: 'Failed to update spell slots' });

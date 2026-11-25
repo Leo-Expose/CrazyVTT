@@ -4,6 +4,7 @@
  */
 
 import { RulesetPackSchema, type RulesetPack } from './schema';
+import { errorSummary } from '@/utils/errors';
 import dnd5e2014Raw from './dnd5e-2014/pack.json';
 import dnd5e2024Raw from './dnd5e-2024/pack.json';
 import pirateBorgRaw from './pirate-borg/pack.json';
@@ -45,7 +46,7 @@ export class RulesetRegistry {
         }
       }
     } catch (e) {
-      console.warn('Failed to load custom rulesets from storage', e);
+      console.warn('Failed to load custom rulesets from storage', errorSummary(e));
     }
   }
 
@@ -63,6 +64,9 @@ export class RulesetRegistry {
   static registerCustomPack(pack: RulesetPack): boolean {
     const validated = RulesetPackSchema.safeParse(pack);
     if (!validated.success) {
+      return false;
+    }
+    if (Object.prototype.hasOwnProperty.call(BUILT_IN_RULESETS, validated.data.id)) {
       return false;
     }
     this.customPacks.set(validated.data.id, validated.data);

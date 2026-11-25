@@ -14,8 +14,6 @@ import {
   FlipHorizontal,
   FlipVertical,
   Copy,
-  Trash2,
-  MoreHorizontal,
   Palette,
 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
@@ -23,7 +21,6 @@ import { TileCategory, BrushSettings, TileVariant } from '@/types';
 import { api } from '@/services/api';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/contexts/ToastContext';
-import { randomId } from '@/utils/uuid';
 
 interface MapTile {
   id: string;
@@ -76,7 +73,12 @@ const DEFAULT_VARIANTS: TileVariant[] = [
 
 const CATEGORY_ORDER: TileCategory[] = ['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL'];
 
-const TilePalette = forwardRef<HTMLDivElement, TilePaletteProps>(({
+export interface TilePaletteHandle {
+  focusSearch: () => void;
+  clearSelection: () => void;
+}
+
+const TilePalette = forwardRef<TilePaletteHandle, TilePaletteProps>(({
   mapId: _mapId,
   isDM,
   onTileSelect,
@@ -108,7 +110,7 @@ const TilePalette = forwardRef<HTMLDivElement, TilePaletteProps>(({
     if (!campaign?.id) return;
     try {
       setLoading(true);
-      const response = await api.get<{ tiles: MapTile[] }>(`/campaigns/${campaign.id}/tiles`);
+      const response = await api.get<{ tiles: MapTile[] }>(`/api/campaigns/${campaign.id}/maps/tiles`);
       setTiles(response.data.tiles || []);
     } catch {
       console.error('Failed to fetch tiles');
@@ -260,7 +262,7 @@ const TilePalette = forwardRef<HTMLDivElement, TilePaletteProps>(({
             )}
           </span>
           {brushSettings?.autoTile && (
-            <span className="px-2 py-0.5 bg-success/20 text-success rounded">Auto-tile</span>
+            <span className="px-2 py-0.5 bg-success/20 text-success-ink rounded">Auto-tile</span>
           )}
         </div>
       </div>
@@ -336,7 +338,7 @@ const TilePalette = forwardRef<HTMLDivElement, TilePaletteProps>(({
             <Grid className="w-12 h-12" />
             <p className="text-sm">No tiles available</p>
             {isDM && (
-              <Button variant="outline" size="sm" onClick={() => setShowUploadModal(true)}>
+              <Button variant="outline" size="sm" onClick={() => showToast('Upload tile assets in the Asset Library first', 'info')}>
                 Add Tiles
               </Button>
             )}

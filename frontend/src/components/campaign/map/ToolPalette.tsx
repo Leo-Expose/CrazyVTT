@@ -2,7 +2,7 @@
 // Tool Palette - Main toolbar with 6 drawing modes (Shmeppy-style)
 // ============================================
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Brush,
   Square,
@@ -20,12 +20,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { DrawingMode, ShapeType, GridSettings, BrushSettings } from '@/types';
-import { useCampaign } from '@/contexts/CampaignContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import Button from '@/components/ui/Button';
-import { useToast } from '@/contexts/ToastContext';
-import { useGameStore } from '@/stores/gameStore';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface ToolPaletteProps {
   mapId: string;
@@ -120,8 +116,6 @@ export default function ToolPalette({
   const [showTextOptions, setShowTextOptions] = useState(false);
   const [showGridOptions, setShowGridOptions] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
-  
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleModeChange = useCallback((mode: DrawingMode) => {
     setActiveMode(mode);
@@ -152,7 +146,6 @@ export default function ToolPalette({
     } else {
       onShapeSettingsChange({ ...shapeSettings, fillColor: color });
     }
-    setColorPickerOpen(null);
   }, [activeMode, onShapeSettingsChange, onFreehandSettingsChange, onTextSettingsChange, shapeSettings, freehandSettings, textSettings]);
 
   const handleStrokeWidthChange = useCallback((width: number) => {
@@ -221,20 +214,6 @@ export default function ToolPalette({
     onBrushSettingsChange({ ...brushSettings, shape });
   }, [onBrushSettingsChange, brushSettings]);
 
-  const handleOpacityChange = useCallback((value: number) => {
-    setOpacity(value);
-    if (activeLayerId) {
-      // Send opacity change via WebSocket
-      if (socket) {
-        socket.emit('layer:update', {
-          mapId,
-          layerId: activeLayerId,
-          data: { opacity: value / 100 },
-        });
-      }
-    }
-  }, [socket, mapId, activeLayerId]);
-
   const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
 
   return (
@@ -252,7 +231,7 @@ export default function ToolPalette({
 
         {/* Drawing Modes */}
         <div className="grid grid-cols-3 gap-1 mb-3" role="toolbar" aria-label="Drawing tools">
-          {DRAWING_MODES.map(({ mode, label, icon, shortcut, description }) => (
+          {DRAWING_MODES.map(({ mode, label, icon, shortcut }) => (
             <Button
               key={mode}
               variant={activeMode === mode ? 'primary' : 'ghost'}
@@ -306,6 +285,7 @@ export default function ToolPalette({
             settings={brushSettings}
             onSizeChange={handleBrushSizeChange}
             onShapeChange={handleBrushShapeChange}
+            onAutoTileChange={(autoTile) => onBrushSettingsChange({ ...brushSettings, autoTile })}
             onClose={() => setShowBrushOptions(false)}
             onColorChange={(color) => handleColorChange('stroke', color)}
           />
@@ -351,6 +331,7 @@ export default function ToolPalette({
             onSnapModeChange={handleSnapModeChange}
             onColorChange={(color) => onGridSettingsChange({ color })}
             onOpacityChange={(opacity) => onGridSettingsChange({ opacity })}
+            onShowCoordinatesChange={(showCoordinates) => onGridSettingsChange({ showCoordinates })}
             onClose={() => setShowGridOptions(false)}
           />
         )}
@@ -414,7 +395,7 @@ export default function ToolPalette({
           >
             <Grid className="w-4 h-4 mr-1" />
             Grid
-            {gridSettings.enabled && <span className="ml-1 text-[10px] bg-success/20 text-success px-1 rounded">On</span>}
+            {gridSettings.enabled && <span className="ml-1 text-[10px] bg-success/20 text-success-ink px-1 rounded">On</span>}
           </Button>
           <Button
             variant="ghost"
@@ -456,13 +437,6 @@ export default function ToolPalette({
           socket={socket}
         />
       )}
-
-      {/* History Panel */}
-      {showHistory && (
-        <HistoryPanel
-          onClose={() => setShowHistory(false)}
-        />
-      )}
     </div>
   );
 }
@@ -475,11 +449,12 @@ interface BrushOptionsPanelProps {
   settings: BrushSettings;
   onSizeChange: (size: number) => void;
   onShapeChange: (shape: 'circle' | 'square') => void;
+  onAutoTileChange: (autoTile: boolean) => void;
   onClose: () => void;
   onColorChange: (color: string) => void;
 }
 
-function BrushOptionsPanel({ settings, onSizeChange, onShapeChange, onClose, onColorChange }: BrushOptionsPanelProps) {
+function BrushOptionsPanel({ settings, onSizeChange, onShapeChange, onAutoTileChange, onClose, onColorChange }: BrushOptionsPanelProps) {
   return (
     <div id="brush-options" className="p-3 border-t border-border bg-muted/30 space-y-3">
       <div className="flex items-center justify-between">
@@ -532,73 +507,7 @@ function BrushOptionsPanel({ settings, onSizeChange, onShapeChange, onClose, onC
         <input
           type="checkbox"
           checked={settings.autoTile}
-          onChange={(e) => onBrushSettingsChange({ ...settings, autoTile: e.target.checked })}
-        />
-        <span>Auto-tile (Wang tiles)</span>
-      </label>
-    </div>
-  );
-}
-
-// Need to add onBrushSettingsChange to BrushOptionsPanel props
-interface BrushOptionsPanelPropsExtended extends BrushOptionsPanelProps {
-  onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
-}
-
-function BrushOptionsPanelExtended({ settings, onSizeChange, onShapeChange, onClose, onColorChange, onBrushSettingsChange }: BrushOptionsPanelPropsExtended) {
-  return (
-    <div id="brush-options" className="p-3 border-t border-border bg-muted/30 space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium">Brush Options</h4>
-        <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">×</button>
-      </div>
-      
-      <div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-16">Size:</span>
-          <input
-            type="range"
-            min="1"
-            max="20"
-            value={settings.size}
-            onChange={(e) => onSizeChange(Number(e.target.value))}
-            className="flex-1 h-1 accent-ring"
-          />
-          <span className="w-8 text-right font-mono text-xs">{settings.size}</span>
-        </label>
-      </div>
-
-      <div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-16">Shape:</span>
-          <select
-            value={settings.shape}
-            onChange={(e) => onShapeChange(e.target.value as 'circle' | 'square')}
-            className="flex-1 px-2 py-1 text-sm bg-background border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="circle">Circle</option>
-            <option value="square">Square</option>
-          </select>
-        </label>
-      </div>
-
-      <div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-16">Color:</span>
-          <input
-            type="color"
-            value="#000000"
-            onChange={(e) => onColorChange(e.target.value)}
-            className="w-8 h-8 rounded border border-input cursor-pointer"
-          />
-        </label>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={settings.autoTile}
-          onChange={(e) => onBrushSettingsChange({ ...settings, autoTile: e.target.checked })}
+          onChange={(e) => onAutoTileChange(e.target.checked)}
         />
         <span>Auto-tile (Wang tiles)</span>
       </label>
@@ -827,10 +736,11 @@ interface GridOptionsPanelProps {
   onSnapModeChange: (mode: GridSettings['snapMode']) => void;
   onColorChange: (color: string) => void;
   onOpacityChange: (opacity: number) => void;
+  onShowCoordinatesChange: (show: boolean) => void;
   onClose: () => void;
 }
 
-function GridOptionsPanel({ settings, onEnabledChange, onSnapModeChange, onColorChange, onOpacityChange, onClose }: GridOptionsPanelProps) {
+function GridOptionsPanel({ settings, onEnabledChange, onSnapModeChange, onColorChange, onOpacityChange, onShowCoordinatesChange, onClose }: GridOptionsPanelProps) {
   return (
     <div id="grid-options" className="p-3 border-t border-border bg-muted/30 space-y-3">
       <div className="flex items-center justify-between">
@@ -893,78 +803,7 @@ function GridOptionsPanel({ settings, onEnabledChange, onSnapModeChange, onColor
         <input
           type="checkbox"
           checked={settings.showCoordinates}
-          onChange={(e) => onGridSettingsChange({ showCoordinates: e.target.checked })}
-        />
-        <span>Show Coordinates</span>
-      </label>
-    </div>
-  );
-}
-
-function GridOptionsPanelExtended({ settings, onEnabledChange, onSnapModeChange, onColorChange, onOpacityChange, onClose, onGridSettingsChange }: GridOptionsPanelProps & { onGridSettingsChange: (settings: Partial<GridSettings>) => void }) {
-  return (
-    <div id="grid-options" className="p-3 border-t border-border bg-muted/30 space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium">Grid Settings</h4>
-        <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">×</button>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={settings.enabled}
-          onChange={onEnabledChange}
-        />
-        <span>Show Grid</span>
-      </label>
-
-      <div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-16">Color:</span>
-          <input
-            type="color"
-            value={settings.color}
-            onChange={(e) => onColorChange(e.target.value)}
-            className="w-8 h-8 rounded border border-input cursor-pointer"
-          />
-        </label>
-      </div>
-
-      <div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-16">Opacity:</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={settings.opacity * 100}
-            onChange={(e) => onOpacityChange(Number(e.target.value) / 100)}
-            className="flex-1 h-1 accent-ring"
-          />
-          <span className="w-8 text-right font-mono text-xs">{Math.round(settings.opacity * 100)}%</span>
-        </label>
-      </div>
-
-      <div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-16">Snap:</span>
-          <select
-            value={settings.snapMode}
-            onChange={(e) => onSnapModeChange(e.target.value as GridSettings['snapMode'])}
-            className="flex-1 px-2 py-1 text-sm bg-background border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="intersections">Intersections</option>
-            <option value="centers">Cell Centers</option>
-            <option value="off">Off</option>
-          </select>
-        </label>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={settings.showCoordinates}
-          onChange={(e) => onGridSettingsChange({ showCoordinates: e.target.checked })}
+          onChange={(e) => onShowCoordinatesChange(e.target.checked)}
         />
         <span>Show Coordinates</span>
       </label>
@@ -979,7 +818,7 @@ interface LayerPanelDropdownProps {
   onClose: () => void;
   isDM: boolean;
   mapId: string;
-  socket: any;
+  socket: ReturnType<typeof useWebSocket>['socket'];
 }
 
 function LayerPanelDropdown({ layers, activeLayerId, onLayerChange, onClose, isDM, mapId, socket }: LayerPanelDropdownProps) {
@@ -1087,7 +926,7 @@ interface LayerDropdownItemProps {
   setEditName: (name: string) => void;
   opacity: number;
   onSelect: (layerId: string) => void;
-  onStartEdit: (layer: typeof layers[0]) => void;
+  onStartEdit: (layer: LayerDropdownItemProps['layer']) => void;
   onSaveEdit: (layerId: string) => void;
   onCancelEdit: () => void;
   onVisibilityChange: (layerId: string, visible: boolean) => void;
@@ -1165,17 +1004,5 @@ function LayerDropdownItem({
         {layer.type}
       </span>
     </li>
-  );
-}
-
-function HistoryPanel({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="border-t border-border bg-surface p-3 max-h-96 overflow-y-auto">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-medium">History</h4>
-        <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">×</button>
-      </div>
-      <p className="text-sm text-muted-foreground text-center py-8">History panel - coming soon</p>
-    </div>
   );
 }

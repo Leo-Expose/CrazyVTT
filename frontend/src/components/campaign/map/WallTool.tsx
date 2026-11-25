@@ -273,9 +273,7 @@ export default function WallTool({
 
     // Send to server
     try {
-      await api.post(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, {
-        segments: [newSegment]
-      });
+      await api.post(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, newSegment);
       showToast('Wall added', 'success');
     } catch {
       console.error('Failed to add wall');
@@ -364,7 +362,7 @@ export default function WallTool({
     setWallSegments(updatedSegments);
 
     try {
-      await api.patch(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls/${selectedSegmentId}`, {
+      await api.patch(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls/${selectedSegmentId}`, {
         type: newType
       });
     } catch {
@@ -386,7 +384,7 @@ export default function WallTool({
     setWallSegments(updatedSegments);
 
     try {
-      await api.delete(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls/${selectedSegmentId}`);
+      await api.delete(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls/${selectedSegmentId}`);
       showToast('Wall deleted', 'success');
     } catch {
       console.error('Failed to delete wall');

@@ -214,7 +214,7 @@ export async function addCurrency(data: z.infer<typeof addCurrencySchema>) {
   });
 
   // Auto-convert if over thresholds
-  await autoConvertCurrency(container.id, container.characterId);
+  await autoConvertCurrency(container.id, container.characterId, undefined, validated.createdById);
 
   return updatedContainer;
 }
@@ -391,7 +391,12 @@ export async function transferCurrency(data: z.infer<typeof transferCurrencySche
 /**
  * Auto-convert currency (10 cp = 1 sp, etc.)
  */
-export async function autoConvertCurrency(containerId: string, characterId: string, gameSystem: GameSystem = GameSystem.DND_5E) {
+export async function autoConvertCurrency(
+  containerId: string,
+  characterId: string,
+  gameSystem: GameSystem = GameSystem.DND_5E,
+  createdById?: string
+) {
   const container = await prisma.currencyContainer.findUnique({
     where: { id: containerId },
   });
@@ -399,82 +404,73 @@ export async function autoConvertCurrency(containerId: string, characterId: stri
   if (!container) return;
 
   const rates = getConversionRates(gameSystem);
+  let { cp, sp, ep, gp, pp } = container;
   let converted = false;
 
   // Convert CP to SP
-  if (container.cp >= rates.SP) {
-    const spGained = Math.floor(container.cp / rates.SP);
-    await prisma.currencyContainer.update({
-      where: { id: containerId },
-      data: {
-        cp: { decrement: spGained * rates.SP },
-        sp: { increment: spGained },
-      },
-    });
+  if (rates.SP && cp >= rates.SP) {
+    const spGained = Math.floor(cp / rates.SP);
+    cp -= spGained * rates.SP;
+    sp += spGained;
     converted = true;
   }
 
   // Convert SP to EP (D&D only)
-  if (gameSystem === GameSystem.DND_5E && container.sp >= rates.EP / rates.SP) {
-    const epGained = Math.floor(container.sp / (rates.EP / rates.SP));
-    await prisma.currencyContainer.update({
-      where: { id: containerId },
-      data: {
-        sp: { decrement: epGained * (rates.EP / rates.SP) },
-        ep: { increment: epGained },
-      },
-    });
+  if (gameSystem === GameSystem.DND_5E && rates.EP && rates.SP && sp >= rates.EP / rates.SP) {
+    const step = rates.EP / rates.SP;
+    const epGained = Math.floor(sp / step);
+    sp -= epGained * step;
+    ep += epGained;
     converted = true;
   }
 
   // Convert SP/EP to GP
-  const gpFromSp = Math.floor(container.sp / (rates.GP / rates.SP));
-  if (gpFromSp > 0) {
-    await prisma.currencyContainer.update({
-      where: { id: containerId },
-      data: {
-        sp: { decrement: gpFromSp * (rates.GP / rates.SP) },
-        gp: { increment: gpFromSp },
-      },
-    });
-    converted = true;
+  if (rates.GP && rates.SP) {
+    const step = rates.GP / rates.SP;
+    const gpFromSp = Math.floor(sp / step);
+    if (gpFromSp > 0) {
+      sp -= gpFromSp * step;
+      gp += gpFromSp;
+      converted = true;
+    }
   }
 
-  if (gameSystem === GameSystem.DND_5E) {
-    const gpFromEp = Math.floor(container.ep / (rates.GP / rates.EP));
+  if (gameSystem === GameSystem.DND_5E && rates.GP && rates.EP) {
+    const step = rates.GP / rates.EP;
+    const gpFromEp = Math.floor(ep / step);
     if (gpFromEp > 0) {
-      await prisma.currencyContainer.update({
-        where: { id: containerId },
-        data: {
-          ep: { decrement: gpFromEp * (rates.GP / rates.EP) },
-          gp: { increment: gpFromEp },
-        },
-      });
+      ep -= gpFromEp * step;
+      gp += gpFromEp;
       converted = true;
     }
   }
 
   // Convert GP to PP
-  const ppGained = Math.floor(container.gp / (rates.PP / rates.GP));
-  if (ppGained > 0) {
-    await prisma.currencyContainer.update({
-      where: { id: containerId },
-      data: {
-        gp: { decrement: ppGained * (rates.PP / rates.GP) },
-        pp: { increment: ppGained },
-      },
-    });
-    converted = true;
+  if (rates.PP && rates.GP) {
+    const step = rates.PP / rates.GP;
+    const ppGained = Math.floor(gp / step);
+    if (ppGained > 0) {
+      gp -= ppGained * step;
+      pp += ppGained;
+      converted = true;
+    }
   }
 
-  if (converted) {
+  if (!converted) return;
+
+  await prisma.currencyContainer.update({
+    where: { id: containerId },
+    data: { cp, sp, ep, gp, pp },
+  });
+
+  if (createdById) {
     await recordTransaction({
       characterId,
       toContainerId: containerId,
       type: TransactionType.CONVERT,
       description: 'Auto-converted currency to higher denominations',
       sourceType: 'CONVERSION',
-      createdById: 'SYSTEM',
+      createdById,
     });
   }
 }

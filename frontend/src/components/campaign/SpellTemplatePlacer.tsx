@@ -44,7 +44,7 @@ export const SpellTemplatePlacer: React.FC<SpellTemplatePlacerProps> = ({
     >
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-edge">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-brand" />
+          <Sparkles className="w-5 h-5 text-brand-ink" />
           <span className="font-semibold tracking-wide">Cast Spell AoE</span>
         </div>
         <button
@@ -146,7 +146,8 @@ export const SpellTemplatePlacer: React.FC<SpellTemplatePlacerProps> = ({
               type="button"
               onClick={() => onConfirmCast(true)}
               disabled={affectedCount === 0}
-              className="flex-1 py-1.5 px-3 rounded-lg bg-brand text-brand-ink hover:bg-brand/90 disabled:opacity-50 text-xs font-medium transition-colors shadow-sm"
+              aria-label="Cast Spell"
+              className="flex-1 py-1.5 px-3 rounded-lg bg-brand text-brand-text hover:bg-brand/90 disabled:opacity-50 text-xs font-medium transition-colors shadow-sm"
             >
               Cast &amp; Apply
             </button>

@@ -241,7 +241,7 @@ router.put('/:campaignId/shops/:shopId', ...campaignDM, async (req: Authenticate
         buyModifier: data.buyModifier,
         sellModifier: data.sellModifier,
         currency: data.currency ? toJson(data.currency) : undefined,
-        restockRule: jsonOrNull(data.restockRule),
+        restockRule: data.restockRule !== undefined ? jsonOrNull(data.restockRule) : undefined,
         isActive: data.isActive,
       },
       include: {
@@ -473,11 +473,13 @@ router.post('/:campaignId/shops/:shopId/buy', ...campaignMember, shopTransaction
     }
 
     const { items, currencyContainerId } = validation.data;
-
-    // Get the first character (or require character selection)
-    const characterId = characterIds[0];
+    const requestedCharacterId = typeof req.body?.characterId === 'string' ? req.body.characterId : undefined;
+    const characterId = requestedCharacterId ?? characterIds[0];
     if (!characterId) {
       return res.status(400).json({ error: 'Bad Request', message: 'No character assigned to this campaign' });
+    }
+    if (requestedCharacterId && req.campaignMembership!.role !== 'DM' && !characterIds.includes(requestedCharacterId)) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You cannot spend currency for another player character' });
     }
 
     const result = await transactionEngine.buyItems(shopId, userId, characterId, items, currencyContainerId);
@@ -486,19 +488,21 @@ router.post('/:campaignId/shops/:shopId/buy', ...campaignMember, shopTransaction
       return res.status(400).json({ error: 'Transaction Failed', message: result.error });
     }
 
-    // Broadcast shop update to campaign
+    // Broadcast shop update to campaign (strip DM-only notes)
     const io = getSocketInstance();
     if (io) {
       const updatedShop = await prisma.shop.findUnique({
         where: { id: shopId },
         include: { items: true },
       });
-      io.to(campaignId).emit('shop:updated', { shop: updatedShop });
+      const publicShop = updatedShop
+        ? { ...updatedShop, items: updatedShop.items.map(({ notes: _notes, ...rest }) => rest) }
+        : null;
+      io.to(campaignId).emit('shop:updated', { shop: publicShop });
       io.to(campaignId).emit('shop:transaction', { shopId, transaction: result });
     }
 
     return res.json({ success: true, transaction: result });
-    return;
   } catch (error) {
     console.error('Error buying items:', error);
     return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to process purchase' });
@@ -524,10 +528,13 @@ router.post('/:campaignId/shops/:shopId/sell', ...campaignMember, shopTransactio
     }
 
     const { items, currencyContainerId } = validation.data;
-
-    const characterId = characterIds[0];
+    const requestedCharacterId = typeof req.body?.characterId === 'string' ? req.body.characterId : undefined;
+    const characterId = requestedCharacterId ?? characterIds[0];
     if (!characterId) {
       return res.status(400).json({ error: 'Bad Request', message: 'No character assigned to this campaign' });
+    }
+    if (requestedCharacterId && req.campaignMembership!.role !== 'DM' && !characterIds.includes(requestedCharacterId)) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You cannot sell items from another player character' });
     }
 
     const result = await transactionEngine.sellItems(shopId, userId, characterId, items, currencyContainerId);
@@ -536,19 +543,21 @@ router.post('/:campaignId/shops/:shopId/sell', ...campaignMember, shopTransactio
       return res.status(400).json({ error: 'Transaction Failed', message: result.error });
     }
 
-    // Broadcast shop update to campaign
+    // Broadcast shop update to campaign (strip DM-only notes)
     const io = getSocketInstance();
     if (io) {
       const updatedShop = await prisma.shop.findUnique({
         where: { id: shopId },
         include: { items: true },
       });
-      io.to(campaignId).emit('shop:updated', { shop: updatedShop });
+      const publicShop = updatedShop
+        ? { ...updatedShop, items: updatedShop.items.map(({ notes: _notes, ...rest }) => rest) }
+        : null;
+      io.to(campaignId).emit('shop:updated', { shop: publicShop });
       io.to(campaignId).emit('shop:transaction', { shopId, transaction: result });
     }
 
     return res.json({ success: true, transaction: result });
-    return;
   } catch (error) {
     console.error('Error selling items:', error);
     return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to process sale' });
@@ -652,19 +661,20 @@ router.post('/:campaignId/shops/:shopId/restock', ...campaignDM, async (req: Aut
       return res.status(400).json({ error: 'Restock Failed', message: result.error });
     }
 
-    // Broadcast update
+    // Broadcast update (strip DM-only notes)
     const io = getSocketInstance();
     if (io) {
       const updatedShop = await prisma.shop.findUnique({
         where: { id: shopId },
         include: { items: true },
       });
-      io.to(_campaignId).emit('shop:updated', { shop: updatedShop });
+      const publicShop = updatedShop
+        ? { ...updatedShop, items: updatedShop.items.map(({ notes: _notes, ...rest }) => rest) }
+        : null;
+      io.to(_campaignId).emit('shop:updated', { shop: publicShop });
     }
 
     return res.json({ success: true, results: result.results });
-    return;
-    return;
   } catch (error) {
     console.error('Error restocking shop:', error);
     return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to restock shop' });

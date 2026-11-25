@@ -215,6 +215,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) { refuse('Not authenticated to a campaign'); return; }
+      if (!withinCeiling(socket, 'dice.setMode', ack)) return;
       if (socket.role !== 'DM') { refuse('Only the DM can change dice mode'); return; }
 
       const parsed = (() => {
@@ -246,6 +247,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) { refuse('Not authenticated to a campaign'); return; }
+      if (!withinCeiling(socket, 'dice.audit', ack)) return;
       if (socket.role !== 'DM') { refuse('Only the DM can run a dice audit'); return; }
 
       const report = await diceAuditService.generateAuditReport(socket.campaignId);
@@ -278,6 +280,7 @@ export function registerDiceHandlers(io: Server, socket: AuthenticatedSocket): v
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     try {
       if (!socket.campaignId) { refuse('Not authenticated to a campaign'); return; }
+      if (!withinCeiling(socket, 'dice.reshuffleDeck', ack)) return;
       if (socket.role !== 'DM') { refuse('Only the DM can reshuffle a deck'); return; }
 
       const expr = (() => {

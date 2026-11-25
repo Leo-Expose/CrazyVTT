@@ -32,7 +32,7 @@ interface DrawingToolOptions {
   gridSettings: GridSettings;
   mapControls: ReturnType<typeof import('@/hooks/useMapControls').useMapControls>;
   markDirty: (...layers: string[]) => void;
-  onTilePlace?: (tileId: string, x: number, y: number, variant: TileVariant) => void;
+  onTilePlace?: (tileId: string, x: number, y: number, variant: TileVariant | string) => void;
   onShapeDraw?: (shape: ShapeDefinition) => void;
   onFreehandDraw?: (stroke: FreehandStroke) => void;
   onTextPlace?: (annotation: TextAnnotation) => void;
@@ -44,27 +44,27 @@ interface DrawingState {
   // Brush
   brushStroke: {
     tileId: string;
-    variant: TileVariant;
-    points: Array<{ x: number; y: number }>;
+    variant: TileVariant | string;
+    points: Array<[number, number]>;
     previewId: string;
   } | null;
   
   // Shape
-  shapeStart: { x: number; y: number } | null;
+  shapeStart: [number, number] | null;
   shapePreview: ShapeDefinition | null;
   
   // Freehand
-  freehandPoints: Array<{ x: number; y: number }>;
+  freehandPoints: Array<[number, number]>;
   freehandPreviewId: string | null;
   
   // Text
-  textPosition: { x: number; y: number } | null;
+  textPosition: [number, number] | null;
   textDraft: string;
   textEditing: boolean;
   
   // Select
   selectedElement: { type: string; id: string; element: unknown } | null;
-  selectStart: { x: number; y: number } | null;
+  selectStart: [number, number] | null;
   selectBox: { x1: number; y1: number; x2: number; y2: number } | null;
   transforming: boolean;
   transformHandle: string | null;
@@ -76,20 +76,15 @@ interface DrawingState {
   panning: boolean;
 }
 
-const round = (p: { x: number; y: number }) => [Math.round(p.x), Math.round(p.y)] as [number, number];
+const round = (p: { x: number; y: number } | readonly [number, number]) =>
+  (Array.isArray(p) ? [Math.round(p[0]), Math.round(p[1])] : [Math.round((p as { x: number; y: number }).x), Math.round((p as { x: number; y: number }).y)]) as [number, number];
 const FRAME_MS = 50; // ~20fps for preview updates
 
 export function useDrawingTool(options: DrawingToolOptions) {
   const {
-    mode,
     mapId,
     gridSize,
     activeLayerId,
-    brushSettings,
-    shapeSettings,
-    freehandSettings,
-    textSettings,
-    gridSettings,
     mapControls,
     markDirty,
     onTilePlace,
@@ -130,12 +125,12 @@ export function useDrawingTool(options: DrawingToolOptions) {
 
   const audience = useCallback((): 'ALL' | 'DM' => 'ALL', []);
 
-  const snapped = useCallback((point: { x: number; y: number }) => {
-    if (latest.current.gridSettings.snapMode === 'off') return point;
-    return snapToGrid(point, latest.current.gridSize);
+  const snapped = useCallback((point: { x: number; y: number }): [number, number] => {
+    if (latest.current.gridSettings.snapMode === 'off') return [point.x, point.y];
+    return snapToGrid([point.x, point.y], latest.current.gridSize);
   }, []);
 
-  const sendPreview = useCallback((event: string, data: unknown) => {
+  const sendPreview = useCallback((event: string, data: Record<string, unknown>) => {
     if (!mapId || !socket) return;
     socket.emit(event, { mapId, layerId: activeLayerId, ...data });
   }, [socket, mapId, activeLayerId]);
@@ -165,7 +160,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     stateRef.current.brushStroke = {
       tileId,
-      variant,
+      variant: variant ?? 'default',
       points: [point],
       previewId,
     };
@@ -180,7 +175,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [brushSettings, mapId, sendPreview, markDirty]);
+  }, [mapId, sendPreview, markDirty]);
 
   const continueBrushStroke = useCallback((at: PointerAt) => {
     const stroke = stateRef.current.brushStroke;
@@ -251,7 +246,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [mapId, snapped, shapeSettings, markDirty]);
+  }, [mapId, snapped, markDirty]);
 
   const continueShape = useCallback((at: PointerAt) => {
     const start = stateRef.current.shapeStart;
@@ -372,7 +367,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [mapId, freehandSettings, audience, sendPreview, markDirty]);
+  }, [mapId, audience, sendPreview, markDirty]);
 
   const continueFreehand = useCallback((at: PointerAt) => {
     const points = stateRef.current.freehandPoints;
@@ -399,7 +394,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [freehandSettings, audience, sendPreview, markDirty, setTimer]);
+  }, [audience, sendPreview, markDirty, setTimer]);
 
   const endFreehand = useCallback(() => {
     const points = stateRef.current.freehandPoints;
@@ -442,12 +437,12 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     // Focus text input after a tick
     setTimeout(() => {
-      textInputRef.current?.focus();
+      textInputRef?.focus();
     }, 0);
     
     markDirty('overlay');
     return true;
-  }, [mapId, markDirty]);
+  }, [mapId, textInputRef, markDirty]);
 
   const commitText = useCallback(() => {
     const position = stateRef.current.textPosition;
@@ -473,7 +468,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     stateRef.current.textDraft = '';
     stateRef.current.textEditing = false;
     markDirty('overlay');
-  }, [onTextPlace, textSettings, markDirty]);
+  }, [onTextPlace, markDirty]);
 
   const cancelText = useCallback(() => {
     stateRef.current.textPosition = null;
@@ -499,7 +494,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     // Actual erase would be handled by server response
     markDirty('overlay');
-  }, [onErase, mapId, brushSettings, gridSize, sendPreview, markDirty]);
+  }, [onErase, mapId, gridSize, sendPreview, markDirty]);
 
   // ============================================
   // SELECT MODE
@@ -615,7 +610,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
       return false;
     },
     
-    up(at?: PointerAt) {
+    up() {
       stateRef.current.panning = false;
       stateRef.current.erasing = false;
       
@@ -750,12 +745,13 @@ export function useDrawingTool(options: DrawingToolOptions) {
     }
     
     return previews;
-  }, [freehandSettings, textSettings]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      Object.values(timersRef.current).forEach(clearTimeout);
+      Object.values(timers).forEach(clearTimeout);
     };
   }, []);
 

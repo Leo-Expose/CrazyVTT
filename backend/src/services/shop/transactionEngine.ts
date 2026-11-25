@@ -306,9 +306,30 @@ export class ShopTransactionEngine {
 
         // Determine base price from character item data
         const candidatePrice = characterItem.price ?? characterItem.value;
-        const basePrice = isPriceBreakdown(candidatePrice)
-          ? candidatePrice
-          : { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0, nuyen: 0, cash: 0 };
+        const basePrice: PriceBreakdown = (() => {
+          if (isPriceBreakdown(candidatePrice)) return candidatePrice;
+          if (
+            candidatePrice !== null &&
+            typeof candidatePrice === 'object' &&
+            !Array.isArray(candidatePrice) &&
+            'amount' in candidatePrice &&
+            typeof (candidatePrice as { amount?: unknown }).amount === 'number'
+          ) {
+            const structured = candidatePrice as { amount: number; currency?: string };
+            const denom = (structured.currency || 'GP').toLowerCase() as PriceKey;
+            const breakdown: PriceBreakdown = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0, nuyen: 0, cash: 0 };
+            if (PRICE_KEYS.includes(denom)) {
+              breakdown[denom] = structured.amount;
+            } else {
+              breakdown.gp = structured.amount;
+            }
+            return breakdown;
+          }
+          if (typeof candidatePrice === 'number' && Number.isFinite(candidatePrice) && candidatePrice >= 0) {
+            return { cp: 0, sp: 0, ep: 0, gp: candidatePrice, pp: 0, nuyen: 0, cash: 0 };
+          }
+          return { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0, nuyen: 0, cash: 0 };
+        })();
         const unitPrice = this.applyModifier(basePrice, shop.sellModifier);
         const totalPrice = this.multiplyPrice(unitPrice, sellItem.quantity);
 

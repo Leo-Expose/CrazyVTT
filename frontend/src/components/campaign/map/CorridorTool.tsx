@@ -264,7 +264,7 @@ export default function CorridorTool({
         setLayers(updatedLayers);
 
         try {
-          await api.put(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/layers/${terrainLayer.id}`, {
+          await api.put(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/layers/${terrainLayer.id}`, {
             data: { tiles: newTiles }
           });
         } catch {
@@ -276,8 +276,8 @@ export default function CorridorTool({
     // Send walls to server
     if (newWalls.length > 0) {
       try {
-        await api.post(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, {
-          segments: newWalls
+        await api.put(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, {
+          segments: [...wallSegments, ...newWalls]
         });
       } catch {
         console.error('Failed to create corridor walls');

@@ -211,29 +211,39 @@ export async function attuneItem(data: z.infer<typeof attuneItemSchema>) {
 
   // Check if slot is already taken
   const existingSlot = await prisma.attunementSlot.findUnique({
-    where: { 
+    where: {
       characterId_slotNumber: {
         characterId: validated.characterId,
         slotNumber,
-      }
+      },
     },
   });
 
-  if (existingSlot) {
+  if (existingSlot?.isActive) {
     throw new Error(`Slot ${slotNumber} is already occupied`);
   }
 
-  // Create attunement slot
-  const slot = await prisma.attunementSlot.create({
-    data: {
-      characterId: validated.characterId,
-      itemId: validated.itemId,
-      itemName: validated.itemName,
-      slotNumber,
-      notes: validated.notes,
-      isActive: true,
-    },
-  });
+  // Create or reactivate attunement slot
+  const slot = existingSlot
+    ? await prisma.attunementSlot.update({
+        where: { id: existingSlot.id },
+        data: {
+          itemId: validated.itemId,
+          itemName: validated.itemName,
+          notes: validated.notes,
+          isActive: true,
+        },
+      })
+    : await prisma.attunementSlot.create({
+        data: {
+          characterId: validated.characterId,
+          itemId: validated.itemId,
+          itemName: validated.itemName,
+          slotNumber,
+          notes: validated.notes,
+          isActive: true,
+        },
+      });
 
   // Update inventory item to mark as attuned
   await updateInventoryItemAttunement(validated.characterId, validated.itemId, true);
@@ -259,10 +269,9 @@ export async function unattuneItem(data: z.infer<typeof unattuneItemSchema>) {
     throw new Error('Attunement slot belongs to different character');
   }
 
-  // Mark slot as inactive
-  await prisma.attunementSlot.update({
+  // Free the slot so it can be cleanly re-attuned
+  await prisma.attunementSlot.delete({
     where: { id: validated.attunementSlotId },
-    data: { isActive: false },
   });
 
   // Update inventory item to mark as unattuned

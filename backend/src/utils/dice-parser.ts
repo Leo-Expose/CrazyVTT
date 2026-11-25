@@ -85,7 +85,7 @@ function rollDie(sides: number): number {
     const maxUint32 = 0xffffffff;
     const limit = maxUint32 - (maxUint32 % sides);
     const buffer = new Uint32Array(1);
-    let rand = 0;
+    let rand: number;
     do {
       crypto.getRandomValues(buffer);
       rand = buffer[0];

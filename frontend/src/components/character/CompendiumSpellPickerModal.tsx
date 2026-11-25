@@ -16,8 +16,6 @@ export const CompendiumSpellPickerModal: React.FC<CompendiumSpellPickerModalProp
   onAddSpell,
   onAddCantrip,
 }) => {
-  if (!isOpen) return null;
-
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<'all' | 'cantrip' | '1' | '2' | '3' | '4' | '5'>('all');
 
@@ -36,12 +34,14 @@ export const CompendiumSpellPickerModal: React.FC<CompendiumSpellPickerModalProp
     });
   }, [search, levelFilter]);
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
       <div className="bg-surface text-ink border border-edge rounded-2xl shadow-2xl max-w-xl w-full p-6 space-y-4 animate-scale-in flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between border-b border-edge pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-6 h-6 text-brand" />
+            <Sparkles className="w-6 h-6 text-brand-ink" />
             <div>
               <h3 className="font-bold text-base">SRD Spell &amp; Cantrip Compendium</h3>
               <p className="text-xs text-ink-muted">1-click add official SRD cantrips and leveled spells to your sheet.</p>
@@ -83,9 +83,9 @@ export const CompendiumSpellPickerModal: React.FC<CompendiumSpellPickerModalProp
               <button
                 key={lvl.id}
                 type="button"
-                onClick={() => setLevelFilter(lvl.id as any)}
+                onClick={() => setLevelFilter(lvl.id as typeof levelFilter)}
                 className={`px-3 py-1 rounded-lg capitalize whitespace-nowrap transition-colors ${
-                  levelFilter === lvl.id ? 'bg-brand text-white shadow-xs' : 'bg-surface-light text-ink-secondary hover:text-ink'
+                  levelFilter === lvl.id ? 'bg-brand text-brand-text shadow-xs' : 'bg-surface-light text-ink-secondary hover:text-ink'
                 }`}
               >
                 {lvl.label}
@@ -111,7 +111,7 @@ export const CompendiumSpellPickerModal: React.FC<CompendiumSpellPickerModalProp
                       {spell.level === 0 ? 'Cantrip' : `Level ${spell.level}`} &bull; {spell.school}
                     </span>
                     {spell.damageDice && (
-                      <span className="px-1.5 py-0.2 rounded bg-brand/15 text-[10px] text-brand font-medium">
+                      <span className="px-1.5 py-0.2 rounded bg-brand/15 text-[10px] text-brand-ink font-medium">
                         {spell.damageDice} {spell.damageType}
                       </span>
                     )}

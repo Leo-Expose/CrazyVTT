@@ -8,7 +8,7 @@ import { prisma } from '../../config/database';
 import { FogOperationSchema, FogShapeRevealSchema } from '../../validators/walls';
 import type { FogState } from '../../types/walls';
 import logger from '../../utils/logger';
-import { fogOperationLimiter, limiterKey, stateRequestAllowed, loadFogState, applyWsFogOperation, revealedCellIndices, broadcastFogState, FogTooLargeError, campaignSockets, broadcastPartyVisionMerge } from '../shared';
+import { fogOperationLimiter, limiterKey, stateRequestAllowed, loadFogState, applyWsFogOperation, revealedCellIndices, broadcastFogState, FogTooLargeError, campaignSockets, broadcastPartyVisionMerge, withinCeiling } from '../shared';
 import { emitNewestState } from '../outgoingQueue';
 import { toJson } from '../../utils/prisma-json';
 import { canReadMap } from '../../services/permissions';
@@ -206,19 +206,37 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
   socket.on('fog:toggle_party_vision', async (data: { mapId: string; enabled: boolean; excludedCharacterIds?: string[] }) => {
     try {
       if (!socket.campaignId) return;
+      if (!withinCeiling(socket, 'fog:toggle_party_vision')) return;
       if (socket.role !== 'DM') {
         socket.emit('error', { message: 'Only DMs can change fog party vision settings' });
         return;
       }
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, enabled, excludedCharacterIds = [] } = data;
-      if (!mapId) { socket.emit('error', { message: 'mapId required' }); return; }
+      if (!mapId || typeof enabled !== 'boolean') {
+        socket.emit('error', { message: 'mapId and enabled required' });
+        return;
+      }
+
+      const map = await prisma.map.findUnique({ where: { id: mapId }, select: { campaignId: true } });
+      if (!map || map.campaignId !== socket.campaignId) {
+        socket.emit('error', { message: 'Map not found' });
+        return;
+      }
+
+      const safeExcluded = Array.isArray(excludedCharacterIds)
+        ? excludedCharacterIds.filter((id): id is string => typeof id === 'string')
+        : [];
 
       // Update campaign settings
       await prisma.campaign.update({
         where: { id: socket.campaignId },
         data: {
           fogShareExploredWithParty: enabled,
-          fogShareExcludedCharacterIds: excludedCharacterIds,
+          fogShareExcludedCharacterIds: safeExcluded,
         },
       });
 
@@ -247,14 +265,19 @@ export function registerFogHandlers(io: Server, socket: AuthenticatedSocket): vo
   socket.on('fog:request_party_vision', async (data: { mapId: string }) => {
     try {
       if (!socket.campaignId) return;
+      if (!stateRequestAllowed(socket, 'fog:request_party_vision')) return;
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.mapId) return;
       const { mapId } = data;
-      if (!mapId) return;
 
-      const campaign = await prisma.campaign.findUnique({
-        where: { id: socket.campaignId },
-        select: { fogShareExploredWithParty: true, fogShareExcludedCharacterIds: true },
+      const map = await prisma.map.findUnique({
+        where: { id: mapId },
+        include: { campaign: { select: { currentMapId: true, fogShareExploredWithParty: true } } },
       });
-      if (!campaign || !campaign.fogShareExploredWithParty) {
+      if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
+        return;
+      }
+
+      if (!map.campaign.fogShareExploredWithParty) {
         socket.emit('exploration:party_merge', { mapId, cells: [] });
         return;
       }

@@ -228,10 +228,10 @@ router.get('/:campaignId/characters/:characterId/inventory', campaignMember, asy
   try {
     const character = await prisma.character.findUnique({
       where: { id: req.params.characterId! },
-      select: { data: true, gameSystem: true },
+      select: { data: true, gameSystem: true, campaignId: true },
     });
 
-    if (!character) {
+    if (!character || character.campaignId !== req.params.campaignId) {
       return res.status(404).json({ error: 'Character not found' });
     }
 
@@ -242,31 +242,60 @@ router.get('/:campaignId/characters/:characterId/inventory', campaignMember, asy
   }
 });
 
+const createInventoryItemSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  quantity: z.number().int().min(0).default(1),
+  weight: z.number().min(0).default(0),
+  notes: z.string().max(5000).default(''),
+  equippable: z.boolean().default(false),
+  equipped: z.boolean().default(false),
+  requiresAttunement: z.boolean().default(false),
+  attuned: z.boolean().default(false),
+  magical: z.boolean().default(false),
+  location: z.enum(['EQUIPPED', 'CARRIED', 'STOWED', 'CONTAINER']).default('CARRIED'),
+  containerId: z.string().optional(),
+  capacity: z.number().min(0).optional(),
+  capacityUnit: z.enum(['LBS', 'BULK']).optional(),
+  value: z.union([
+    z.object({ amount: z.number().min(0), currency: z.enum(['CP', 'SP', 'EP', 'GP', 'PP']).optional() }),
+    z.number().min(0),
+  ]).optional(),
+});
+
+const updateInventoryItemSchema = createInventoryItemSchema.partial();
+
 // Add inventory item
 router.post('/:campaignId/characters/:characterId/inventory', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const role = req.campaignMembership?.role;
+    const userId = req.session.userId!;
+    if (role === 'SPECTATOR') {
+      return res.status(403).json({ error: 'Forbidden', message: 'Spectators cannot modify inventory' });
+    }
+
+    const parsed = createInventoryItemSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid item' });
+    }
+
     const character = await prisma.character.findUnique({
       where: { id: req.params.characterId! },
-      select: { data: true },
+      select: { data: true, campaignId: true, userId: true },
     });
 
-    if (!character) {
+    if (!character || character.campaignId !== req.params.campaignId) {
       return res.status(404).json({ error: 'Character not found' });
+    }
+    if (role !== 'DM' && character.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You can only modify your own character inventory' });
     }
 
     const { data: characterData, items: inventory } = characterInventory(character.data);
     const newItem = {
       id: crypto.randomUUID(),
-      ...req.body,
-      quantity: req.body.quantity || 1,
-      weight: req.body.weight || 0,
-      notes: req.body.notes || '',
-      equippable: req.body.equippable || false,
+      ...parsed.data,
       equipped: false,
-      requiresAttunement: req.body.requiresAttunement || false,
       attuned: false,
-      magical: req.body.magical || false,
-      location: req.body.location || 'CARRIED',
     };
 
     inventory.push(newItem);
@@ -286,13 +315,27 @@ router.post('/:campaignId/characters/:characterId/inventory', campaignMember, as
 // Update inventory item
 router.patch('/:campaignId/characters/:characterId/inventory/:itemId', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const role = req.campaignMembership?.role;
+    const userId = req.session.userId!;
+    if (role === 'SPECTATOR') {
+      return res.status(403).json({ error: 'Forbidden', message: 'Spectators cannot modify inventory' });
+    }
+
+    const parsed = updateInventoryItemSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Validation Error', message: parsed.error.issues[0]?.message ?? 'Invalid item update' });
+    }
+
     const character = await prisma.character.findUnique({
       where: { id: req.params.characterId! },
-      select: { data: true },
+      select: { data: true, campaignId: true, userId: true },
     });
 
-    if (!character) {
+    if (!character || character.campaignId !== req.params.campaignId) {
       return res.status(404).json({ error: 'Character not found' });
+    }
+    if (role !== 'DM' && character.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You can only modify your own character inventory' });
     }
 
     const { data: characterData, items: inventory } = characterInventory(character.data);
@@ -302,7 +345,7 @@ router.patch('/:campaignId/characters/:characterId/inventory/:itemId', campaignM
       return res.status(404).json({ error: 'Item not found' });
     }
 
-    inventory[itemIndex] = { ...inventory[itemIndex], ...req.body };
+    inventory[itemIndex] = { ...inventory[itemIndex], ...parsed.data, id: inventory[itemIndex].id };
 
     await prisma.character.update({
       where: { id: req.params.characterId! },
@@ -319,13 +362,22 @@ router.patch('/:campaignId/characters/:characterId/inventory/:itemId', campaignM
 // Delete inventory item
 router.delete('/:campaignId/characters/:characterId/inventory/:itemId', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const role = req.campaignMembership?.role;
+    const userId = req.session.userId!;
+    if (role === 'SPECTATOR') {
+      return res.status(403).json({ error: 'Forbidden', message: 'Spectators cannot modify inventory' });
+    }
+
     const character = await prisma.character.findUnique({
       where: { id: req.params.characterId! },
-      select: { data: true },
+      select: { data: true, campaignId: true, userId: true },
     });
 
-    if (!character) {
+    if (!character || character.campaignId !== req.params.campaignId) {
       return res.status(404).json({ error: 'Character not found' });
+    }
+    if (role !== 'DM' && character.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You can only modify your own character inventory' });
     }
 
     const { data: characterData, items: inventory } = characterInventory(character.data);

@@ -15,11 +15,11 @@ export const BatchTokenImportModal: React.FC<BatchTokenImportModalProps> = ({
   onImportStarterTokens,
   onBatchUploadImages,
 }) => {
-  if (!isOpen) return null;
-
   const [loadingStarter, setLoadingStarter] = useState(false);
   const [uploadingBatch, setUploadingBatch] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  if (!isOpen) return null;
 
   const handleStarter = async () => {
     setLoadingStarter(true);
@@ -53,7 +53,7 @@ export const BatchTokenImportModal: React.FC<BatchTokenImportModalProps> = ({
       <div className="bg-surface text-ink border border-edge rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-scale-in">
         <div className="flex items-center justify-between border-b border-edge pb-3">
           <div className="flex items-center gap-2.5">
-            <Download className="w-6 h-6 text-brand" />
+            <Download className="w-6 h-6 text-brand-ink" />
             <div>
               <h3 className="font-bold text-base">Token Importer &amp; Starter Bundle</h3>
               <p className="text-xs text-ink-muted">Seed built-in clean vector tokens or mass import custom token pictures.</p>
@@ -69,7 +69,7 @@ export const BatchTokenImportModal: React.FC<BatchTokenImportModalProps> = ({
         </div>
 
         {successMsg && (
-          <div className="p-3 bg-brand/10 border border-brand/30 rounded-xl text-xs text-brand font-medium flex items-center gap-2">
+          <div className="p-3 bg-brand/10 border border-brand/30 rounded-xl text-xs text-brand-ink font-medium flex items-center gap-2">
             <Check className="w-4 h-4 shrink-0" />
             {successMsg}
           </div>
@@ -80,7 +80,7 @@ export const BatchTokenImportModal: React.FC<BatchTokenImportModalProps> = ({
           <div className="p-4 bg-surface-light border border-edge rounded-xl space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-sm">Free Starter Vector Token Pack</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand/15 text-brand font-medium">8 Tokens</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand/15 text-brand-ink font-medium">8 Tokens</span>
             </div>
             <p className="text-xs text-ink-muted leading-relaxed">
               Don&rsquo;t have token art? Load standard, clean minimalist SVG vector tokens (zero AI art): Fighter, Wizard, Rogue, Cleric, Goblin, Skeleton, Dragon, and Beast.
@@ -114,7 +114,7 @@ export const BatchTokenImportModal: React.FC<BatchTokenImportModalProps> = ({
               Select multiple token images at once from your computer. Each file will be automatically imported as a ready-to-use token template.
             </p>
             <label className="cursor-pointer w-full flex items-center justify-center gap-2 py-2 px-3 border border-dashed border-edge-strong hover:border-brand rounded-xl bg-surface text-xs font-semibold text-ink transition-colors">
-              <Upload className="w-3.5 h-3.5 text-brand" />
+              <Upload className="w-3.5 h-3.5 text-brand-ink" />
               {uploadingBatch ? 'Uploading...' : 'Choose Multiple Files...'}
               <input
                 type="file"

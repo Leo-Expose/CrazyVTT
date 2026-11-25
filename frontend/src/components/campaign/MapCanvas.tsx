@@ -4,7 +4,7 @@
 // ============================================
 
 import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Palette, Ghost, Ruler, Zap, MapPin, Pencil, Paintbrush, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Grid3x3, Palette, Ghost, Ruler, Zap, MapPin, Pencil, Paintbrush, SlidersHorizontal } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -146,7 +146,6 @@ import DmToolPanelContainer from '@/components/campaign/DmToolPanelContainer';
 import { MovementModeSelector } from '@/components/campaign/map/MovementModeSelector';
 import { DMOverrideMenu } from '@/components/campaign/DMOverrideMenu';
 import DrawControls, { type DrawControlsProps, type MemberDrawings } from '@/components/campaign/DrawControls';
-import ToolPalette from '@/components/campaign/map/ToolPalette';
 import DrawStrip from '@/components/campaign/DrawStrip';
 import { QuickMacroHotbar } from '@/components/campaign/QuickMacroHotbar';
 import PaintControls from '@/components/campaign/PaintControls';
@@ -324,13 +323,13 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     if (!currentMap || !campaign) return;
     let cancelled = false;
     setLayersLoading(true);
-    api.get<{ layers: MapLayer[] }>(`/campaigns/${campaign.id}/maps/${currentMap.id}/layers`)
+    api.get<{ layers: MapLayer[] }>(`/api/campaigns/${campaign.id}/maps/${currentMap.id}/layers`)
       .then(res => {
         if (!cancelled) {
           setMapLayers(res?.data?.layers || []);
         }
       })
-      .catch(err => {
+      .catch(() => {
         // Safe catch for mocks/offline
       })
       .finally(() => {
@@ -753,9 +752,6 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     onRefused: (message) => showToast(message, 'error'),
   });
   const [drawingCache] = useState(createDrawingCache);
-
-  // Quick-Draw Tool Palette toggle state (Week 1 Map Drawing Core)
-  const [showToolPalette, setShowToolPalette] = useState(false);
 
   // Whether this member may draw now (utils/drawingRules.ts, the server's
   // rule), on a map whose picture shows: nothing is drawn on one without it.
@@ -1802,10 +1798,12 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
         e.preventDefault();
         const nextVisible = !selected.visible;
         useGameStore.getState().patchToken(selected.id, { visible: nextVisible });
-        socket?.emitMapChange({
-          mapId: currentMap.id,
-          patch: { tokens: tokens.map((t) => (t.id === selected.id ? { ...t, visible: nextVisible } : t)) },
-        });
+        if (campaign) {
+          void api.updateToken(campaign.id, currentMap.id, selected.id, { visible: nextVisible }).catch(() => {
+            useGameStore.getState().patchToken(selected.id, { visible: selected.visible });
+            showToast('Failed to update token visibility', 'error');
+          });
+        }
         showToast(nextVisible ? `Unhid ambush: ${selected.name}` : `Hid token: ${selected.name}`, 'info');
         return;
       }
@@ -2641,18 +2639,22 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     // Auto-reveal fog exploration aura around moved token if exploration/lighting is active
     if (currentMap?.fogEnabled && (token.sightRadius ?? 0) > 0 && addExplored) {
       const radiusSquares = Math.max(1, Math.min(12, Math.round(token.sightRadius ?? 2)));
+      const cellsToReveal: number[] = [];
       for (let dx = -radiusSquares; dx <= radiusSquares; dx++) {
         for (let dy = -radiusSquares; dy <= radiusSquares; dy++) {
           if (dx * dx + dy * dy <= radiusSquares * radiusSquares) {
             const cellX = square.x + dx;
             const cellY = square.y + dy;
             if (cellX >= 0 && cellX < currentMap.width && cellY >= 0 && cellY < currentMap.height) {
-              addExplored(cellX + cellY * currentMap.width);
+              cellsToReveal.push(cellX + cellY * currentMap.width);
             }
           }
         }
       }
-      markDirty('terrain');
+      if (cellsToReveal.length > 0) {
+        addExplored(cellsToReveal);
+        markDirty('terrain');
+      }
     }
 
     return sendable;
@@ -4268,29 +4270,16 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
   // Draw, for whoever may draw now: the DM, or a player while Players may
   // draw is on and the session is live.
   const drawButton = drawOffered && (
-    <>
-      <Button
-        ref={drawButtonRef}
-        onClick={toggleDraw}
-        variant="secondary" iconOnly className={drawKind ? 'bg-moss-green/20' : undefined}
-        aria-label="Draw"
-        aria-pressed={drawKind !== null}
-        title={eraseOnly ? 'Draw: drawing is off for now; erase your own drawings' : 'Draw: a pen, shapes, labels and the laser pointer'}
-      >
-        <Pencil className={`w-4 h-4 ${drawKind ? 'text-brand-ink' : ''}`} />
-      </Button>
-
-      {/* Quick-Draw Tools Palette Toggle (PRD §11.1-11.4) */}
-      <Button
-        onClick={() => setShowToolPalette((prev) => !prev)}
-        variant="secondary" iconOnly className={showToolPalette ? 'bg-moss-green/20 ring-1 ring-moss-green' : undefined}
-        aria-label="Quick-Draw Tools Palette"
-        aria-pressed={showToolPalette}
-        title="Quick-Draw Tools Palette: brush tiles, shapes, freehand, erase, layers"
-      >
-        <Sparkles className={`w-4 h-4 ${showToolPalette ? 'text-brand-ink' : ''}`} />
-      </Button>
-    </>
+    <Button
+      ref={drawButtonRef}
+      onClick={toggleDraw}
+      variant="secondary" iconOnly className={drawKind ? 'bg-moss-green/20' : undefined}
+      aria-label="Draw"
+      aria-pressed={drawKind !== null}
+      title={eraseOnly ? 'Draw: drawing is off for now; erase your own drawings' : 'Draw: a pen, shapes, labels and the laser pointer'}
+    >
+      <Pencil className={`w-4 h-4 ${drawKind ? 'text-brand-ink' : ''}`} />
+    </Button>
   );
 
   // Paint, for the DM, on a map drawn in CrazyVTT or one with no picture.
@@ -4829,79 +4818,6 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
             />
           )}
           {drawPanel && !compact && <DrawControls {...drawPanel} />}
-          {showToolPalette && !compact && currentMap && (
-            <div className="glass-panel p-3 bg-parchment/95 backdrop-blur-md rounded-2xl border border-moss-green/30 shadow-xl max-w-sm">
-              <ToolPalette
-                mapId={currentMap.id}
-                isDM={isDM}
-                activeLayerId={null}
-                onLayerChange={() => {}}
-                onModeChange={(mode) => {
-                  if (mode === 'brush') setDrawKind('pen');
-                  else if (mode === 'shape') setDrawKind('rect');
-                  else if (mode === 'freehand') setDrawKind('pen');
-                  else if (mode === 'text') setDrawKind('text');
-                  else if (mode === 'erase') setDrawKind('eraser');
-                }}
-                onBrushSettingsChange={(b) => {
-                  if (b.size) setDrawSettings((prev) => ({ ...prev, width: b.size! * 4 }));
-                }}
-                onShapeSettingsChange={(s) => {
-                  setDrawSettings((prev) => ({ ...prev, color: s.color, width: s.strokeWidth }));
-                }}
-                onFreehandSettingsChange={(f) => {
-                  setDrawSettings((prev) => ({ ...prev, color: f.color, width: f.strokeWidth }));
-                }}
-                onTextSettingsChange={(t) => {
-                  setDrawSettings((prev) => ({ ...prev, color: t.color }));
-                }}
-                onGridSettingsChange={(g) => {
-                  if (g.enabled !== undefined) setShowGrid(g.enabled);
-                  if (g.color) setGridColor(g.color);
-                }}
-                onUndo={mapDrawings.undo}
-                onRedo={mapDrawings.redo}
-                onImportImage={() => {}}
-                onExportMap={() => {}}
-                canUndo={mapDrawings.canUndo}
-                canRedo={mapDrawings.canRedo}
-                gridSettings={{
-                  enabled: showGrid,
-                  size: currentMap.gridSize,
-                  color: gridColor,
-                  opacity: 0.3,
-                  snapMode: 'intersections',
-                  showCoordinates: false,
-                }}
-                brushSettings={{
-                  tileId: '',
-                  variant: { id: 'default', name: 'Default', rotation: 0, flipH: false, flipV: false },
-                  size: Math.max(1, Math.round(drawSettings.width / 4)),
-                  shape: 'circle',
-                  opacity: 1,
-                  autoTile: false,
-                }}
-                shapeSettings={{
-                  type: 'rect',
-                  color: drawSettings.color,
-                  fillColor: drawSettings.color,
-                  strokeWidth: drawSettings.width,
-                }}
-                freehandSettings={{
-                  color: drawSettings.color,
-                  strokeWidth: drawSettings.width,
-                }}
-                textSettings={{
-                  fontSize: 16,
-                  color: drawSettings.color,
-                  fontFamily: 'Inter',
-                  backgroundColor: '#ffffff',
-                  backgroundOpacity: 0.8,
-                }}
-                layers={[]}
-              />
-            </div>
-          )}
           {/* On a phone the stack is put away while Paint is on, so the map keeps room to paint on. */}
           {userRole === 'DM' && !(compact && paint.on) && (<>
           <DmFogControls

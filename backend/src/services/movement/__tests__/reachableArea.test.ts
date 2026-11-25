@@ -49,6 +49,22 @@ describe('calculateReachableArea', () => {
     gridSize: 50,
     terrain: new Array(width * height).fill(fill),
   });
+
+  it('keeps routes with different diagonal parity when finding the cheapest path', () => {
+    const terrainGrid = createTerrainGrid(4, 4);
+    terrainGrid.terrain = [
+      'normal', 'normal', 'normal', 'normal',
+      'normal', 'normal', 'impassable', 'impassable',
+      'normal', 'difficult', 'difficult', 'normal',
+      'normal', 'impassable', 'difficult', 'normal',
+    ];
+    const result = calculateReachableArea({
+      token: createTestToken({ position: { x: 0, y: 0 } }),
+      map: createTestMap({ width: 4, height: 4 }),
+      terrainGrid,
+    });
+    expect(result.reachable.find((square) => square.x === 2 && square.y === 2)?.cost).toBe(20);
+  });
   
   it('should calculate reachable squares for normal terrain', () => {
     const token = createTestToken({ position: { x: 10, y: 10 } });

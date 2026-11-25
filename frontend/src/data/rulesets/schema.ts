@@ -150,7 +150,15 @@ export const RulesetPackSchema = z.object({
   actions: z.array(RulesetActionDefinitionSchema).default([]),
   races: z.array(RulesetRaceSchema).default([]),
   classes: z.array(RulesetClassSchema).default([]),
-  automation: RulesetAutomationSettingsSchema.default({}),
+  automation: RulesetAutomationSettingsSchema.default({
+    deathSavesEnabled: true,
+    deathSaveSuccessThreshold: 3,
+    deathSaveFailureThreshold: 3,
+    criticalHitRule: 'double_dice',
+    encumbranceRule: 'standard_5e',
+    shortRestRecoveryFormula: 'hit_dice',
+    longRestFullHeal: true,
+  }),
 });
 
 export type RulesetPack = z.infer<typeof RulesetPackSchema>;

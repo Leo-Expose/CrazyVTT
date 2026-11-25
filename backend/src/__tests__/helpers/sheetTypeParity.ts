@@ -36,8 +36,9 @@ export interface SheetPair {
  * where the frontend type and the schema's input disagree.
  */
 export function sheetTypeMismatches(pairs: SheetPair[]): Record<string, string[]> {
-  const virtualPath = path.join(ROOT, 'backend/src/__tests__/__sheetTypeParity__.ts');
   const abs = (module: string) => path.join(ROOT, module).replace(/\\/g, '/');
+  const virtualPath = abs('backend/src/__tests__/__sheetTypeParity__.ts');
+  const isVirtual = (file: string) => file.replace(/\\/g, '/') === virtualPath;
   const source = [
     "import type { input } from 'zod';",
     ...pairs.flatMap((pair, i) => [
@@ -63,10 +64,10 @@ export function sheetTypeMismatches(pairs: SheetPair[]): Record<string, string[]
   const readFile = host.readFile.bind(host);
   const getSourceFile = host.getSourceFile.bind(host);
   const fileExists = host.fileExists.bind(host);
-  host.fileExists = (file) => file === virtualPath || fileExists(file);
-  host.readFile = (file) => (file === virtualPath ? source : readFile(file));
+  host.fileExists = (file) => isVirtual(file) || fileExists(file);
+  host.readFile = (file) => (isVirtual(file) ? source : readFile(file));
   host.getSourceFile = (file, version, onError, create) =>
-    file === virtualPath ? ts.createSourceFile(file, source, version, true) : getSourceFile(file, version, onError, create);
+    isVirtual(file) ? ts.createSourceFile(file, source, version, true) : getSourceFile(file, version, onError, create);
 
   const program = ts.createProgram([virtualPath], options, host);
   const checker = program.getTypeChecker();

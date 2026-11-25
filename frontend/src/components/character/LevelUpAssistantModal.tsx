@@ -18,21 +18,21 @@ export const LevelUpAssistantModal: React.FC<LevelUpAssistantModalProps> = ({
   isOpen,
   onClose,
   className,
-  fromLevel,
+  fromLevel: _fromLevel,
   toLevel,
   hitDie,
   constitutionModifier,
   currentMaxHP,
   onApplyLevelUp,
 }) => {
+  const [rolledValue, setRolledValue] = useState<number | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<'average' | 'roll'>('average');
+
   if (!isOpen) return null;
 
   const dieSides = parseInt(hitDie.replace('d', ''), 10) || 8;
   const standardAverage = Math.floor(dieSides / 2) + 1; // e.g. d10 -> 6, d8 -> 5, d6 -> 4, d12 -> 7
   const fixedGain = Math.max(1, standardAverage + constitutionModifier);
-
-  const [rolledValue, setRolledValue] = useState<number | null>(null);
-  const [selectedMethod, setSelectedMethod] = useState<'average' | 'roll'>('average');
 
   const handleRoll = () => {
     const roll = Math.floor(Math.random() * dieSides) + 1;
@@ -48,7 +48,7 @@ export const LevelUpAssistantModal: React.FC<LevelUpAssistantModalProps> = ({
       <div className="bg-surface text-ink border border-edge rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5 animate-scale-in">
         <div className="flex items-center justify-between border-b border-edge pb-3">
           <div className="flex items-center gap-2.5">
-            <ArrowUpCircle className="w-6 h-6 text-brand" />
+            <ArrowUpCircle className="w-6 h-6 text-brand-ink" />
             <div>
               <h3 className="font-bold text-base">Level Up to Level {toLevel}</h3>
               <p className="text-xs text-ink-muted">{className} &middot; Hit Die: {hitDie}</p>
@@ -81,9 +81,9 @@ export const LevelUpAssistantModal: React.FC<LevelUpAssistantModalProps> = ({
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold text-xs flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-brand" /> Fixed Average
+                  <ShieldCheck className="w-4 h-4 text-brand-ink" /> Fixed Average
                 </span>
-                <span className="text-xs font-mono font-bold text-brand">+{fixedGain} HP</span>
+                <span className="text-xs font-mono font-bold text-brand-ink">+{fixedGain} HP</span>
               </div>
               <p className="text-[11px] text-ink-muted">
                 {standardAverage} (half of {hitDie}) + {constitutionModifier} Con
@@ -100,17 +100,17 @@ export const LevelUpAssistantModal: React.FC<LevelUpAssistantModalProps> = ({
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold text-xs flex items-center gap-1.5">
-                  <Dice5 className="w-4 h-4 text-brand" /> Roll Hit Die
+                  <Dice5 className="w-4 h-4 text-brand-ink" /> Roll Hit Die
                 </span>
                 {rolledValue !== null && (
-                  <span className="text-xs font-mono font-bold text-brand">+{rollGain} HP</span>
+                  <span className="text-xs font-mono font-bold text-brand-ink">+{rollGain} HP</span>
                 )}
               </div>
               {rolledValue === null ? (
                 <button
                   type="button"
                   onClick={handleRoll}
-                  className="w-full mt-1 py-1 px-2 text-xs bg-brand text-white rounded font-medium hover:bg-brand-hover transition-colors"
+                  className="w-full mt-1 py-1 px-2 text-xs bg-brand text-brand-text rounded font-medium hover:bg-brand-hover transition-colors"
                 >
                   Roll 1{hitDie}
                 </button>
@@ -122,7 +122,7 @@ export const LevelUpAssistantModal: React.FC<LevelUpAssistantModalProps> = ({
                   <button
                     type="button"
                     onClick={handleRoll}
-                    className="text-[10px] text-brand hover:underline font-medium"
+                    className="text-[10px] text-brand-ink hover:underline font-medium"
                   >
                     Reroll
                   </button>
@@ -134,7 +134,7 @@ export const LevelUpAssistantModal: React.FC<LevelUpAssistantModalProps> = ({
           <div className="p-3 bg-brand/5 border border-brand/20 rounded-xl text-xs space-y-1">
             <div className="flex items-center justify-between font-semibold">
               <span>New Maximum HP:</span>
-              <span className="text-sm font-mono text-brand">{currentMaxHP + chosenGain} HP</span>
+              <span className="text-sm font-mono text-brand-ink">{currentMaxHP + chosenGain} HP</span>
             </div>
             <p className="text-[11px] text-ink-muted">
               Auto-advances {toLevel}{hitDie} hit dice pool, updates spell slot progression, and unlocks level {toLevel} class features.

@@ -30,12 +30,7 @@ interface UseReactionsReturn {
 export function useReactions(characterId?: string): UseReactionsReturn {
   const { socket, status } = useWebSocket();
   const { campaign } = useCampaign();
-  let showToast = (_msg: string, _type?: string) => {};
-  try {
-    showToast = useToast().showToast;
-  } catch {
-    // Graceful fallback outside ToastProvider
-  }
+  const { showToast } = useToast();
   const [pendingReaction, setPendingReaction] = useState<ReactionPrompt | null>(null);
   const [usedReactions, setUsedReactions] = useState<Set<string>>(new Set());
   const [reactionTimeout, setReactionTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);

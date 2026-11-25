@@ -293,7 +293,11 @@ export const SOCKET_CEILINGS = {
   'action:resolve': tokenMoves,
   'action:dmReview': dmEvent('action reviews'),
   'action:resetUsed': dmEvent('action resets'),
+  'action:reactionPrompt': tokenMoves,
+  'action:reactionResponse': tokenMoves,
   'character:draft:join': tokenMoves,
+  'character:draft:leave': tokenMoves,
+  'character:draft:cursor': { windows: [{ limit: 60, windowMs: SECOND }], refusal: 'Too many cursor updates at once.' },
   'character:draft:patch': tokenMoves,
   'character:draft:lock': dmEvent('draft locks'),
   'character:draft:unlock': dmEvent('draft unlocks'),
@@ -301,6 +305,15 @@ export const SOCKET_CEILINGS = {
   'character:draft:override': dmEvent('draft overrides'),
   'character:draft:resolve': tokenMoves,
   'character:draft:history': tokenMoves,
+  'spell:cast': { windows: [{ limit: 30, windowMs: MINUTE }], refusal: 'Spell cast rate limit exceeded.' },
+  'spell:resolve': dmEvent('spell resolutions'),
+  'override:issue': dmEvent('override requests'),
+  'override:revert': dmEvent('override reverts'),
+  'fog:toggle_party_vision': dmEvent('fog party vision updates'),
+  'dice.setMode': dmEvent('dice mode changes'),
+  'dice.audit': dmEvent('dice audits'),
+  'dice.reshuffleDeck': dmEvent('dice deck reshuffles'),
+  'movement:cancel': tokenMoves,
   'layer:update': dmEvent('layer updates'),
   'layer:reorder': dmEvent('layer reorders'),
   'layer:data:update': dmEvent('layer data updates'),
@@ -658,12 +671,12 @@ export async function broadcastPartyVisionMerge(
 
     if (explorations.length === 0) return;
 
-    // Get map dimensions for fog state
+    // Get map dimensions for fog state and verify it belongs to this campaign
     const map = await prisma.map.findUnique({
       where: { id: mapId },
-      select: { width: true, height: true, gridSize: true },
+      select: { campaignId: true, width: true, height: true, gridSize: true },
     });
-    if (!map) return;
+    if (!map || map.campaignId !== campaignId) return;
 
     // Build union of all explored cells
     const fog: FogState = {

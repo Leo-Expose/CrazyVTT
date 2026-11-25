@@ -2,10 +2,11 @@
 // Image Import Hook - Upload, crop, scale, align grid
 // ============================================
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { randomId } from '@/utils/uuid';
 import { api } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
+import { errorSummary } from '@/utils/errors';
 import type { ImageMapData } from '@/types';
 
 interface ImageImportOptions {
@@ -66,14 +67,13 @@ export function useImageImport(options: ImageImportOptions) {
   const { showToast } = useToast();
   
   const [state, setState] = useState<ImageImportState>(DEFAULT_STATE);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const cropCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize with map grid size
-  useState(() => {
+  useEffect(() => {
     setState(prev => ({ ...prev, gridSize: mapGridSize }));
-  }, []);
+  }, [mapGridSize]);
 
   const resetState = useCallback(() => {
     if (state.imageUrl) {
@@ -267,7 +267,7 @@ export function useImageImport(options: ImageImportOptions) {
       const assetId = uploadResponse.data.asset.id;
 
       // Calculate position on map (centered by default)
-      const mapResponse = await api.get<{ map: { width: number; height: number } }>(`/maps/${mapId}`);
+      const mapResponse = await api.get<{ map: { width: number; height: number } }>(`/api/campaigns/${campaignId}/maps/${mapId}`);
       const mapWidth = mapResponse.data.map.width;
       const mapHeight = mapResponse.data.map.height;
 
@@ -291,7 +291,7 @@ export function useImageImport(options: ImageImportOptions) {
       };
 
       // Save image map to map
-      await api.post(`/maps/${mapId}/image-maps`, imageMap);
+      await api.post(`/api/campaigns/${campaignId}/maps/${mapId}/image-maps`, imageMap);
 
       // Notify placement
       onImagePlaced(imageMap);
@@ -300,7 +300,7 @@ export function useImageImport(options: ImageImportOptions) {
       
       resetState();
     } catch (error) {
-      console.error('Image import failed:', error);
+      console.error('Image import failed:', errorSummary(error));
       showToast('Failed to import image', 'error');
     } finally {
       setState(prev => ({ ...prev, uploading: false, uploadProgress: 0 }));
@@ -312,7 +312,7 @@ export function useImageImport(options: ImageImportOptions) {
   }, [resetState]);
 
   // Auto-snap to grid when gridAligned changes
-  useState(() => {
+  useEffect(() => {
     if (state.gridAligned && state.cropArea) {
       // Snap position to grid
       // This would be handled in the UI component

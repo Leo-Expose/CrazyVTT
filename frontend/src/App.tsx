@@ -255,7 +255,7 @@ function WelcomePage() {
             href="https://www.gnu.org/licenses/agpl-3.0.html"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-brand hover:underline font-medium"
+            className="text-brand-ink hover:underline font-medium"
           >
             GNU AGPL v3 License
           </a>

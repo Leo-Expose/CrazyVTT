@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useCampaign } from '@/contexts/CampaignContext';
-import { ActionType, type CharacterAction, type ActionCost, type AttackPreview } from '@/types';
+import { ActionType, ActionSource, type CharacterAction, type ActionCost, type AttackPreview } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
 import { useGameStore, useTargetTokenId } from '@/stores/gameStore';
 
@@ -278,6 +278,11 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                     description: 'Ad-hoc ruling or extraordinary action granted by the DM.',
                     damageExpression: '1d6',
                   },
+                  source: ActionSource.OTHER,
+                  sourceRef: null,
+                  recharge: null,
+                  used: false,
+                  sortOrder: 999,
                 };
                 handleActionClick(customAction);
               }}
@@ -482,8 +487,8 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="font-semibold text-ink">Target:</span>
                 {targetToken ? (
-                  <span className="text-brand font-medium">
-                    {targetToken.name}{targetToken.statBlock ? ` (AC ${(targetToken.statBlock as any).ac || 10})` : ''}
+                  <span className="text-brand-ink font-medium">
+                    {targetToken.name}{targetToken.statBlock ? ` (AC ${targetToken.statBlock.ac ?? 10})` : ''}
                   </span>
                 ) : (
                   <span className="text-ink-muted italic">None (click map token to target)</span>
@@ -501,7 +506,7 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                     const bonusMatch = preview.attackRoll?.expression.match(/\+(\d+)/);
                     const bonus = bonusMatch ? parseInt(bonusMatch[1], 10) : 0;
                     const total = d20 + bonus;
-                    const targetAC = targetToken?.statBlock ? ((targetToken.statBlock as any).ac || 10) : 10;
+                    const targetAC = targetToken?.statBlock?.ac ?? 10;
                     const hitsAC = d20 === 20 ? true : d20 === 1 ? false : total >= targetAC;
 
                     setLastRollResult({
@@ -519,7 +524,7 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                       purpose: `Attack vs ${targetToken ? targetToken.name : 'Target'}`,
                     });
                   }}
-                  className="w-full py-1.5 px-3 rounded-lg border border-brand/40 bg-brand/10 hover:bg-brand/20 text-brand text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  className="w-full py-1.5 px-3 rounded-lg border border-brand/40 bg-brand/10 hover:bg-brand/20 text-brand-ink text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <Target className="w-3.5 h-3.5" />
                   Roll Attack ({preview.attackRoll.expression})
@@ -532,7 +537,7 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                       : lastRollResult.isFumble
                       ? 'bg-danger/15 border-danger/40 text-danger-ink font-bold'
                       : lastRollResult.hitsAC
-                      ? 'bg-brand/10 border-brand/30 text-brand'
+                      ? 'bg-brand/10 border-brand/30 text-brand-ink'
                       : 'bg-stone-gray/10 border-stone-gray/20 text-stone-gray'
                   }`}>
                     <div className="flex items-center justify-between font-mono text-[11px] tracking-wider uppercase">
@@ -603,7 +608,7 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                     showToast('Failed to apply effects', 'error');
                   }
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-brand text-white font-medium text-xs hover:bg-brand-hover shadow-sm transition-all"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-brand text-brand-text font-medium text-xs hover:bg-brand-hover shadow-sm transition-all"
               >
                 <Zap className="w-3.5 h-3.5" />
                 Apply Damage / Effects to {targetToken ? targetToken.name : 'Target'}

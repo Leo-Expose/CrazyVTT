@@ -28,7 +28,7 @@ import { HomebrewParserModal } from './HomebrewParserModal';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useGameStore } from '@/stores/gameStore';
 import api from '@/services/api';
-import { apiErrorMessage } from '@/utils/errors';
+import { apiErrorMessage, errorSummary } from '@/utils/errors';
 import { STAT_BLOCK_LIMITS } from '@/constants/statBlockLimits';
 import type { CreatureTemplate, NpcStatBlock } from '@/types';
 import { TokenType, GameSystem, AssetType, TokenDisposition } from '@/types';
@@ -523,7 +523,7 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
           </button>
           <button
             onClick={() => setShowHomebrewParser(true)}
-            className="touch-target flex items-center gap-1 text-xs text-brand hover:text-brand-hover transition-colors"
+            className="touch-target flex items-center gap-1 text-xs text-brand-ink hover:text-brand-hover transition-colors"
             title="Parse monster or NPC stat blocks from text or markdown"
           >
             <Wand2 className="w-3 h-3" /> Parse Stat Block
@@ -761,39 +761,45 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
       onClose={() => setShowHomebrewParser(false)}
       onImportParsed={async (parsed) => {
         try {
+          const sizeKey = (parsed.size || 'Medium').toLowerCase();
+          const dim = sizeKey === 'large' ? 2 : sizeKey === 'huge' ? 3 : sizeKey === 'gargantuan' ? 4 : 1;
           const statBlock: NpcStatBlock = {
             ac: parsed.armorClass,
+            hpMax: parsed.hitPoints,
+            hitDice: parsed.hitDice,
             speed: parsed.speed,
-            stats: {
-              strength: { score: parsed.stats.strength, modifier: Math.floor((parsed.stats.strength - 10) / 2) },
-              dexterity: { score: parsed.stats.dexterity, modifier: Math.floor((parsed.stats.dexterity - 10) / 2) },
-              constitution: { score: parsed.stats.constitution, modifier: Math.floor((parsed.stats.constitution - 10) / 2) },
-              intelligence: { score: parsed.stats.intelligence, modifier: Math.floor((parsed.stats.intelligence - 10) / 2) },
-              wisdom: { score: parsed.stats.wisdom, modifier: Math.floor((parsed.stats.wisdom - 10) / 2) },
-              charisma: { score: parsed.stats.charisma, modifier: Math.floor((parsed.stats.charisma - 10) / 2) },
+            abilities: {
+              str: parsed.stats.strength,
+              dex: parsed.stats.dexterity,
+              con: parsed.stats.constitution,
+              int: parsed.stats.intelligence,
+              wis: parsed.stats.wisdom,
+              cha: parsed.stats.charisma,
             },
             actions: parsed.actions.map((a) => ({
-              id: a.name.toLowerCase().replace(/\s+/g, '_'),
               name: a.name,
-              desc: a.description,
+              description: a.description,
+              attackBonus: a.attackBonus,
+              damageExpression: a.damageExpression,
+              damageType: a.damageType,
             })),
           };
 
-          const newCreature = await api.createCreatureTemplate(campaign!.id, {
+          const newCreature = await api.createCreature(campaign!.id, {
             name: parsed.name,
-            size: parsed.size || 'Medium',
-            type: parsed.type || 'humanoid',
-            cr: parsed.challengeRating || '1/4',
-            hpMax: parsed.hitPoints,
+            size: { width: dim, height: dim },
+            creatureType: parsed.type || 'humanoid',
+            alignment: parsed.alignment || null,
+            challengeRating: parsed.challengeRating || '1/4',
             statBlock,
             gameSystem: campaign?.gameSystem || GameSystem.DND_5E,
           });
 
-          setCreatures((prev) => [newCreature.creature, ...prev]);
+          setCreatures((prev) => [newCreature, ...prev]);
           setTotal((t) => t + 1);
           setShowHomebrewParser(false);
         } catch (err) {
-          console.error('Failed to import parsed creature', err);
+          console.error('Failed to import parsed creature', errorSummary(err));
         }
       }}
     />

@@ -242,7 +242,7 @@ export default function RoomTool({
         setLayers(updatedLayers);
 
         try {
-          await api.put(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/layers/${terrainLayer.id}`, {
+          await api.put(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/layers/${terrainLayer.id}`, {
             data: { tiles: newTiles }
           });
         } catch {
@@ -253,8 +253,8 @@ export default function RoomTool({
 
     // Send walls to server
     try {
-      await api.post(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, {
-        segments: newWalls
+      await api.put(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, {
+        segments: [...wallSegments, ...newWalls]
       });
       showToast(`Room created: ${width}×${height} (${newWalls.length} walls${floorTile ? `, ${newFloorTiles.length} floor tiles` : ''})`, 'success');
     } catch {

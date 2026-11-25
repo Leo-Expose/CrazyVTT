@@ -12,13 +12,16 @@ export * from './armorLogistics';
 export type {
   RaceData,
   RaceFeature,
+} from './races';
+
+export type {
   ClassData,
   ClassFeature,
   SubclassData,
   SavingThrowProficiency,
   SkillProficiencyOption,
   ClassSpellcasting,
-} from './races';
-
-export type { ClassData as DnD5eClassData, SubclassData as DnD5eSubclassData } from './classes';
+  ClassData as DnD5eClassData,
+  SubclassData as DnD5eSubclassData,
+} from './classes';
 export type { RaceData as DnD5eRaceData } from './races';

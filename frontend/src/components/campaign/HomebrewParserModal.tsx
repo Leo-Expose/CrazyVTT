@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Check, Copy, Wand2, X } from 'lucide-react';
+import { BookOpen, Check, Wand2, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { parseMonsterStatBlock, type ParsedStatBlock } from '@/utils/statBlockParser';
 
@@ -27,10 +27,10 @@ export const HomebrewParserModal: React.FC<HomebrewParserModalProps> = ({
   onClose,
   onImportParsed,
 }) => {
-  if (!isOpen) return null;
-
   const [rawText, setRawText] = useState(SAMPLE_STAT_BLOCK);
   const [parsed, setParsed] = useState<ParsedStatBlock | null>(null);
+
+  if (!isOpen) return null;
 
   const handleParse = () => {
     const result = parseMonsterStatBlock(rawText);
@@ -42,7 +42,7 @@ export const HomebrewParserModal: React.FC<HomebrewParserModalProps> = ({
       <div className="bg-surface text-ink border border-edge rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 animate-scale-in">
         <div className="flex items-center justify-between border-b border-edge pb-3">
           <div className="flex items-center gap-2.5">
-            <Wand2 className="w-6 h-6 text-brand" />
+            <Wand2 className="w-6 h-6 text-brand-ink" />
             <div>
               <h3 className="font-bold text-base">Rulebook &amp; Homebrew Parser (PRD §17.3)</h3>
               <p className="text-xs text-ink-muted">Paste text/markdown stat blocks to auto-convert into ready-to-drop VTT creatures.</p>
@@ -77,7 +77,7 @@ export const HomebrewParserModal: React.FC<HomebrewParserModalProps> = ({
             <label className="block text-xs font-semibold text-ink-muted">Parsed VTT Token Template</label>
             {parsed ? (
               <div className="p-3 bg-surface-light border border-edge rounded-xl text-xs space-y-2 max-h-80 overflow-y-auto">
-                <div className="font-bold text-sm text-brand">{parsed.name}</div>
+                <div className="font-bold text-sm text-brand-ink">{parsed.name}</div>
                 <div className="text-[11px] text-ink-muted italic">{parsed.size} {parsed.type}, {parsed.alignment}</div>
                 <div className="grid grid-cols-2 gap-2 pt-1 border-t border-edge">
                   <div><strong>AC:</strong> {parsed.armorClass}</div>
@@ -90,7 +90,7 @@ export const HomebrewParserModal: React.FC<HomebrewParserModalProps> = ({
                   <div className="space-y-1 mt-1">
                     {parsed.actions.map((act, i) => (
                       <div key={i} className="p-1.5 bg-surface rounded border border-edge/60 text-[11px]">
-                        <span className="font-semibold text-brand">{act.name}</span>: {act.description}
+                        <span className="font-semibold text-brand-ink">{act.name}</span>: {act.description}
                       </div>
                     ))}
                   </div>
