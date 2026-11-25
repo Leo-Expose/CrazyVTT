@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import type { Plugin } from 'vite'
 
 // The bundle visualizer (a devDependency), loaded only for npm run build:analyze
 const visualizerPlugin = process.env.ANALYZE === 'true'
@@ -12,6 +13,17 @@ const visualizerPlugin = process.env.ANALYZE === 'true'
       brotliSize: true,
     })
   : null;
+
+// Plugin to remove crossorigin from module scripts and modulepreload links
+const removeCrossoriginPlugin = (): Plugin => ({
+  name: 'remove-crossorigin',
+  apply: 'build',
+  transformIndexHtml(html) {
+    return html
+      .replace(/<script type="module" crossorigin /g, '<script type="module" ')
+      .replace(/<link rel="modulepreload" crossorigin /g, '<link rel="modulepreload" ');
+  },
+});
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -27,6 +39,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      removeCrossoriginPlugin(),
       ...(visualizerPlugin ? [visualizerPlugin] : []),
     ],
     resolve: {
@@ -37,6 +50,8 @@ export default defineConfig(({ mode }) => {
     build: {
       // Raise the warning threshold slightly: vendor chunks are expected to be large
       chunkSizeWarningLimit: 600,
+      // Disable crossorigin on module scripts — causes CORS issues for same-origin
+      crossorigin: false,
       rolldownOptions: {
         // Remove console.log, info, debug and trace calls from the production
         // bundle: they print chat messages, secret rolls and token details.
@@ -46,6 +61,8 @@ export default defineConfig(({ mode }) => {
         // log.
         treeshake: {
           manualPureFunctions: ['console.log', 'console.info', 'console.debug', 'console.trace'],
+          // Preserve side effects in entry point (window.addEventListener, etc.)
+          moduleSideEffects: true,
         },
         output: {
           // Split vendor libraries into named chunks so they are cached independently.

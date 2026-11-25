@@ -216,10 +216,11 @@ export interface PF2eStrike {
  * Currency
  */
 export interface PF2eCurrency {
-  cp: number;
-  sp: number;
-  gp: number;
-  pp: number;
+  cp?: number;
+  sp?: number;
+  gp?: number;
+  pp?: number;
+  containers?: Array<{ id: string; name: string; cp: number; sp: number; gp: number; pp: number }>;
 }
 
 /**
@@ -234,7 +235,16 @@ export interface PF2eInventoryItem {
   requiresAttunement?: boolean;
   attuned?: boolean;
   invested?: boolean;
-  value?: number;
+  containerId?: string;
+  location?: 'EQUIPPED' | 'CARRIED' | 'STOWED' | 'CONTAINER';
+  capacity?: number;
+  capacityUnit?: 'LBS' | 'BULK';
+  attunementNotes?: string;
+  investedNotes?: string;
+  magical?: boolean;
+  charges?: { max: number; current: number; recharge?: string };
+  value?: number | { amount: number; currency?: 'CP' | 'SP' | 'GP' | 'PP' };
+  valueLegacy?: number;
   notes?: string;
 }
 

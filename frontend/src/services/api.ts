@@ -673,6 +673,240 @@ class ApiClient {
     return response.data;
   }
 
+  async getTotalCurrency(
+    campaignId: string,
+    characterId: string,
+  ): Promise<{ total: import('@/types').PoolCurrencyAmount }> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/characters/${characterId}/currency/total`);
+    const data = response.data;
+    if (data && typeof data === 'object' && 'total' in data) {
+      return data as { total: import('@/types').PoolCurrencyAmount };
+    }
+    return {
+      total: {
+        cp: data?.cp ?? 0,
+        sp: data?.sp ?? 0,
+        ep: data?.ep ?? 0,
+        gp: data?.gp ?? 0,
+        pp: data?.pp ?? 0,
+        nuyen: data?.nuyen ?? 0,
+        cash: data?.cash ?? 0,
+        ...(data?.custom ? { custom: data.custom } : {}),
+      },
+    };
+  }
+
+  // ============================================
+  // Party Resource Pools
+  // ============================================
+
+  async listPartyPools(campaignId: string): Promise<{ pools: (import('@/types').PartyResourcePool & { formatted: import('@/types').FormattedPoolCurrency })[] }> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/pool`);
+    return response.data;
+  }
+
+  async createPartyPool(
+    campaignId: string,
+    data: {
+      name: string;
+      description?: string;
+      cp?: number;
+      sp?: number;
+      ep?: number;
+      gp?: number;
+      pp?: number;
+      nuyen?: number;
+      cash?: number;
+      custom?: Record<string, number>;
+      isDefault?: boolean;
+      allowPlayerWithdraw?: boolean;
+    }
+  ): Promise<{ pool: import('@/types').PartyResourcePool & { formatted: import('@/types').FormattedPoolCurrency } }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/pool`, data);
+    return response.data;
+  }
+
+  async getPartyPool(campaignId: string, poolId: string): Promise<{ pool: import('@/types').PartyResourcePool & { formatted: import('@/types').FormattedPoolCurrency } }> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/pool/${poolId}`);
+    return response.data;
+  }
+
+  async updatePartyPool(
+    campaignId: string,
+    poolId: string,
+    data: Partial<{
+      name: string;
+      description: string;
+      isDefault: boolean;
+      allowPlayerWithdraw: boolean;
+    }>
+  ): Promise<{ pool: import('@/types').PartyResourcePool }> {
+    const response = await this.client.patch(`/api/campaigns/${campaignId}/pool/${poolId}`, data);
+    return response.data;
+  }
+
+  async deletePartyPool(campaignId: string, poolId: string, force = false): Promise<{ message: string }> {
+    const response = await this.client.delete(`/api/campaigns/${campaignId}/pool/${poolId}`, { params: { force } });
+    return response.data;
+  }
+
+  async getPartyPoolTransactions(
+    campaignId: string,
+    poolId: string,
+    page = 1,
+    limit = 20
+  ): Promise<{ transactions: import('@/types').PartyResourceTransaction[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/pool/${poolId}/transactions`, {
+      params: { page, limit },
+    });
+    return response.data;
+  }
+
+  async contributeToPool(
+    campaignId: string,
+    poolId: string,
+    data: { characterId: string; amounts: import('@/types').PoolCurrencyAmount; description: string }
+  ): Promise<{ pool: import('@/types').PartyResourcePool }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/pool/${poolId}/contribute`, data);
+    return response.data;
+  }
+
+  async withdrawFromPool(
+    campaignId: string,
+    poolId: string,
+    data: { characterId: string; amounts: import('@/types').PoolCurrencyAmount; description: string }
+  ): Promise<{ pool: import('@/types').PartyResourcePool }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/pool/${poolId}/withdraw`, data);
+    return response.data;
+  }
+
+  async adjustPool(
+    campaignId: string,
+    poolId: string,
+    data: { amounts: import('@/types').PoolCurrencyAmount; description: string; sourceType?: string; sourceId?: string }
+  ): Promise<{ pool: import('@/types').PartyResourcePool }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/pool/${poolId}/adjust`, data);
+    return response.data;
+  }
+
+  async spendFromPool(
+    campaignId: string,
+    poolId: string,
+    data: { amounts: import('@/types').PoolCurrencyAmount; description: string; sourceType: string; sourceId?: string }
+  ): Promise<{ pool: import('@/types').PartyResourcePool }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/pool/${poolId}/spend`, data);
+    return response.data;
+  }
+
+  async depositLootToPool(
+    campaignId: string,
+    data: { distributionId: string; poolId: string }
+  ): Promise<{ pool: import('@/types').PartyResourcePool }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/pool/loot-deposit`, data);
+    return response.data;
+  }
+
+  // ============================================
+  // Journal
+  // ============================================
+
+  async getJournalFolders(campaignId: string): Promise<{ folders: import('@/types').JournalFolder[] }> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/journal/folders`);
+    return response.data;
+  }
+
+  async createJournalFolder(
+    campaignId: string,
+    data: { name: string; parentId?: string; color?: string; sortOrder?: number }
+  ): Promise<{ folder: import('@/types').JournalFolder }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/journal/folders`, data);
+    return response.data;
+  }
+
+  async updateJournalFolder(
+    campaignId: string,
+    folderId: string,
+    data: { name?: string; parentId?: string | null; color?: string; sortOrder?: number }
+  ): Promise<{ folder: import('@/types').JournalFolder }> {
+    const response = await this.client.patch(`/api/campaigns/${campaignId}/journal/folders/${folderId}`, data);
+    return response.data;
+  }
+
+  async deleteJournalFolder(campaignId: string, folderId: string, cascade = false): Promise<{ message: string }> {
+    const response = await this.client.delete(`/api/campaigns/${campaignId}/journal/folders/${folderId}`, {
+      params: { cascade },
+    });
+    return response.data;
+  }
+
+  async listJournalEntries(
+    campaignId: string,
+    options?: { folderId?: string | null; visibility?: import('@/types').JournalVisibility }
+  ): Promise<{ entries: import('@/types').JournalEntry[] }> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/journal`, { params: options });
+    return response.data;
+  }
+
+  async getJournalTree(campaignId: string): Promise<import('@/types').JournalTree> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/journal/tree`);
+    return response.data;
+  }
+
+  async createJournalEntry(
+    campaignId: string,
+    data: {
+      title: string;
+      content: string;
+      visibility?: import('@/types').JournalVisibility;
+      allowedPlayerIds?: string[];
+      folderId?: string | null;
+      tags?: string[];
+    }
+  ): Promise<{ entry: import('@/types').JournalEntry }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/journal`, data);
+    return response.data;
+  }
+
+  async getJournalEntry(campaignId: string, entryId: string): Promise<{ entry: import('@/types').JournalEntry }> {
+    const response = await this.client.get(`/api/campaigns/${campaignId}/journal/${entryId}`);
+    return response.data;
+  }
+
+  async updateJournalEntry(
+    campaignId: string,
+    entryId: string,
+    data: {
+      title?: string;
+      content?: string;
+      visibility?: import('@/types').JournalVisibility;
+      allowedPlayerIds?: string[];
+      folderId?: string | null;
+      tags?: string[];
+    }
+  ): Promise<{ entry: import('@/types').JournalEntry }> {
+    const response = await this.client.patch(`/api/campaigns/${campaignId}/journal/${entryId}`, data);
+    return response.data;
+  }
+
+  async deleteJournalEntry(campaignId: string, entryId: string): Promise<{ message: string }> {
+    const response = await this.client.delete(`/api/campaigns/${campaignId}/journal/${entryId}`);
+    return response.data;
+  }
+
+  async addJournalImage(
+    campaignId: string,
+    entryId: string,
+    data: { assetId: string; caption?: string; sortOrder?: number }
+  ): Promise<{ image: import('@/types').JournalImage }> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/journal/${entryId}/images`, data);
+    return response.data;
+  }
+
+  async removeJournalImage(campaignId: string, entryId: string, imageId: string): Promise<{ message: string }> {
+    const response = await this.client.delete(`/api/campaigns/${campaignId}/journal/${entryId}/images/${imageId}`);
+    return response.data;
+  }
+
   // ============================================
   // Campaign Invitations
   // ============================================
@@ -1403,7 +1637,7 @@ class ApiClient {
 
   async createTokenTemplate(campaignId: string, data: Partial<TokenTemplate>): Promise<TokenTemplate> {
     const response = await this.client.post(`/api/campaigns/${campaignId}/token-templates`, data);
-    return response.data;
+    return withKnownTemplateChoices(response.data);
   }
 
   async updateTokenTemplate(campaignId: string, id: string, data: Partial<TokenTemplate>): Promise<TokenTemplate> {
@@ -1418,7 +1652,7 @@ class ApiClient {
 
   async saveTokenAsTemplate(campaignId: string, tokenData: Partial<TokenTemplate>): Promise<TokenTemplate> {
     const response = await this.client.post(`/api/campaigns/${campaignId}/token-templates/from-token`, tokenData);
-    return response.data;
+    return withKnownTemplateChoices(response.data);
   }
 
   async copyTokenTemplateToCampaign(campaignId: string, templateId: string, targetCampaignId: string): Promise<TokenTemplate> {

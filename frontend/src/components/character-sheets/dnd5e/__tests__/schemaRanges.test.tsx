@@ -28,6 +28,12 @@ function open(overrides: Record<string, unknown>, tab: RegExp) {
 }
 
 describe('the boxes', () => {
+  it('edits a silver value as gold without changing its worth', async () => {
+    const save = open({ inventory: [{ name: 'Rope', value: { amount: 5, currency: 'SP' } }] }, /Inventory/);
+    expect(screen.getByLabelText('Value (gp)')).toHaveValue(0.5);
+    fireEvent.change(screen.getByLabelText('Value (gp)'), { target: { value: '0.6' } });
+    expect(((await save()).inventory as { value: number }[])[0].value).toBe(0.6);
+  });
   it('keep a fraction of a gold piece as an item\'s value', async () => {
     const save = open({}, /Inventory/);
     fireEvent.change(screen.getByLabelText('Value (gp)'), { target: { value: '0.5' } });

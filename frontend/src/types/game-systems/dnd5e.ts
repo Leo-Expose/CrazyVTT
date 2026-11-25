@@ -170,17 +170,19 @@ export interface DnD5eAttack {
  * Currency tracking
  */
 export interface DnD5eCurrency {
-  cp: number;
-  sp: number;
-  ep: number;
-  gp: number;
-  pp: number;
+  cp?: number;
+  sp?: number;
+  ep?: number;
+  gp?: number;
+  pp?: number;
+  containers?: Array<{ id: string; name: string; cp: number; sp: number; ep: number; gp: number; pp: number }>;
 }
 
 /**
  * Inventory item
  */
 export interface DnD5eInventoryItem {
+  id?: string;
   name: string;
   quantity?: number;
   weight?: number;
@@ -189,7 +191,15 @@ export interface DnD5eInventoryItem {
   equipped?: boolean;
   requiresAttunement?: boolean;
   attuned?: boolean;
-  value?: number;
+  containerId?: string;
+  location?: 'EQUIPPED' | 'CARRIED' | 'STOWED' | 'CONTAINER';
+  capacity?: number;
+  capacityUnit?: 'LBS' | 'BULK';
+  attunementNotes?: string;
+  magical?: boolean;
+  charges?: { max: number; current: number; recharge?: string };
+  value?: number | { amount: number; currency?: 'CP' | 'SP' | 'EP' | 'GP' | 'PP' };
+  valueLegacy?: number;
 }
 
 /**
@@ -323,6 +333,7 @@ export interface DnD5eCharacterData extends SheetChrome {
   /** Non-Dexterity initiative bonuses (Alert, Jack of All Trades, subclasses). */
   initiativeBonus?: number;
   speed?: number;
+  size?: 'Small' | 'Medium';
   hp?: DnD5eHitPoints;
   conditions?: string[];
   /** Exhaustion 0-6; six cumulative levels, not a yes/no condition. */

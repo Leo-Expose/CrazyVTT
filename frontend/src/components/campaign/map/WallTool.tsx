@@ -5,6 +5,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { WallSegment, WallType } from '@/types/walls';
+import { gridWallToMap } from './wallGeometry';
 import { api } from '@/services/api';
 import { randomId } from '@/utils/uuid';
 import { useToast } from '@/contexts/ToastContext';
@@ -26,13 +27,9 @@ interface WallToolProps {
   snapToGrid: boolean;
 }
 
-const WALL_COLORS: Partial<Record<WallType, string>> = {
-  normal: '#6b7280',      // gray
-  door: '#f59e0b',        // amber
-  secret: '#8b5cf6',      // violet
-  portcullis: '#ef4444',  // red
-  window: 'rgb(59, 130, 246)',      // blue
-  'terrain-boundary': '#22c55e', // green
+const WALL_COLORS: Record<WallType, string> = {
+  wall: '#6b7280', 'door-closed': '#f59e0b', 'door-open': '#22c55e',
+  'door-locked': '#ef4444', window: 'rgb(59, 130, 246)',
 };
 
 const WALL_THICKNESS = 3;
@@ -56,7 +53,7 @@ export default function WallTool({
 
   // State
   const [snapToGrid, setSnapToGrid] = useState(initialSnapToGrid);
-  const [wallType, setWallType] = useState<WallType>('normal');
+  const [wallType, setWallType] = useState<WallType>('wall');
   const [drawing, setDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
   const [currentPoint, setCurrentPoint] = useState<{ x: number; y: number } | null>(null);
@@ -189,15 +186,15 @@ export default function WallTool({
   const findNearbyEndpoint = useCallback((point: { x: number; y: number }): { x: number; y: number } | null => {
     const threshold = 0.5; // Grid squares
     for (const segment of wallSegments) {
-      if (Math.hypot(segment.x1 - point.x, segment.y1 - point.y) < threshold) {
-        return { x: segment.x1, y: segment.y1 };
+      if (Math.hypot(segment.x1 / gridSize - point.x, segment.y1 / gridSize - point.y) < threshold) {
+        return { x: segment.x1 / gridSize, y: segment.y1 / gridSize };
       }
-      if (Math.hypot(segment.x2 - point.x, segment.y2 - point.y) < threshold) {
-        return { x: segment.x2, y: segment.y2 };
+      if (Math.hypot(segment.x2 / gridSize - point.x, segment.y2 / gridSize - point.y) < threshold) {
+        return { x: segment.x2 / gridSize, y: segment.y2 / gridSize };
       }
     }
     return null;
-  }, [wallSegments]);
+  }, [wallSegments, gridSize]);
 
   // Handle mouse down - start drawing
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -255,15 +252,14 @@ export default function WallTool({
       return;
     }
 
-    const newSegment: WallSegment = {
+    const newSegment = gridWallToMap({
       id: randomId(),
       x1: startPoint.x,
       y1: startPoint.y,
       x2: currentPoint.x,
       y2: currentPoint.y,
       type: wallType,
-      doorState: wallType === 'door' ? 'closed' : undefined,
-    };
+    }, gridSize);
 
     // Add to local state immediately for responsiveness
     const updatedSegments = [...wallSegments, newSegment];
@@ -284,7 +280,7 @@ export default function WallTool({
     setDrawing(false);
     setStartPoint(null);
     setCurrentPoint(null);
-  }, [drawing, startPoint, currentPoint, wallType, wallSegments, mapId, mergeCollinearSegments, splitAtIntersections, setWallSegments, showToast]);
+  }, [drawing, startPoint, currentPoint, wallType, wallSegments, mapId, gridSize, mergeCollinearSegments, splitAtIntersections, setWallSegments, showToast]);
 
   const distanceToSegment = (point: { x: number; y: number }, segment: WallSegment): number => {
     const x = point.x, y = point.y;
@@ -320,13 +316,13 @@ export default function WallTool({
   };
 
   const findSegmentAtPoint = useCallback((point: { x: number; y: number }, segments: WallSegment[]): WallSegment | null => {
-    const threshold = 0.3; // Grid squares
+    const threshold = gridSize * 0.3; // Map pixels
     for (const segment of segments) {
       const dist = distanceToSegment(point, segment);
       if (dist < threshold) return segment;
     }
     return null;
-  }, []);
+  }, [gridSize]);
 
   // Handle right click - context menu for walls
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -340,13 +336,13 @@ export default function WallTool({
     const gridPos = screenToGrid(x, y);
 
     // Find segment under cursor
-    const segment = findSegmentAtPoint(gridPos, wallSegments);
+    const segment = findSegmentAtPoint({ x: gridPos.x * gridSize, y: gridPos.y * gridSize }, wallSegments);
     if (segment) {
       e.preventDefault();
       setContextMenu({ segment, x: e.clientX, y: e.clientY });
       setSelectedSegmentId(segment.id);
     }
-  }, [isDM, active, screenToGrid, wallSegments, findSegmentAtPoint]);
+  }, [isDM, active, screenToGrid, gridSize, wallSegments, findSegmentAtPoint]);
 
   // Handle segment type change
   const handleTypeChange = useCallback(async (newType: WallType) => {
@@ -356,7 +352,7 @@ export default function WallTool({
     if (!segment) return;
 
     const updatedSegments: WallSegment[] = wallSegments.map(s =>
-      s.id === selectedSegmentId ? { ...s, type: newType, doorState: newType === 'door' ? 'closed' as const : undefined } : s
+      s.id === selectedSegmentId ? { ...s, type: newType } : s
     );
 
     setWallSegments(updatedSegments);
@@ -443,21 +439,21 @@ export default function WallTool({
     gridToScreen: (x: number, y: number) => { x: number; y: number },
     highlighted: boolean = false
   ) => {
-    const start = gridToScreen(segment.x1, segment.y1);
-    const end = gridToScreen(segment.x2, segment.y2);
+    const start = gridToScreen(segment.x1 / gridSize, segment.y1 / gridSize);
+    const end = gridToScreen(segment.x2 / gridSize, segment.y2 / gridSize);
 
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
 
-    const color = WALL_COLORS[segment.type] || WALL_COLORS.normal;
+    const color = WALL_COLORS[segment.type] || WALL_COLORS.wall;
     ctx.strokeStyle = highlighted ? '#fff' : (color ?? '#6b7280');
     ctx.lineWidth = (WALL_THICKNESS * viewport.zoom) + (highlighted ? 2 : 0);
     ctx.lineCap = 'round';
     ctx.stroke();
 
     // Draw door indicator
-    if (segment.type === 'door') {
+    if (segment.type === 'door-closed' || segment.type === 'door-open' || segment.type === 'door-locked') {
       const midX = (start.x + end.x) / 2;
       const midY = (start.y + end.y) / 2;
       const angle = Math.atan2(end.y - start.y, end.x - start.x);
@@ -470,12 +466,12 @@ export default function WallTool({
       ctx.beginPath();
       ctx.moveTo(-doorWidth / 2, 0);
       ctx.lineTo(doorWidth / 2, 0);
-      ctx.strokeStyle = segment.doorState === 'open' ? '#22c55e' : '#f59e0b';
+      ctx.strokeStyle = segment.type === 'door-open' ? '#22c55e' : '#f59e0b';
       ctx.lineWidth = WALL_THICKNESS * viewport.zoom * 1.5;
       ctx.stroke();
 
       // Door arc indicator
-      if (segment.doorState === 'closed') {
+      if (segment.type === 'door-closed') {
         ctx.beginPath();
         ctx.arc(0, 0, doorWidth / 2, 0, Math.PI);
         ctx.strokeStyle = '#f59e0b';
@@ -503,7 +499,7 @@ export default function WallTool({
     ctx.moveTo(screenStart.x, screenStart.y);
     ctx.lineTo(screenEnd.x, screenEnd.y);
 
-    const color = WALL_COLORS[type] || WALL_COLORS.normal;
+    const color = WALL_COLORS[type] || WALL_COLORS.wall;
     ctx.strokeStyle = color ?? '#6b7280';
     ctx.lineWidth = WALL_THICKNESS * viewport.zoom;
     ctx.lineCap = 'round';
@@ -564,12 +560,11 @@ export default function WallTool({
             onChange={(e) => setWallType(e.target.value as WallType)}
             className="px-2 py-1 text-sm bg-background border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="normal">Wall</option>
-            <option value="door">Door</option>
-            <option value="secret">Secret</option>
-            <option value="portcullis">Portcullis</option>
+            <option value="wall">Wall</option>
+            <option value="door-closed">Closed door</option>
+            <option value="door-open">Open door</option>
+            <option value="door-locked">Locked door</option>
             <option value="window">Window</option>
-            <option value="terrain-boundary">Terrain Boundary</option>
           </select>
         </div>
 
@@ -615,7 +610,7 @@ export default function WallTool({
           style={{ left: contextMenu.x + 160, top: contextMenu.y }}
           role="menu"
         >
-          {(['normal', 'door', 'secret', 'portcullis', 'window', 'terrain-boundary'] as WallType[]).map(type => (
+          {(['wall', 'door-closed', 'door-open', 'door-locked', 'window'] as WallType[]).map(type => (
             <button
               key={type}
               role="menuitem"

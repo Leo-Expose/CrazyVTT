@@ -9,6 +9,7 @@ the mounts, so a change to either file's shape fails here and not quietly.
 
 import importlib.util
 import os
+import re
 import unittest
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -37,19 +38,33 @@ class HttpsExample(unittest.TestCase):
     def test_finds_the_one_in_the_deployment_guide(self):
         with open(nc.GUIDE, encoding='utf-8') as f:
             example = nc.https_example(f.read())
-        self.assertIn('include /etc/nginx/cozyvtt/locations.conf;', example)
+        self.assertIn('include /etc/nginx/templates/locations.conf;', example)
+
+    def test_both_guide_examples_include_the_mounted_shared_locations(self):
+        compose = nc.read(nc.COMPOSE)
+        target = re.search(r'^\s*-\s+\./nginx/locations\.conf:([^:\s]+):ro', compose, re.M).group(1)
+        guide = nc.read(nc.GUIDE)
+        examples = re.findall(r'^\s*include\s+([^;\s]*locations\.conf);', guide, re.M)
+        self.assertGreaterEqual(len(examples), 2)
+        self.assertEqual(set(examples), {target})
+
+    def test_proxy_includes_the_mounted_user_configuration_directory(self):
+        compose = nc.read(nc.COMPOSE)
+        target = re.search(r'^\s*-\s+\./nginx/conf\.d:([^:\s]+):ro', compose, re.M).group(1)
+        config = nc.read(os.path.join(nc.ROOT, 'nginx', 'nginx.conf'))
+        self.assertRegex(config, r'(?m)^include\s+' + re.escape(target) + r'/\*\.conf;\s*$')
 
 
 class Mounts(unittest.TestCase):
     def test_swaps_the_self_hosters_folders_and_keeps_the_rest(self):
         args = nc.mounts(
-            ['./nginx/nginx.conf:/etc/nginx/templates/default.conf.template:ro', './nginx/conf.d:/etc/nginx/cozyvtt.d:ro',
+            ['./nginx/nginx.conf:/etc/nginx/templates/default.conf.template:ro', './nginx/conf.d:/etc/nginx/crazyvtt.d:ro',
              './nginx/certs:/etc/nginx/certs:ro'],
             '/tmp/conf', '/tmp/certs',
         )
         self.assertEqual(args, [
             '-v', os.path.join(nc.ROOT, 'nginx/nginx.conf') + ':/etc/nginx/templates/default.conf.template:ro',
-            '-v', '/tmp/conf:/etc/nginx/cozyvtt.d:ro',
+            '-v', '/tmp/conf:/etc/nginx/crazyvtt.d:ro',
             '-v', '/tmp/certs:/etc/nginx/certs:ro',
         ])
 

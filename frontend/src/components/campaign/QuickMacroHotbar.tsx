@@ -28,7 +28,6 @@ export interface QuickMacroHotbarProps {
 }
 
 export const QuickMacroHotbar: React.FC<QuickMacroHotbarProps> = ({
-  characterId: _characterId,
   compact = false,
 }) => {
   const { socket } = useWebSocket();

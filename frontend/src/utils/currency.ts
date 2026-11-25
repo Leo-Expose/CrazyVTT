@@ -277,3 +277,96 @@ export const createCurrency = (amount: number, denomination: 'CP' | 'SP' | 'EP' 
   result[denomination.toLowerCase() as NumericCurrencyKey] = amount;
   return normalizeCurrency(result);
 };
+
+// ============================================
+// Party Pool Currency Types (for shared resource pools)
+// ============================================
+
+export type PoolCurrencyAmount = {
+  cp: number;
+  sp: number;
+  ep: number;
+  gp: number;
+  pp: number;
+  nuyen: number;
+  cash: number;
+  custom?: Record<string, number>;
+};
+
+export type FormattedPoolCurrency = {
+  display: string;
+  shortDisplay: string;
+  breakdown: PoolCurrencyAmount;
+  totalInLowest: number;
+};
+
+/**
+ * Format pool currency for display (supports all game systems)
+ */
+export function formatPoolCurrency(
+  currency: PoolCurrencyAmount,
+  gameSystem: string = 'DND_5E'
+): FormattedPoolCurrency {
+  const parts: string[] = [];
+  const shortParts: string[] = [];
+  let totalInLowest: number;
+
+  switch (gameSystem) {
+    case 'DND_5E':
+    case 'DND_5E_2024': {
+      const rates = { CP: 1, SP: 10, EP: 50, GP: 100, PP: 1000 };
+      totalInLowest = 
+        currency.cp * rates.CP +
+        currency.sp * rates.SP +
+        currency.ep * rates.EP +
+        currency.gp * rates.GP +
+        currency.pp * rates.PP;
+
+      if (currency.pp > 0) { parts.push(`${currency.pp}pp`); shortParts.push(`${currency.pp}pp`); }
+      if (currency.gp > 0) { parts.push(`${currency.gp}gp`); shortParts.push(`${currency.gp}gp`); }
+      if (currency.ep > 0) { parts.push(`${currency.ep}ep`); shortParts.push(`${currency.ep}ep`); }
+      if (currency.sp > 0) { parts.push(`${currency.sp}sp`); shortParts.push(`${currency.sp}sp`); }
+      if (currency.cp > 0) { parts.push(`${currency.cp}cp`); shortParts.push(`${currency.cp}cp`); }
+      break;
+    }
+    case 'PATHFINDER_2E': {
+      const rates = { CP: 1, SP: 10, GP: 100, PP: 1000 };
+      totalInLowest = 
+        currency.cp * rates.CP +
+        currency.sp * rates.SP +
+        currency.gp * rates.GP +
+        currency.pp * rates.PP;
+
+      if (currency.pp > 0) { parts.push(`${currency.pp}pp`); shortParts.push(`${currency.pp}pp`); }
+      if (currency.gp > 0) { parts.push(`${currency.gp}gp`); shortParts.push(`${currency.gp}gp`); }
+      if (currency.sp > 0) { parts.push(`${currency.sp}sp`); shortParts.push(`${currency.sp}sp`); }
+      if (currency.cp > 0) { parts.push(`${currency.cp}cp`); shortParts.push(`${currency.cp}cp`); }
+      break;
+    }
+    case 'SHADOWRUN_6E': {
+      totalInLowest = currency.nuyen;
+      if (currency.nuyen > 0) { parts.push(`${currency.nuyen.toLocaleString()}¥`); shortParts.push(`${currency.nuyen.toLocaleString()}¥`); }
+      break;
+    }
+    case 'CALL_OF_CTHULHU_7E': {
+      totalInLowest = Math.round(currency.cash * 100);
+      if (currency.cash > 0) { parts.push(`$${currency.cash.toFixed(2)}`); shortParts.push(`$${currency.cash.toFixed(2)}`); }
+      break;
+    }
+    default: {
+      totalInLowest = currency.cp + currency.sp * 10 + currency.ep * 50 + currency.gp * 100 + currency.pp * 1000;
+      if (currency.pp > 0) parts.push(`${currency.pp}pp`);
+      if (currency.gp > 0) parts.push(`${currency.gp}gp`);
+      if (currency.ep > 0) parts.push(`${currency.ep}ep`);
+      if (currency.sp > 0) parts.push(`${currency.sp}sp`);
+      if (currency.cp > 0) parts.push(`${currency.cp}cp`);
+    }
+  }
+
+  return {
+    display: parts.length > 0 ? parts.join(', ') : '—',
+    shortDisplay: shortParts.length > 0 ? shortParts.join(' ') : '—',
+    breakdown: currency,
+    totalInLowest,
+  };
+}

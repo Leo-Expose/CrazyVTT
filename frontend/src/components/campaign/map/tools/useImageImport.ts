@@ -311,14 +311,6 @@ export function useImageImport(options: ImageImportOptions) {
     resetState();
   }, [resetState]);
 
-  // Auto-snap to grid when gridAligned changes
-  useEffect(() => {
-    if (state.gridAligned && state.cropArea) {
-      // Snap position to grid
-      // This would be handled in the UI component
-    }
-  }, [state.gridAligned, state.cropArea]);
-
   return {
     // State
     ...state,

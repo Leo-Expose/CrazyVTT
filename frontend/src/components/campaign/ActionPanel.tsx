@@ -274,15 +274,15 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                   name: 'DM Ruling / Custom Action',
                   type: ActionType.OTHER,
                   cost: 'ACTION' as ActionCost,
-                  data: {
-                    description: 'Ad-hoc ruling or extraordinary action granted by the DM.',
-                    damageExpression: '1d6',
-                  },
                   source: ActionSource.OTHER,
                   sourceRef: null,
                   recharge: null,
                   used: false,
-                  sortOrder: 999,
+                  sortOrder: 0,
+                  data: {
+                    description: 'Ad-hoc ruling or extraordinary action granted by the DM.',
+                    damageExpression: '1d6',
+                  },
                 };
                 handleActionClick(customAction);
               }}

@@ -288,6 +288,7 @@ export default function ToolPalette({
             onAutoTileChange={(autoTile) => onBrushSettingsChange({ ...brushSettings, autoTile })}
             onClose={() => setShowBrushOptions(false)}
             onColorChange={(color) => handleColorChange('stroke', color)}
+            onBrushSettingsChange={onBrushSettingsChange}
           />
         )}
 
@@ -333,6 +334,7 @@ export default function ToolPalette({
             onOpacityChange={(opacity) => onGridSettingsChange({ opacity })}
             onShowCoordinatesChange={(showCoordinates) => onGridSettingsChange({ showCoordinates })}
             onClose={() => setShowGridOptions(false)}
+            onGridSettingsChange={onGridSettingsChange}
           />
         )}
 
@@ -452,6 +454,7 @@ interface BrushOptionsPanelProps {
   onAutoTileChange: (autoTile: boolean) => void;
   onClose: () => void;
   onColorChange: (color: string) => void;
+  onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
 }
 
 function BrushOptionsPanel({ settings, onSizeChange, onShapeChange, onAutoTileChange, onClose, onColorChange }: BrushOptionsPanelProps) {
@@ -738,6 +741,7 @@ interface GridOptionsPanelProps {
   onOpacityChange: (opacity: number) => void;
   onShowCoordinatesChange: (show: boolean) => void;
   onClose: () => void;
+  onGridSettingsChange: (settings: Partial<GridSettings>) => void;
 }
 
 function GridOptionsPanel({ settings, onEnabledChange, onSnapModeChange, onColorChange, onOpacityChange, onShowCoordinatesChange, onClose }: GridOptionsPanelProps) {

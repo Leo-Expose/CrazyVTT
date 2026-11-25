@@ -9,7 +9,8 @@ import { GameSystem } from '../types';
  * Display labels for each game system
  */
 export const GAME_SYSTEM_LABELS: Record<GameSystem, string> = {
-  [GameSystem.DND_5E]: 'Dungeons & Dragons 5th Edition',
+  [GameSystem.DND_5E]: 'Dungeons & Dragons 5th Edition (2014)',
+  [GameSystem.DND_5E_2024]: 'Dungeons & Dragons 5th Edition (2024)',
   [GameSystem.PATHFINDER_2E]: 'Pathfinder 2nd Edition',
   [GameSystem.SHADOWRUN_6E]: 'Shadowrun 6th Edition',
   [GameSystem.CALL_OF_CTHULHU_7E]: 'Call of Cthulhu 7th Edition',
@@ -19,7 +20,8 @@ export const GAME_SYSTEM_LABELS: Record<GameSystem, string> = {
  * Short display labels for each game system
  */
 export const GAME_SYSTEM_SHORT_LABELS: Record<GameSystem, string> = {
-  [GameSystem.DND_5E]: 'D&D 5e',
+  [GameSystem.DND_5E]: 'D&D 5e (2014)',
+  [GameSystem.DND_5E_2024]: 'D&D 5.5e (2024)',
   [GameSystem.PATHFINDER_2E]: 'PF2e',
   [GameSystem.SHADOWRUN_6E]: 'SR6',
   [GameSystem.CALL_OF_CTHULHU_7E]: 'CoC 7e',
@@ -37,6 +39,7 @@ export const GAME_SYSTEM_SHORT_LABELS: Record<GameSystem, string> = {
  */
 export const GAME_SYSTEM_TINTS: Record<GameSystem, { bg: string; text: string; border: string }> = {
   [GameSystem.DND_5E]: { bg: 'bg-danger/10', text: 'text-danger-ink', border: 'border-danger/30' },
+  [GameSystem.DND_5E_2024]: { bg: 'bg-amber/10', text: 'text-amber-ink', border: 'border-amber/30' },
   [GameSystem.PATHFINDER_2E]: { bg: 'bg-info/10', text: 'text-info-ink', border: 'border-info/30' },
   [GameSystem.SHADOWRUN_6E]: { bg: 'bg-spirit/10', text: 'text-spirit-ink', border: 'border-spirit/30' },
   [GameSystem.CALL_OF_CTHULHU_7E]: { bg: 'bg-success/10', text: 'text-success-ink', border: 'border-success/30' },
@@ -44,7 +47,9 @@ export const GAME_SYSTEM_TINTS: Record<GameSystem, { bg: string; text: string; b
 
 export const GAME_SYSTEM_DESCRIPTIONS: Record<GameSystem, string> = {
   [GameSystem.DND_5E]:
-    'The world\'s most popular tabletop RPG. High fantasy adventures with heroic characters.',
+    'The world\'s most popular tabletop RPG. High fantasy adventures with heroic characters. (2014 rules)',
+  [GameSystem.DND_5E_2024]:
+    'Updated 2024 rules with weapon masteries, background feats, revised exhaustion, and modern class mechanics.',
   [GameSystem.PATHFINDER_2E]:
     'A deep and customizable fantasy RPG with tactical combat and character building.',
   [GameSystem.SHADOWRUN_6E]:
@@ -69,6 +74,12 @@ export const GAME_SYSTEM_OPTIONS: GameSystemOption[] = [
     label: GAME_SYSTEM_LABELS[GameSystem.DND_5E],
     shortLabel: GAME_SYSTEM_SHORT_LABELS[GameSystem.DND_5E],
     description: GAME_SYSTEM_DESCRIPTIONS[GameSystem.DND_5E],
+  },
+  {
+    value: GameSystem.DND_5E_2024,
+    label: GAME_SYSTEM_LABELS[GameSystem.DND_5E_2024],
+    shortLabel: GAME_SYSTEM_SHORT_LABELS[GameSystem.DND_5E_2024],
+    description: GAME_SYSTEM_DESCRIPTIONS[GameSystem.DND_5E_2024],
   },
   {
     value: GameSystem.PATHFINDER_2E,

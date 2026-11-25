@@ -205,7 +205,7 @@ export async function applyPatchToDraft(
         const target = normalizeFieldPath(path);
         normalizedTargets.add(target);
         // Inserting or removing an array element shifts other locked indices.
-        if ((patch.op === 'add' || patch.op === 'remove' || patch.op === 'move') && /\.(?:\d+|-)$/.test(target)) {
+        if ((patch.op === 'add' || patch.op === 'remove' || patch.op === 'move' || patch.op === 'copy') && /\.(?:\d+|-)$/.test(target)) {
           normalizedTargets.add(target.replace(/\.(?:\d+|-)$/, ''));
         }
       }

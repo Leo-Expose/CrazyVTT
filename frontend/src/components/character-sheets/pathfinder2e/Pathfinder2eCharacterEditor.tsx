@@ -35,6 +35,7 @@ import type {
   PF2eSpellSlots,
 } from '../../../types/game-systems';
 import { apiErrorMessage, errorSummary } from '@/utils/errors';
+import { itemValueInGold } from '@/utils/itemValue';
 import { useServerConfigQuery } from '@/hooks/queries';
 import { tokenPictureProblem, uploadTokenPicture } from '@/utils/tokenPicture';
 import Button from '@/components/ui/Button';
@@ -1764,7 +1765,7 @@ min={0} aria-label={`Quantity of item ${index + 1}`} value={item.quantity} onCha
                 <input type="text" aria-label={`Bulk of item ${index + 1}`} maxLength={SHEET_SHORT_TEXT_MAX} value={item.bulk} onChange={(e) => updateField(`inventory.${index}.bulk`, e.target.value)} placeholder="Bulk" className="px-2 py-1 border border-ink/20 rounded-sm text-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand" />
                 {/* Prices run to silver and copper: 5 sp is 0.5 gp. */}
                 <NumberField
-min={0} step="0.01" integer={false} aria-label={`Value of item ${index + 1}`} value={item.value} onChange={(v: number) => updateField(`inventory.${index}.value`, v)} placeholder="Value" className="px-2 py-1 border border-ink/20 rounded-sm text-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand" fallback={0} />
+min={0} step="0.01" integer={false} aria-label={`Value of item ${index + 1}`} value={itemValueInGold(item.value)} onChange={(v: number) => updateField(`inventory.${index}.value`, v)} placeholder="Value" className="px-2 py-1 border border-ink/20 rounded-sm text-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand" fallback={0} />
                 <div className="flex items-center space-x-1 text-xs">
                   <label className="flex items-center">
                     <input type="checkbox" checked={item.equipped || false} onChange={(e) => updateField(`inventory.${index}.equipped`, e.target.checked)} className="mr-1" />

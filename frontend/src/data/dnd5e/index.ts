@@ -21,7 +21,7 @@ export type {
   SavingThrowProficiency,
   SkillProficiencyOption,
   ClassSpellcasting,
-  ClassData as DnD5eClassData,
-  SubclassData as DnD5eSubclassData,
 } from './classes';
+
+export type { ClassData as DnD5eClassData, SubclassData as DnD5eSubclassData } from './classes';
 export type { RaceData as DnD5eRaceData } from './races';

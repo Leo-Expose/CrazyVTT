@@ -6,7 +6,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
 import { errorSummary } from '@/utils/errors';
@@ -55,7 +54,7 @@ interface MapDrawingToolsProps {
 
 const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   tileId: '',
-  variant: { id: 'default', name: 'Default', rotation: 0, flipH: false, flipV: false },
+  variant: 'default',
   size: 1,
   shape: 'circle',
   opacity: 1,
@@ -98,12 +97,9 @@ export function MapDrawingTools({
   markDirty,
   currentMap,
   viewport,
-  dpr: _dpr,
-  tileImages: _tileImages,
 }: MapDrawingToolsProps) {
   const { campaign } = useCampaign();
   const { socket } = useWebSocket();
-  useAuth();
   const { showToast } = useToast();
   
   // Drawing state

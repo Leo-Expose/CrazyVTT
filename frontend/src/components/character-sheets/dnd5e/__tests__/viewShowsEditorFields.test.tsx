@@ -15,6 +15,15 @@ import { DND5E_SHEET, dnd5eCharacter } from './dnd5eFixture';
 const stats = DND5E_SHEET.stats as Record<string, { score: number; modifier: number }>;
 
 describe('the inventory', () => {
+  it('shows a structured silver value in gold pieces', () => {
+    render(<InventoryList inventory={[{ name: 'Rope', value: { amount: 5, currency: 'SP' } }]} />);
+    expect(screen.getByText('0.5 gp')).toBeInTheDocument();
+  });
+
+  it('shows absent coin denominations as zero', () => {
+    render(<InventoryList inventory={[]} currency={{ gp: 3 }} />);
+    expect(screen.getByText('CP').parentElement).toHaveTextContent('CP0');
+  });
   it('shows an item\'s value', () => {
     render(<InventoryList inventory={[{ name: 'Silvered dagger', quantity: 1, weight: 1, value: 102.5 }]} />);
     const row = screen.getByText('Silvered dagger').closest('div.flex.items-center.justify-between') as HTMLElement;

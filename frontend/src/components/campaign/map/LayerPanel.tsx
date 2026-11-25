@@ -835,7 +835,7 @@ interface AddLayerMenuProps {
   onLayerCreate: (name: string, type: LayerType) => void;
 }
 
-function AddLayerMenu({ mapId: _mapId, campaignId: _campaignId, onLayerCreate }: AddLayerMenuProps) {
+function AddLayerMenu({ onLayerCreate }: AddLayerMenuProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [selectedType, setSelectedType] = useState<LayerType>(LayerType.ANNOTATIONS);
   const [newLayerName, setNewLayerName] = useState('');

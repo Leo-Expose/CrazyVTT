@@ -5,6 +5,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { WallSegment, WallType } from '@/types/walls';
+import { gridWallToMap } from './wallGeometry';
 import { api } from '@/services/api';
 import { randomId } from '@/utils/uuid';
 import { useToast } from '@/contexts/ToastContext';
@@ -72,7 +73,7 @@ export default function CorridorTool({
 
   const [snapToGrid, setSnapToGrid] = useState(initialSnapToGrid);
   const [floorTile, setFloorTile] = useState<CorridorTile | null>(null);
-  const [wallType, setWallType] = useState<WallType>('normal');
+  const [wallType, setWallType] = useState<WallType>('wall');
   const [width, setWidth] = useState(corridorWidth);
   const [autoWalls, setAutoWalls] = useState(true);
   const [autoCorners, setAutoCorners] = useState(true);
@@ -235,8 +236,9 @@ export default function CorridorTool({
       console.log('Corners found:', corners);
     }
 
-    // Update walls
-    const updatedWalls = [...wallSegments, ...newWalls];
+    // Persist wall endpoints in map pixels, alongside the existing walls.
+    const mapWalls = newWalls.map((wall) => gridWallToMap(wall, gridSize));
+    const updatedWalls = [...wallSegments, ...mapWalls];
     setWallSegments(updatedWalls);
 
     // Update floor layer
@@ -277,7 +279,7 @@ export default function CorridorTool({
     if (newWalls.length > 0) {
       try {
         await api.put(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, {
-          segments: [...wallSegments, ...newWalls]
+          segments: updatedWalls
         });
       } catch {
         console.error('Failed to create corridor walls');
@@ -293,7 +295,7 @@ export default function CorridorTool({
     setStartPoint(null);
     setCurrentPoint(null);
     setPathPoints([]);
-  }, [startPoint, pathPoints, width, floorTile, wallType, autoWalls, autoCorners, wallSegments, layers, terrainLayer, mapId, setWallSegments, setLayers, expandPath, findCorners, showToast]);
+  }, [startPoint, pathPoints, width, floorTile, wallType, autoWalls, autoCorners, wallSegments, layers, terrainLayer, gridSize, mapId, setWallSegments, setLayers, expandPath, findCorners, showToast]);
 
   // Handle click to place points
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -353,22 +355,22 @@ export default function CorridorTool({
   const drawWall = useCallback((
     ctx: CanvasRenderingContext2D,
     segment: WallSegment,
-    _gridSize: number,
+    gridSize: number,
     viewport: { x: number; y: number; zoom: number },
     gridToScreen: (x: number, y: number) => { x: number; y: number }
   ) => {
-    const start = gridToScreen(segment.x1, segment.y1);
-    const end = gridToScreen(segment.x2, segment.y2);
+    const start = gridToScreen(segment.x1 / gridSize, segment.y1 / gridSize);
+    const end = gridToScreen(segment.x2 / gridSize, segment.y2 / gridSize);
 
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
 
     const colors: Partial<Record<WallType, string>> = {
-      normal: '#6b7280', door: '#f59e0b', secret: '#8b5cf6',
-      portcullis: '#ef4444', window: 'rgb(59, 130, 246)', 'terrain-boundary': '#22c55e'
+      wall: '#6b7280', 'door-closed': '#f59e0b', 'door-open': '#22c55e',
+      'door-locked': '#ef4444', window: 'rgb(59, 130, 246)'
     };
-    ctx.strokeStyle = colors[segment.type] || colors.normal || '#6b7280';
+    ctx.strokeStyle = colors[segment.type] || colors.wall || '#6b7280';
     ctx.lineWidth = 2 * viewport.zoom;
     ctx.lineCap = 'round';
     ctx.stroke();
@@ -555,9 +557,10 @@ export default function CorridorTool({
             onChange={(e) => setWallType(e.target.value as WallType)}
             className="px-2 py-1 text-sm bg-background border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="normal">Wall</option>
-            <option value="door">Door</option>
-            <option value="secret">Secret</option>
+            <option value="wall">Wall</option>
+            <option value="door-closed">Closed door</option>
+            <option value="door-open">Open door</option>
+            <option value="door-locked">Locked door</option>
           </select>
         </div>
 
@@ -604,7 +607,7 @@ export default function CorridorTool({
           {placing ? (
             <>
               <span>Click to add points</span>
-              <span>•</span>
+              <span>â€¢</span>
               <span className="text-ring">Right-click to finish</span>
             </>
           ) : (

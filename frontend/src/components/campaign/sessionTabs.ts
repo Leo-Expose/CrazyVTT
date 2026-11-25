@@ -1,11 +1,11 @@
-import { MessageCircle, Dices, ListOrdered, PlayCircle, NotebookPen, type LucideIcon } from 'lucide-react';
+import { MessageCircle, Dices, ListOrdered, PlayCircle, NotebookPen, Coins, BookOpen, type LucideIcon } from 'lucide-react';
 
 /**
  * The session panels (`SessionPanels.tsx`), in the order their tabs show
  * them. The rail's tab bar takes its tabs from here and the game store keeps
  * the open one (`sessionTab`), so a list of tabs is written once.
  */
-export const SESSION_TABS = ['chat', 'dice', 'initiative', 'notes', 'session'] as const;
+export const SESSION_TABS = ['chat', 'dice', 'initiative', 'notes', 'session', 'pool', 'journal'] as const;
 
 export type SessionTab = (typeof SESSION_TABS)[number];
 
@@ -21,6 +21,8 @@ export const SESSION_TAB_LOOKS: Record<SessionTab, { label: string; icon: Lucide
   // full height of the rail, and people come back to it constantly during play.
   notes: { label: 'Notes', icon: NotebookPen },
   session: { label: 'Session', icon: PlayCircle },
+  pool: { label: 'Resources', icon: Coins },
+  journal: { label: 'Journal', icon: BookOpen },
 };
 
 /**

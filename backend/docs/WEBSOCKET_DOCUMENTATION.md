@@ -1310,7 +1310,7 @@ _Who may send it is read from the shared permission predicates each handler call
 | `action:resetUsed` | Any member | Reset used actions (short/long rest) |
 | `action:resolve` | Any member | Direct effect resolution (PRD §10.3) Direct apply of damage, healing, resource deduction, and conditions to target tokens/characters |
 | `action:roll` | Any member | Roll dice for an action (enters ROLLING state) |
-| `action:startResolution` | Any member | Create a new action resolution (enters PREVIEW state) |
+| `action:startResolution` | DM, or the character's owner, never a spectator | Create a new action resolution (enters PREVIEW state) |
 | `atmosphere.audio.set` | DM only | DM queues or stops ambient audio for all players. |
 | `atmosphere.effect.set` | DM only | DM sets a visual particle overlay on the map canvas. |
 | `authenticate` | Any member | — |
@@ -1436,6 +1436,7 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 | `campaign.dm.transferred` | The campaign | `campaigns.ts` |
 | `campaign.role.changed` | The campaign | `campaigns.ts` |
 | `campaign.settings.updated` | The campaign | `campaigns.ts` |
+| `character.advancement` | The campaign | `characterAdvancement.ts` |
 | `character.hp.updated` | The campaign | `characters.ts` |
 | `character.updated` | Members the handler picks; the campaign | `utils.ts` |
 | `character:draft:cursor` | The campaign but the sender | `characterDraft.ts` |
@@ -1469,6 +1470,14 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 | `image:placed` | Map readers | `drawing.ts` |
 | `initiative.state` | Members the handler picks | `initiative.ts` |
 | `invitation.received` | One user's sockets | `campaigns.ts` |
+| `journal.created` | The campaign | `journal.ts` |
+| `journal.deleted` | The campaign | `journal.ts` |
+| `journal.folder.created` | The campaign | `journal.ts` |
+| `journal.folder.deleted` | The campaign | `journal.ts` |
+| `journal.folder.updated` | The campaign | `journal.ts` |
+| `journal.image.added` | The campaign | `journal.ts` |
+| `journal.image.removed` | The campaign | `journal.ts` |
+| `journal.updated` | The campaign | `journal.ts` |
 | `layer:added` | Map readers | `drawing.ts` |
 | `layer:data:updated` | Map readers | `layers.ts` |
 | `layer:removed` | Map readers | `maps.ts` |
@@ -1496,6 +1505,9 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 | `override:history:response` | The sender | `overrides.ts` |
 | `override:reverted` | The campaign; the sender | `overrides.ts` |
 | `pong` | The sender | `events.ts` |
+| `pool.created` | The campaign | `partyPool.ts` |
+| `pool.deleted` | The campaign | `partyPool.ts` |
+| `pool.updated` | The campaign | `partyPool.ts` |
 | `presence.state` | The campaign; the sender | `events.ts` |
 | `roster.updated` | The campaign | `utils.ts` |
 | `session.ended` | The campaign | `campaigns.ts` |

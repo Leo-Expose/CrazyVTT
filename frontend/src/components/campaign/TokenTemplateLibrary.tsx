@@ -440,17 +440,19 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           try {
+            const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            const displayName = name.charAt(0).toUpperCase() + name.slice(1);
             const formData = new FormData();
-            formData.append('file', file);
             formData.append('type', AssetType.TOKEN);
             formData.append('scope', AssetScope.CAMPAIGN);
             formData.append('campaignId', campaign.id);
-            const uploaded = await api.uploadAsset(formData);
-            const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            formData.append('name', assetNameFrom(displayName));
+            formData.append('file', file);
+            const { asset } = await api.uploadAsset(formData);
             const created = await api.createTokenTemplate(campaign.id, {
-              name: name.charAt(0).toUpperCase() + name.slice(1),
+              name: displayName,
               type: TokenType.NPC,
-              imageUrl: `/api/assets/${uploaded.asset.id}`,
+              imageUrl: `/api/assets/tokens/${asset.id}`,
               size: { width: 1, height: 1 },
               displayMode: 'pog',
               disposition: TokenDisposition.HOSTILE,

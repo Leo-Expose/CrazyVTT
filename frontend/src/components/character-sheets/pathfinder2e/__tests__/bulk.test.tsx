@@ -11,6 +11,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BulkTracker } from '../components/BulkTracker';
+
+it('shows structured silver values in gold pieces', () => {
+  render(<BulkTracker inventory={[{ name: 'Rope', value: { amount: 5, currency: 'SP' } }]} strengthModifier={0} />);
+  expect(screen.getByText('0.5 gp')).toBeInTheDocument();
+});
 import { Pathfinder2eCharacterView } from '../Pathfinder2eCharacterView';
 import { Pathfinder2eCharacterEditor } from '../Pathfinder2eCharacterEditor';
 import type { CharacterData } from '../../../../types';

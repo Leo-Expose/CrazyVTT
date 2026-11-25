@@ -101,9 +101,35 @@ const SOURCES = import.meta.glob(['/src/**/*.tsx', '/src/**/*.ts', '!/src/**/__t
 // starts `Math.max(coarsePointer ? 16 :`.
 const INLINE_SIZE = /\bfontSize\s*:|\bfont-size\s*:/g;
 const FLOOR_ON_COARSE = /^\s*Math\.max\(\s*coarsePointer\s*\?\s*16\s*:/;
-function refusedInlineSizes(source: string): string[] {
-  return [...source.matchAll(INLINE_SIZE)]
-    .filter((match) => !FLOOR_ON_COARSE.test(source.slice(match.index + match[0].length)))
+// Drawing annotations store their text size as data for a canvas, not as a
+// DOM style. Mask only those specific declarations and assignments; the rest
+// of each file stays under the same inline-style check as all other files.
+const DRAWING_DATA: Record<string, RegExp[]> = {
+  '/src/components/campaign/map/MapDrawingTools.tsx': [
+    /const DEFAULT_TEXT_SETTINGS = \{\s*fontSize:\s*16\s*,/g,
+  ],
+  '/src/components/campaign/map/ToolPalette.tsx': [
+    /onTextSettingsChange: \(settings: \{\s*fontSize:\s*number;/g,
+    /\btextSettings: \{\s*fontSize:\s*number;/g,
+    /\bsettings: \{\s*fontSize:\s*number;/g,
+    /onTextSettingsChange\(\{ \.\.\.textSettings,\s*fontSize:\s*size \}\)/g,
+  ],
+  '/src/components/campaign/map/tools/useDrawingTool.ts': [
+    /\btextSettings: \{\s*fontSize:\s*number;/g,
+    /\btext:\s*(?:draft|state\.textDraft),\s*fontSize:\s*latest\.current\.textSettings\.fontSize,/g,
+  ],
+  '/src/types/index.ts': [
+    /\btext:\s*string;\s*fontSize:\s*number;\s*color:\s*string;/g,
+    /\btextSettings: \{\s*fontSize:\s*number;/g,
+  ],
+};
+function refusedInlineSizes(source: string, file = ''): string[] {
+  const checked = (DRAWING_DATA[file] ?? []).reduce(
+    (text, pattern) => text.replace(pattern, (match) => match.replace(/\bfontSize\s*:/, 'drawingFontSizeData:')),
+    source
+  );
+  return [...checked.matchAll(INLINE_SIZE)]
+    .filter((match) => !FLOOR_ON_COARSE.test(checked.slice(match.index + match[0].length)))
     .map((match) => match[0]);
 }
 
@@ -187,12 +213,23 @@ describe('form controls on a coarse pointer', () => {
     expect(refusedInlineSizes("el.style.cssText = 'font-size: 12px'")).toEqual(['font-size:']);
   });
 
+  it('distinguishes drawing data from inline styles without exempting their files', () => {
+    const file = '/src/components/campaign/map/MapDrawingTools.tsx';
+    expect(refusedInlineSizes('const DEFAULT_TEXT_SETTINGS = {\n  fontSize: 16,\n};', file)).toEqual([]);
+    expect(refusedInlineSizes('const DEFAULT_TEXT_SETTINGS = {\n  fontSize: 16,\n};\n<input style={{ fontSize: 12 }} />', file))
+      .toEqual(['fontSize:']);
+    expect(refusedInlineSizes('const style = { fontSize: 12 };', file)).toEqual(['fontSize:']);
+    expect(refusedInlineSizes('const style = { fontSize: 16 };', file)).toEqual(['fontSize:']);
+    expect(refusedInlineSizes('const DEFAULT_TEXT_SETTINGS = {\n  fontSize: 16,\n};', '/src/other.tsx')).toEqual(['fontSize:']);
+  });
+
   // An inline style beats every stylesheet rule, so nothing can raise it. The
   // source cannot say which element a style object reaches, so any is refused
-  // unless the same expression keeps 16 px on a coarse pointer itself.
+  // unless the same expression keeps 16 px on a coarse pointer itself. Known
+  // drawing-data declarations are distinguished above without exempting files.
   it('are given no font size in a style object', () => {
     const inline = Object.entries(SOURCES).flatMap(([file, source]) =>
-      refusedInlineSizes(source).map((size) => `${file}: ${size}`)
+      refusedInlineSizes(source, file).map((size) => `${file}: ${size}`)
     );
     expect(inline, 'size text with a class, which the touch rule can raise').toEqual([]);
   });

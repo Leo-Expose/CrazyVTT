@@ -162,6 +162,7 @@ export function getBlankCharacterTemplate(
  */
 const SHEET_NAME_FIELD: Record<GameSystem, string> = {
   [GameSystem.DND_5E]: 'characterName',
+  [GameSystem.DND_5E_2024]: 'characterName',
   [GameSystem.PATHFINDER_2E]: 'characterName',
   [GameSystem.SHADOWRUN_6E]: 'characterName',
   [GameSystem.CALL_OF_CTHULHU_7E]: 'investigatorName',

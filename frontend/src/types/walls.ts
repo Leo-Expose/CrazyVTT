@@ -8,9 +8,7 @@
 
 // ── Wall Segments ─────────────────────────────────────────────────────────────
 
-export type WallType =
-  | 'wall' | 'door-closed' | 'door-open' | 'door-locked' | 'window'
-  | 'normal' | 'door' | 'secret' | 'portcullis' | 'terrain-boundary';
+export type WallType = 'wall' | 'door-closed' | 'door-open' | 'door-locked' | 'window';
 
 export interface WallSegment {
   id: string;   // UUID, assigned on creation
@@ -19,8 +17,6 @@ export interface WallSegment {
   x2: number;
   y2: number;
   type: WallType;
-  /** Legacy drawing tools keep the door state separately. */
-  doorState?: 'open' | 'closed' | 'locked';
 }
 
 // ── Fog of War ────────────────────────────────────────────────────────────────

@@ -599,7 +599,7 @@ This is certbot's "webroot" method. It leaves nginx running, which matters at re
            root /etc/nginx/crazyvtt.d/acme;
        }
 
-       include /etc/nginx/crazyvtt/locations.conf;
+       include /etc/nginx/templates/locations.conf;
    }
    ```
 
@@ -688,7 +688,7 @@ Your HTTPS settings go in a file of your own in the `nginx/conf.d/` folder, whic
 
        # The same rules as the plain-HTTP server: /api/ and /socket.io/ to
        # the backend, everything else to the frontend.
-       include /etc/nginx/crazyvtt/locations.conf;
+       include /etc/nginx/templates/locations.conf;
    }
    ```
 

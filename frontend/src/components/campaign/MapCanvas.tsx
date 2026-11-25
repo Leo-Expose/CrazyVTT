@@ -1792,19 +1792,15 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     if (isDM && currentMap && wallSelectKey(e)) return;
 
     // Quick Ambush / Unhide hotkey ('H') for selected token (PRD §12.1)
-    if (isDM && currentMap && selectedTokenId && (e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (isDM && campaign?.id && currentMap && selectedTokenId && !e.repeat && (e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const selected = tokens.find((t) => t.id === selectedTokenId);
       if (selected && keyBelongsToMap(e, layersRef.current, contextMenuRef.current)) {
         e.preventDefault();
         const nextVisible = !selected.visible;
-        useGameStore.getState().patchToken(selected.id, { visible: nextVisible });
-        if (campaign) {
-          void api.updateToken(campaign.id, currentMap.id, selected.id, { visible: nextVisible }).catch(() => {
-            useGameStore.getState().patchToken(selected.id, { visible: selected.visible });
-            showToast('Failed to update token visibility', 'error');
-          });
-        }
-        showToast(nextVisible ? `Unhid ambush: ${selected.name}` : `Hid token: ${selected.name}`, 'info');
+        void setTokenFlag(campaign.id, currentMap.id, selected, 'visible', nextVisible).then(
+          () => showToast(nextVisible ? `Unhid ambush: ${selected.name}` : `Hid token: ${selected.name}`, 'info'),
+          (err) => showToast(apiErrorMessage(err) || (nextVisible ? 'Could not show the token to players' : 'Could not hide the token from players'), 'error'),
+        );
         return;
       }
     }
@@ -2639,22 +2635,20 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     // Auto-reveal fog exploration aura around moved token if exploration/lighting is active
     if (currentMap?.fogEnabled && (token.sightRadius ?? 0) > 0 && addExplored) {
       const radiusSquares = Math.max(1, Math.min(12, Math.round(token.sightRadius ?? 2)));
-      const cellsToReveal: number[] = [];
+      const freshCells: number[] = [];
       for (let dx = -radiusSquares; dx <= radiusSquares; dx++) {
         for (let dy = -radiusSquares; dy <= radiusSquares; dy++) {
           if (dx * dx + dy * dy <= radiusSquares * radiusSquares) {
             const cellX = square.x + dx;
             const cellY = square.y + dy;
             if (cellX >= 0 && cellX < currentMap.width && cellY >= 0 && cellY < currentMap.height) {
-              cellsToReveal.push(cellX + cellY * currentMap.width);
+              freshCells.push(cellX + cellY * currentMap.width);
             }
           }
         }
       }
-      if (cellsToReveal.length > 0) {
-        addExplored(cellsToReveal);
-        markDirty('terrain');
-      }
+      if (freshCells.length > 0) addExplored(freshCells);
+      markDirty('terrain', 'overlay');
     }
 
     return sendable;

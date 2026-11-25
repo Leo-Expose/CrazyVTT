@@ -5,6 +5,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { WallSegment, WallType } from '@/types/walls';
+import { gridWallToMap } from './wallGeometry';
 import { api } from '@/services/api';
 import { randomId } from '@/utils/uuid';
 import { useToast } from '@/contexts/ToastContext';
@@ -74,7 +75,7 @@ export default function RoomTool({
 
   const [snapToGrid, setSnapToGrid] = useState(initialSnapToGrid);
   const [floorTile, setFloorTile] = useState<FloorTile | null>(null);
-  const [wallType, setWallType] = useState<WallType>('normal');
+  const [wallType, setWallType] = useState<WallType>('wall');
   const [wallThickness, setWallThickness] = useState(defaultWallThickness);
   const [doorWidth, setDoorWidth] = useState(defaultDoorWidth);
   const [autoDoors, setAutoDoors] = useState(true);
@@ -136,8 +137,7 @@ export default function RoomTool({
           id: randomId(),
           x1: x, y1: minY - 0.5,
           x2: x + 1, y2: minY - 0.5,
-          type: 'door',
-          doorState: 'closed',
+          type: 'door-closed',
         });
         x += doorWidth - 1;
       } else {
@@ -157,8 +157,7 @@ export default function RoomTool({
           id: randomId(),
           x1: x, y1: maxY + 0.5,
           x2: x + 1, y2: maxY + 0.5,
-          type: 'door',
-          doorState: 'closed',
+          type: 'door-closed',
         });
         x += doorWidth - 1;
       } else {
@@ -178,8 +177,7 @@ export default function RoomTool({
           id: randomId(),
           x1: minX - 0.5, y1: y,
           x2: minX - 0.5, y2: y + 1,
-          type: 'door',
-          doorState: 'closed',
+          type: 'door-closed',
         });
         y += doorWidth - 1;
       } else {
@@ -199,8 +197,7 @@ export default function RoomTool({
           id: randomId(),
           x1: maxX + 0.5, y1: y,
           x2: maxX + 0.5, y2: y + 1,
-          type: 'door',
-          doorState: 'closed',
+          type: 'door-closed',
         });
         y += doorWidth - 1;
       } else {
@@ -213,8 +210,9 @@ export default function RoomTool({
       }
     }
 
-    // Update walls
-    const updatedWalls = [...wallSegments, ...newWalls];
+    // Persist wall endpoints in map pixels, alongside the existing walls.
+    const mapWalls = newWalls.map((wall) => gridWallToMap(wall, gridSize));
+    const updatedWalls = [...wallSegments, ...mapWalls];
     setWallSegments(updatedWalls);
 
     // Update floor layer
@@ -254,7 +252,7 @@ export default function RoomTool({
     // Send walls to server
     try {
       await api.put(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/walls`, {
-        segments: [...wallSegments, ...newWalls]
+        segments: updatedWalls
       });
       showToast(`Room created: ${width}×${height} (${newWalls.length} walls${floorTile ? `, ${newFloorTiles.length} floor tiles` : ''})`, 'success');
     } catch {
@@ -262,7 +260,7 @@ export default function RoomTool({
       showToast('Failed to create room', 'error');
       setWallSegments(wallSegments);
     }
-  }, [wallSegments, layers, terrainLayer, floorTile, wallType, doorWidth, autoDoors, mapId, setWallSegments, setLayers, showToast]);
+  }, [wallSegments, layers, terrainLayer, floorTile, wallType, doorWidth, autoDoors, gridSize, mapId, setWallSegments, setLayers, showToast]);
 
   // Handle mouse down
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -317,23 +315,23 @@ export default function RoomTool({
     viewport: { x: number; y: number; zoom: number },
     gridToScreen: (x: number, y: number) => { x: number; y: number }
   ) => {
-    const start = gridToScreen(segment.x1, segment.y1);
-    const end = gridToScreen(segment.x2, segment.y2);
+    const start = gridToScreen(segment.x1 / gridSize, segment.y1 / gridSize);
+    const end = gridToScreen(segment.x2 / gridSize, segment.y2 / gridSize);
 
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
 
     const colors: Partial<Record<WallType, string>> = {
-      normal: '#6b7280', door: '#f59e0b', secret: '#8b5cf6',
-      portcullis: '#ef4444', window: 'rgb(59, 130, 246)', 'terrain-boundary': '#22c55e'
+      wall: '#6b7280', 'door-closed': '#f59e0b', 'door-open': '#22c55e',
+      'door-locked': '#ef4444', window: 'rgb(59, 130, 246)'
     };
-    ctx.strokeStyle = colors[segment.type] || colors.normal || '#6b7280';
+    ctx.strokeStyle = colors[segment.type] || colors.wall || '#6b7280';
     ctx.lineWidth = 2 * viewport.zoom;
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    if (segment.type === 'door') {
+    if (segment.type === 'door-closed' || segment.type === 'door-open' || segment.type === 'door-locked') {
       const midX = (start.x + end.x) / 2;
       const midY = (start.y + end.y) / 2;
       const angle = Math.atan2(end.y - start.y, end.x - start.x);
@@ -345,7 +343,7 @@ export default function RoomTool({
       ctx.beginPath();
       ctx.moveTo(-doorWidthPx / 2, 0);
       ctx.lineTo(doorWidthPx / 2, 0);
-      ctx.strokeStyle = segment.doorState === 'open' ? '#22c55e' : '#f59e0b';
+      ctx.strokeStyle = segment.type === 'door-open' ? '#22c55e' : '#f59e0b';
       ctx.lineWidth = 3 * viewport.zoom;
       ctx.stroke();
       ctx.restore();
@@ -505,12 +503,11 @@ export default function RoomTool({
             onChange={(e) => setWallType(e.target.value as WallType)}
             className="px-2 py-1 text-sm bg-background border border-input rounded focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="normal">Wall</option>
-            <option value="door">Door</option>
-            <option value="secret">Secret</option>
-            <option value="portcullis">Portcullis</option>
+            <option value="wall">Wall</option>
+            <option value="door-closed">Closed door</option>
+            <option value="door-open">Open door</option>
+            <option value="door-locked">Locked door</option>
             <option value="window">Window</option>
-            <option value="terrain-boundary">Terrain</option>
           </select>
         </div>
 
