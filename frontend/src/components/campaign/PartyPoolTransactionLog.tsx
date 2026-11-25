@@ -4,8 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, Filter, Download } from 'lucide-react';
-import { useToast } from '@/contexts/ToastContext';
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import api from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
@@ -36,7 +35,6 @@ const TRANSACTION_TYPE_COLORS: Record<PoolTransactionType, string> = {
 };
 
 export default function PartyPoolTransactionLog({ isOpen, onClose, pool }: PartyPoolTransactionLogProps) {
-  const { showToast } = useToast();
   const [transactions, setTransactions] = useState<PartyResourceTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +61,11 @@ export default function PartyPoolTransactionLog({ isOpen, onClose, pool }: Party
   useEffect(() => {
     if (isOpen) {
       setPage(1);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
       loadTransactions();
     }
   }, [isOpen, loadTransactions]);

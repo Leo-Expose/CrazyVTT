@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Coins, ArrowDownToLine, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -62,7 +62,7 @@ export default function PartyPoolContributeModal({ isOpen, onClose, pool, onSucc
       const charsWithCurrency = await Promise.all(
         userChars.map(async char => {
           try {
-            const { total } = await api.getTotalCurrency(char.id);
+            const { total } = await api.getTotalCurrency(campaignId, char.id);
             const formatted = formatPoolCurrency(total, gameSystem || 'DND_5E');
             return { ...char, currency: total, formatted };
           } catch {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Check, Copy, Wand2, X } from 'lucide-react';
+import { BookOpen, Check, Wand2, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { parseMonsterStatBlock, type ParsedStatBlock } from '@/utils/statBlockParser';
 

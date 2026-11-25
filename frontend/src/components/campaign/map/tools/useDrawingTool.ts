@@ -3,7 +3,7 @@
 // Supports: brush, shape, freehand, text, erase, select
 // ============================================
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { MapTool, PointerAt } from './types';
 import { randomId } from '@/utils/uuid';
 import { douglasPeucker } from '@/utils/geometry';
@@ -44,7 +44,7 @@ interface DrawingState {
   // Brush
   brushStroke: {
     tileId: string;
-    variant: TileVariant;
+    variant: string | undefined;
     points: Array<{ x: number; y: number }>;
     previewId: string;
   } | null;
@@ -76,12 +76,27 @@ interface DrawingState {
   panning: boolean;
 }
 
-const round = (p: { x: number; y: number }) => [Math.round(p.x), Math.round(p.y)] as [number, number];
+export interface DrawingPreviewItem {
+  type: 'brush' | 'shape' | 'freehand' | 'text' | 'select';
+  [key: string]: unknown;
+}
+
+const DEFAULT_TILE_VARIANT: TileVariant = {
+  id: 'default',
+  name: 'Default',
+  rotation: 0,
+  flipH: false,
+  flipV: false,
+};
+
+const round = (p: { x: number; y: number }): { x: number; y: number } => ({
+  x: Math.round(p.x),
+  y: Math.round(p.y),
+});
 const FRAME_MS = 50; // ~20fps for preview updates
 
 export function useDrawingTool(options: DrawingToolOptions) {
   const {
-    mode,
     mapId,
     gridSize,
     activeLayerId,
@@ -89,7 +104,6 @@ export function useDrawingTool(options: DrawingToolOptions) {
     shapeSettings,
     freehandSettings,
     textSettings,
-    gridSettings,
     mapControls,
     markDirty,
     onTilePlace,
@@ -121,7 +135,10 @@ export function useDrawingTool(options: DrawingToolOptions) {
   });
   
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const [textInputRef, setTextInputRef] = useState<HTMLInputElement | null>(null);
+  const textInputElRef = useRef<HTMLInputElement | null>(null);
+  const setTextInputRef = useCallback((el: HTMLInputElement | null) => {
+    textInputElRef.current = el;
+  }, []);
   const latest = useRef(options);
   
   useEffect(() => {
@@ -130,12 +147,13 @@ export function useDrawingTool(options: DrawingToolOptions) {
 
   const audience = useCallback((): 'ALL' | 'DM' => 'ALL', []);
 
-  const snapped = useCallback((point: { x: number; y: number }) => {
+  const snapped = useCallback((point: { x: number; y: number }): { x: number; y: number } => {
     if (latest.current.gridSettings.snapMode === 'off') return point;
-    return snapToGrid(point, latest.current.gridSize);
+    const [x, y] = snapToGrid([point.x, point.y], latest.current.gridSize);
+    return { x, y };
   }, []);
 
-  const sendPreview = useCallback((event: string, data: unknown) => {
+  const sendPreview = useCallback((event: string, data: Record<string, unknown>) => {
     if (!mapId || !socket) return;
     socket.emit(event, { mapId, layerId: activeLayerId, ...data });
   }, [socket, mapId, activeLayerId]);
@@ -190,7 +208,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     const lastPoint = stroke.points[stroke.points.length - 1];
     
     // Only add if moved enough
-    const dist = Math.hypot(point[0] - lastPoint[0], point[1] - lastPoint[1]);
+    const dist = Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y);
     if (dist < gridSize * 0.5) return true;
     
     stroke.points.push(point);
@@ -216,8 +234,11 @@ export function useDrawingTool(options: DrawingToolOptions) {
     clearTimer('brush-preview');
     
     // Place tiles at all points
+    const tileVariant: TileVariant = stroke.variant
+      ? { ...DEFAULT_TILE_VARIANT, id: stroke.variant, name: stroke.variant }
+      : DEFAULT_TILE_VARIANT;
     stroke.points.forEach(point => {
-      onTilePlace(stroke.tileId, point[0], point[1], stroke.variant);
+      onTilePlace(stroke.tileId, point.x, point.y, tileVariant);
     });
     
     // Send end preview
@@ -278,7 +299,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     // Only create if has size
     const [p1, p2] = preview.points;
-    if (p1[0] === p2[0] && p1[1] === p2[1]) {
+    if (p1.x === p2.x && p1.y === p2.y) {
       stateRef.current.shapeStart = null;
       stateRef.current.shapePreview = null;
       markDirty('overlay');
@@ -289,10 +310,10 @@ export function useDrawingTool(options: DrawingToolOptions) {
 
     // If Instant Room mode: automatically generate 4 vision-blocking wall segments
     if (preview.type === 'room') {
-      const minX = Math.min(p1[0], p2[0]);
-      const maxX = Math.max(p1[0], p2[0]);
-      const minY = Math.min(p1[1], p2[1]);
-      const maxY = Math.max(p1[1], p2[1]);
+      const minX = Math.min(p1.x, p2.x);
+      const maxX = Math.max(p1.x, p2.x);
+      const minY = Math.min(p1.y, p2.y);
+      const maxY = Math.max(p1.y, p2.y);
 
       const wallCorners = [
         { x: minX, y: minY },
@@ -334,7 +355,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     // Check if clicking near first point to close
     if (preview.points.length >= 3) {
       const firstPoint = preview.points[0];
-      const dist = Math.hypot(roundedPoint[0] - firstPoint[0], roundedPoint[1] - firstPoint[1]);
+      const dist = Math.hypot(roundedPoint.x - firstPoint.x, roundedPoint.y - firstPoint.y);
       if (dist < gridSize * 0.5) {
         // Close polygon
         preview.points.push(firstPoint);
@@ -381,7 +402,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     const point = round(at.mapPx);
     const lastPoint = points[points.length - 1];
     
-    const dist = Math.hypot(point[0] - lastPoint[0], point[1] - lastPoint[1]);
+    const dist = Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y);
     if (dist < 2) return true; // Minimum distance
     
     points.push(point);
@@ -409,8 +430,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
     clearTimer('freehand-preview');
     
     // Simplify stroke
-    const simplified = douglasPeucker(points.map(([x, y]) => ({ x, y })), 2 / latest.current.mapControls.zoom);
-    const simplifiedPoints = simplified.map(p => [Math.round(p.x), Math.round(p.y)] as [number, number]);
+    const simplified = douglasPeucker(points, 2 / latest.current.mapControls.zoom);
+    const simplifiedPoints = simplified.map(round);
     
     const stroke: FreehandStroke = {
       id: randomId(),
@@ -442,7 +463,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     // Focus text input after a tick
     setTimeout(() => {
-      textInputRef.current?.focus();
+      textInputElRef.current?.focus();
     }, 0);
     
     markDirty('overlay');
@@ -456,8 +477,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     const annotation: TextAnnotation = {
       id: randomId(),
-      x: position[0],
-      y: position[1],
+      x: position.x,
+      y: position.y,
       text: draft,
       fontSize: latest.current.textSettings.fontSize,
       color: latest.current.textSettings.color,
@@ -510,7 +531,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     const point = round(at.mapPx);
     stateRef.current.selectStart = point;
-    stateRef.current.selectBox = { x1: point[0], y1: point[1], x2: point[0], y2: point[1] };
+    stateRef.current.selectBox = { x1: point.x, y1: point.y, x2: point.x, y2: point.y };
     
     markDirty('overlay');
     return true;
@@ -522,10 +543,10 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     const point = round(at.mapPx);
     stateRef.current.selectBox = {
-      x1: start[0],
-      y1: start[1],
-      x2: point[0],
-      y2: point[1],
+      x1: start.x,
+      y1: start.y,
+      x2: point.x,
+      y2: point.y,
     };
     
     markDirty('overlay');
@@ -615,7 +636,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
       return false;
     },
     
-    up(at?: PointerAt) {
+    up() {
       stateRef.current.panning = false;
       stateRef.current.erasing = false;
       
@@ -701,8 +722,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
   // PREVIEW RENDERING DATA
   // ============================================
   
-  const getPreviews = useCallback(() => {
-    const previews: unknown[] = [];
+  const getPreviews = useCallback((): DrawingPreviewItem[] => {
+    const previews: DrawingPreviewItem[] = [];
     const state = stateRef.current;
     
     if (state.brushStroke) {
@@ -733,8 +754,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
     if (state.textPosition && state.textDraft) {
       previews.push({
         type: 'text',
-        x: state.textPosition[0],
-        y: state.textPosition[1],
+        x: state.textPosition.x,
+        y: state.textPosition.y,
         text: state.textDraft,
         fontSize: latest.current.textSettings.fontSize,
         color: latest.current.textSettings.color,

@@ -3,18 +3,18 @@
  * DM-only settings for pool name, description, default status, withdrawal permissions
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
 import api from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { apiErrorMessage } from '@/utils/errors';
-import type { PartyResourcePool } from '@/types';
+import type { FormattedPoolCurrency, PartyResourcePool } from '@/types';
 
 interface PartyPoolSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pool: PartyResourcePool;
+  pool: PartyResourcePool & { formatted?: FormattedPoolCurrency };
   onSaved: () => void;
 }
 
@@ -26,6 +26,14 @@ export default function PartyPoolSettingsModal({ isOpen, onClose, pool, onSaved 
   const [allowPlayerWithdraw, setAllowPlayerWithdraw] = useState(pool.allowPlayerWithdraw);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setName(pool.name);
+    setDescription(pool.description || '');
+    setIsDefault(pool.isDefault);
+    setAllowPlayerWithdraw(pool.allowPlayerWithdraw);
+    setError(null);
+  }, [pool]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

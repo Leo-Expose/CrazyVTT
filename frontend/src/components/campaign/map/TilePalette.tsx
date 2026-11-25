@@ -14,8 +14,6 @@ import {
   FlipHorizontal,
   FlipVertical,
   Copy,
-  Trash2,
-  MoreHorizontal,
   Palette,
 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
@@ -23,7 +21,6 @@ import { TileCategory, BrushSettings, TileVariant } from '@/types';
 import { api } from '@/services/api';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/contexts/ToastContext';
-import { randomId } from '@/utils/uuid';
 
 interface MapTile {
   id: string;
@@ -76,7 +73,12 @@ const DEFAULT_VARIANTS: TileVariant[] = [
 
 const CATEGORY_ORDER: TileCategory[] = ['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL'];
 
-const TilePalette = forwardRef<HTMLDivElement, TilePaletteProps>(({
+export interface TilePaletteHandle {
+  focusSearch: () => void;
+  clearSelection: () => void;
+}
+
+const TilePalette = forwardRef<TilePaletteHandle, TilePaletteProps>(({
   mapId: _mapId,
   isDM,
   onTileSelect,
@@ -336,7 +338,7 @@ const TilePalette = forwardRef<HTMLDivElement, TilePaletteProps>(({
             <Grid className="w-12 h-12" />
             <p className="text-sm">No tiles available</p>
             {isDM && (
-              <Button variant="outline" size="sm" onClick={() => setShowUploadModal(true)}>
+              <Button variant="outline" size="sm" onClick={() => showToast('Upload tile assets from the Asset Library', 'info')}>
                 Add Tiles
               </Button>
             )}

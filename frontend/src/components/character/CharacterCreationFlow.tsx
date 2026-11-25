@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Sparkles, Check, X, Edit3, Clock, AlertCircle } from 'lucide-react';
+import { Shield, Sparkles, Check, X, Edit3, Clock } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { DND5E_RACES, DND5E_CLASSES } from '@/data/dnd5e';
 

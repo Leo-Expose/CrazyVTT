@@ -78,7 +78,6 @@ describe('the boxes', () => {
 
 describe('the boxes the server limits in length', () => {
   it.each([
-    [/Stats/, ['Alignment', 'Background']],
     [/Combat/, ['Damage Roll', 'Damage Type']],
     [/Spells/, ['Spellcasting Class', 'Spellcasting Ability']],
     [/Biography/, ['Age', 'Height', 'Weight', 'Eyes', 'Skin', 'Hair']],

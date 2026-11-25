@@ -123,5 +123,3 @@ export const SRD_FEATS_2024: CompendiumFeat[] = [
     description: 'When you take the Attack action and attack with a light weapon, you can draw and attack with a different light weapon as part of the same action. You don\'t add your ability modifier to the damage of the bonus attack unless that modifier is negative.',
   },
 ];
-
-PYEOF

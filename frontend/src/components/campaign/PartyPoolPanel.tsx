@@ -4,13 +4,13 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Coins, ScrollText, ChevronDown, ChevronRight, Settings, Trash2, Edit2, ArrowDownToLine, ArrowUpFromLine, MoreHorizontal } from 'lucide-react';
+import { Plus, Coins, ScrollText, ChevronDown, ChevronRight, Settings, Trash2, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import api from '@/services/api';
-import { CampaignRole } from '@/types';
+import type { CampaignRole, FormattedPoolCurrency, PartyResourcePool } from '@/types';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -19,28 +19,29 @@ import PartyPoolContributeModal from './PartyPoolContributeModal';
 import PartyPoolWithdrawModal from './PartyPoolWithdrawModal';
 import PartyPoolTransactionLog from './PartyPoolTransactionLog';
 import PartyPoolSettingsModal from './PartyPoolSettingsModal';
-import { formatPoolCurrency } from '@/utils/currency';
+
+type PartyPoolWithFormatted = PartyResourcePool & { formatted: FormattedPoolCurrency };
 
 export default function PartyPoolPanel() {
-  const { campaign, userRole, refreshCampaign } = useCampaign();
+  const { campaign, userRole } = useCampaign();
   const { user } = useAuth();
   const { socket } = useWebSocket();
   const { showToast } = useToast();
 
-  const [pools, setPools] = useState<Array<import('@/types').PartyResourcePool & { formatted: import('@/types').FormattedPoolCurrency }>>([]);
+  const [pools, setPools] = useState<Array<PartyPoolWithFormatted>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedPoolId, setExpandedPoolId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settingsPool, setSettingsPool] = useState<import('@/types').PartyResourcePool | null>(null);
+  const [settingsPool, setSettingsPool] = useState<PartyPoolWithFormatted | null>(null);
   const [showContributeModal, setShowContributeModal] = useState(false);
-  const [contributePool, setContributePool] = useState<import('@/types').PartyResourcePool | null>(null);
+  const [contributePool, setContributePool] = useState<PartyPoolWithFormatted | null>(null);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [withdrawPool, setWithdrawPool] = useState<import('@/types').PartyResourcePool | null>(null);
+  const [withdrawPool, setWithdrawPool] = useState<PartyPoolWithFormatted | null>(null);
   const [showTransactionLog, setShowTransactionLog] = useState(false);
-  const [transactionLogPool, setTransactionLogPool] = useState<import('@/types').PartyResourcePool | null>(null);
-  const [deleteConfirmPool, setDeleteConfirmPool] = useState<import('@/types').PartyResourcePool | null>(null);
+  const [transactionLogPool, setTransactionLogPool] = useState<PartyPoolWithFormatted | null>(null);
+  const [deleteConfirmPool, setDeleteConfirmPool] = useState<PartyPoolWithFormatted | null>(null);
   const [isDM] = useState(userRole === 'DM');
 
   const campaignId = campaign?.id;
@@ -115,27 +116,27 @@ export default function PartyPoolPanel() {
     }
   };
 
-  const handleOpenSettings = (pool: import('@/types').PartyResourcePool) => {
+  const handleOpenSettings = (pool: PartyPoolWithFormatted) => {
     setSettingsPool(pool);
     setShowSettingsModal(true);
   };
 
-  const handleOpenContribute = (pool: import('@/types').PartyResourcePool) => {
+  const handleOpenContribute = (pool: PartyPoolWithFormatted) => {
     setContributePool(pool);
     setShowContributeModal(true);
   };
 
-  const handleOpenWithdraw = (pool: import('@/types').PartyResourcePool) => {
+  const handleOpenWithdraw = (pool: PartyPoolWithFormatted) => {
     setWithdrawPool(pool);
     setShowWithdrawModal(true);
   };
 
-  const handleOpenTransactionLog = (pool: import('@/types').PartyResourcePool) => {
+  const handleOpenTransactionLog = (pool: PartyPoolWithFormatted) => {
     setTransactionLogPool(pool);
     setShowTransactionLog(true);
   };
 
-  const handleDeletePool = async (pool: import('@/types').PartyResourcePool) => {
+  const handleDeletePool = async (pool: PartyPoolWithFormatted) => {
     setDeleteConfirmPool(pool);
   };
 
@@ -307,13 +308,13 @@ export default function PartyPoolPanel() {
       {deleteConfirmPool && (
         <ConfirmDialog
           isOpen={!!deleteConfirmPool}
-          onClose={() => setDeleteConfirmPool(null)}
+          onCancel={() => setDeleteConfirmPool(null)}
           onConfirm={handleConfirmDelete}
           title="Delete Pool"
           message={deleteConfirmPool.cp || deleteConfirmPool.sp || deleteConfirmPool.ep || deleteConfirmPool.gp || deleteConfirmPool.pp || deleteConfirmPool.nuyen || deleteConfirmPool.cash
             ? 'This pool has currency in it. Are you sure you want to delete it? This action cannot be undone.'
             : `Delete "${deleteConfirmPool.name}"? This action cannot be undone.`}
-          confirmText="Delete"
+          confirmLabel="Delete"
           variant="danger"
         />
       )}
@@ -323,17 +324,17 @@ export default function PartyPoolPanel() {
 
 // Pool Card Component
 interface PoolCardProps {
-  pool: import('@/types').PartyResourcePool & { formatted: import('@/types').FormattedPoolCurrency };
+  pool: PartyPoolWithFormatted;
   isDefault: boolean;
   expanded: boolean;
   onToggle: () => void;
-  onSettings: (pool: import('@/types').PartyResourcePool) => void;
-  onContribute: (pool: import('@/types').PartyResourcePool) => void;
-  onWithdraw: (pool: import('@/types').PartyResourcePool) => void;
-  onTransactionLog: (pool: import('@/types').PartyResourcePool) => void;
-  onDelete: (pool: import('@/types').PartyResourcePool) => void;
+  onSettings: (pool: PartyPoolWithFormatted) => void;
+  onContribute: (pool: PartyPoolWithFormatted) => void;
+  onWithdraw: (pool: PartyPoolWithFormatted) => void;
+  onTransactionLog: (pool: PartyPoolWithFormatted) => void;
+  onDelete: (pool: PartyPoolWithFormatted) => void;
   canManage: boolean;
-  userRole: CampaignRole;
+  userRole: CampaignRole | null;
   allowPlayerWithdraw: boolean;
 }
 

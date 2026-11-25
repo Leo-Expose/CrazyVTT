@@ -1498,7 +1498,6 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
           <select
             id="dnd5e-alignment"
             aria-label="Alignment"
-            maxLength={SHEET_SHORT_TEXT_MAX}
             value={formData.alignment || ''}
             onChange={(e) => updateField('alignment', e.target.value)}
             className="w-full px-3 py-2 border border-ink/20 rounded-lg bg-white text-ink focus:outline-hidden focus:ring-2 focus:ring-brand"
@@ -1522,7 +1521,6 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
           <select
             id="dnd5e-background"
             aria-label="Background"
-            maxLength={SHEET_SHORT_TEXT_MAX}
             value={formData.background || ''}
             onChange={(e) => {
               const bgName = e.target.value;

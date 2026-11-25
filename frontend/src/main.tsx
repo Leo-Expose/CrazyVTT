@@ -27,17 +27,17 @@ window.addEventListener('vite:preloadError', function(event) {
 });
 
 // Error Boundary to catch React rendering errors
-var ErrorBoundary = function(_ref) {
+var ErrorBoundary = function(_ref: { children?: React.ReactNode }) {
   var children = _ref.children;
   var _React$useState = React.useState(false),
       hasError = _React$useState[0],
       setHasError = _React$useState[1];
-  var _React$useState2 = React.useState(null),
+  var _React$useState2 = React.useState<Error | null>(null),
       error = _React$useState2[0],
       setError = _React$useState2[1];
 
   React.useEffect(function() {
-    function handleError(event) {
+    function handleError(event: ErrorEvent) {
       setError(event.error);
       setHasError(true);
       console.error('CRAZYVTT REACT ERROR:', event.error);
@@ -81,7 +81,7 @@ errorDiv.style.cssText = '\
 ';
 document.body.appendChild(errorDiv);
 
-function showError(message, error) {
+function showError(message: string, error: Error | null | undefined) {
   errorDiv.style.display = 'block';
   var stack = error?.stack || '';
   errorDiv.textContent = 'CRAZYVTT ERROR:\n' + message + '\n\n' + stack;
@@ -120,8 +120,11 @@ window.addEventListener('vite:preloadError', function(event) {
 // established and immediately torn down, making the campaign page unusable in dev.
 // The WebSocketContext and socketClient are designed to handle connection lifecycle
 // correctly without it.
-ReactDOM.createRoot(document.getElementById('root')).render(
-  React.createElement(ErrorBoundary, null,
-    React.createElement(AppRouter, null, React.createElement(App))
-  )
-);
+const rootEl = document.getElementById('root');
+if (rootEl) {
+  ReactDOM.createRoot(rootEl).render(
+    React.createElement(ErrorBoundary, null,
+      React.createElement(AppRouter, null, React.createElement(App))
+    )
+  );
+}

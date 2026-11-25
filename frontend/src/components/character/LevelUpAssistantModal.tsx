@@ -18,7 +18,6 @@ export const LevelUpAssistantModal: React.FC<LevelUpAssistantModalProps> = ({
   isOpen,
   onClose,
   className,
-  fromLevel,
   toLevel,
   hitDie,
   constitutionModifier,

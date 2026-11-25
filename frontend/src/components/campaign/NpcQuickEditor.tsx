@@ -920,8 +920,12 @@ export default function NpcQuickEditor({ token, campaignId, mapId, onClose, onTo
                       value={token.metadata?.elevation !== undefined ? Number(token.metadata.elevation) : 0}
                       onChange={async (e) => {
                         const val = parseInt(e.target.value, 10) || 0;
-                        const newMetadata = { ...token.metadata, elevation: val };
-                        if (val === 0) delete newMetadata.elevation;
+                        const newMetadata: Record<string, unknown> = { ...token.metadata };
+                        if (val === 0) {
+                          delete newMetadata.elevation;
+                        } else {
+                          newMetadata.elevation = val;
+                        }
                         await saveUpdate({ metadata: newMetadata });
                       }}
                       className="input-cozy input-cozy-number w-20 text-xs text-center"

@@ -2,7 +2,7 @@
 // Image Import Hook - Upload, crop, scale, align grid
 // ============================================
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { randomId } from '@/utils/uuid';
 import { api } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
@@ -66,14 +66,13 @@ export function useImageImport(options: ImageImportOptions) {
   const { showToast } = useToast();
   
   const [state, setState] = useState<ImageImportState>(DEFAULT_STATE);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const cropCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize with map grid size
-  useState(() => {
+  useEffect(() => {
     setState(prev => ({ ...prev, gridSize: mapGridSize }));
-  }, []);
+  }, [mapGridSize]);
 
   const resetState = useCallback(() => {
     if (state.imageUrl) {
@@ -310,14 +309,6 @@ export function useImageImport(options: ImageImportOptions) {
   const cancelImport = useCallback(() => {
     resetState();
   }, [resetState]);
-
-  // Auto-snap to grid when gridAligned changes
-  useState(() => {
-    if (state.gridAligned && state.cropArea) {
-      // Snap position to grid
-      // This would be handled in the UI component
-    }
-  }, [state.gridAligned, state.cropArea]);
 
   return {
     // State

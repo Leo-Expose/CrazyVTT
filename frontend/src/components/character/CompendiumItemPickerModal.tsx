@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, Plus, Search, Sparkles, X, Shield, Sword } from 'lucide-react';
+import { Package, Plus, Search, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { SRD_WEAPONS } from '@/data/compendium/weapons';
 import { SRD_MAGIC_ITEMS } from '@/data/compendium/magicItems';
@@ -64,11 +64,11 @@ export const CompendiumItemPickerModal: React.FC<CompendiumItemPickerModalProps>
       list.push({
         name: m.name,
         category: 'Magic Item',
-        weight: m.weight,
+        weight: 0,
         value: m.rarity === 'Legendary' ? 50000 : m.rarity === 'Very Rare' ? 10000 : m.rarity === 'Rare' ? 2000 : 250,
-        notes: `${m.rarity} ${m.type}. ${m.description}`,
-        equippable: m.type === 'Armor' || m.type === 'Weapon' || m.type === 'Ring' || m.type === 'Wondrous Item',
-        requiresAttunement: m.requiresAttunement,
+        notes: `${m.rarity} ${m.category}. ${m.description}`,
+        equippable: m.category === 'Armor' || m.category === 'Weapon' || m.category === 'Ring' || m.category === 'Wondrous Item' || m.category === 'Wondrous Items',
+        requiresAttunement: m.attunement,
       });
     }
 

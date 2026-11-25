@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useCampaign } from '@/contexts/CampaignContext';
-import { ActionType, type CharacterAction, type ActionCost, type AttackPreview } from '@/types';
+import { ActionSource, ActionType, type CharacterAction, type ActionCost, type AttackPreview } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
 import { useGameStore, useTargetTokenId } from '@/stores/gameStore';
 
@@ -274,6 +274,11 @@ export default function ActionPanel({ characterId, onActionSelect, onClose, comp
                   name: 'DM Ruling / Custom Action',
                   type: ActionType.OTHER,
                   cost: 'ACTION' as ActionCost,
+                  source: ActionSource.OTHER,
+                  sourceRef: null,
+                  recharge: null,
+                  used: false,
+                  sortOrder: 0,
                   data: {
                     description: 'Ad-hoc ruling or extraordinary action granted by the DM.',
                     damageExpression: '1d6',

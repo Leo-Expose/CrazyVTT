@@ -673,9 +673,27 @@ class ApiClient {
     return response.data;
   }
 
-  async getTotalCurrency(characterId: string): Promise<{ total: import('@/types').Currency }> {
+  async getTotalCurrency(
+    campaignId: string,
+    characterId: string,
+  ): Promise<{ total: import('@/types').PoolCurrencyAmount }> {
     const response = await this.client.get(`/api/campaigns/${campaignId}/characters/${characterId}/currency/total`);
-    return response.data;
+    const data = response.data;
+    if (data && typeof data === 'object' && 'total' in data) {
+      return data as { total: import('@/types').PoolCurrencyAmount };
+    }
+    return {
+      total: {
+        cp: data?.cp ?? 0,
+        sp: data?.sp ?? 0,
+        ep: data?.ep ?? 0,
+        gp: data?.gp ?? 0,
+        pp: data?.pp ?? 0,
+        nuyen: data?.nuyen ?? 0,
+        cash: data?.cash ?? 0,
+        ...(data?.custom ? { custom: data.custom } : {}),
+      },
+    };
   }
 
   // ============================================
@@ -1619,7 +1637,7 @@ class ApiClient {
 
   async createTokenTemplate(campaignId: string, data: Partial<TokenTemplate>): Promise<TokenTemplate> {
     const response = await this.client.post(`/api/campaigns/${campaignId}/token-templates`, data);
-    return response.data;
+    return withKnownTemplateChoices(response.data);
   }
 
   async updateTokenTemplate(campaignId: string, id: string, data: Partial<TokenTemplate>): Promise<TokenTemplate> {
@@ -1634,7 +1652,7 @@ class ApiClient {
 
   async saveTokenAsTemplate(campaignId: string, tokenData: Partial<TokenTemplate>): Promise<TokenTemplate> {
     const response = await this.client.post(`/api/campaigns/${campaignId}/token-templates/from-token`, tokenData);
-    return response.data;
+    return withKnownTemplateChoices(response.data);
   }
 
   async copyTokenTemplateToCampaign(campaignId: string, templateId: string, targetCampaignId: string): Promise<TokenTemplate> {

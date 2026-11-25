@@ -43,19 +43,15 @@ import {
   AlignJustify,
   Highlighter,
   Underline as UnderlineIcon,
-  Subscript as SubscriptIcon,
-  Superscript as SuperscriptIcon,
   CheckSquare,
   Minus,
   Plus,
   Type,
 } from 'lucide-react';
-import { useCampaign } from '@/contexts/CampaignContext';
 import { useToast } from '@/contexts/ToastContext';
-import api from '@/services/api';
 import Button from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
-import type { JournalEntry, JournalImage } from '@/types';
+import type { JournalEntry } from '@/types';
 
 interface JournalEditorProps {
   entry: JournalEntry;
@@ -86,7 +82,6 @@ const EXTENSIONS = [
 ];
 
 export default function JournalEditor({ entry, readOnly = false, onSave }: JournalEditorProps) {
-  const { campaign } = useCampaign();
   const { showToast } = useToast();
   const editorRef = useRef<Editor | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -98,8 +93,6 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
   const [uploadingImage, setUploadingImage] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
-
-  const campaignId = campaign?.id;
 
   const editor = useEditor({
     extensions: EXTENSIONS,
@@ -124,13 +117,15 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
   useEffect(() => {
     editorRef.current = editor;
     // Load draft from localStorage on mount
-    const draft = localStorage.getItem(`journal-draft-${entry.id}`);
-    if (draft && draft !== entry.content) {
-      const useDraft = window.confirm('A draft was found. Load it?');
-      if (useDraft) {
-        editor.commands.setContent(draft);
-      } else {
-        localStorage.removeItem(`journal-draft-${entry.id}`);
+    if (editor) {
+      const draft = localStorage.getItem(`journal-draft-${entry.id}`);
+      if (draft && draft !== entry.content) {
+        const useDraft = window.confirm('A draft was found. Load it?');
+        if (useDraft) {
+          editor.commands.setContent(draft);
+        } else {
+          localStorage.removeItem(`journal-draft-${entry.id}`);
+        }
       }
     }
     return () => {
@@ -140,7 +135,7 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
 
   useEffect(() => {
     if (editor && entry.content !== editor.getHTML()) {
-      editor.commands.setContent(entry.content, false);
+      editor.commands.setContent(entry.content, { emitUpdate: false });
     }
   }, [entry.content, editor]);
 
@@ -176,7 +171,7 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
     if (linkTarget) {
       editor.chain().focus().setLink({ href: linkUrl }).run();
     } else {
-      editor.chain().focus().extendMark('link').setLink({ href: linkUrl }).run();
+      editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
     }
     setShowLinkDialog(false);
     setLinkUrl('');

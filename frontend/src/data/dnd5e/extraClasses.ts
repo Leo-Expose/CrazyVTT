@@ -1,8 +1,5 @@
-import type { ClassData, SkillProficiencyOption, SavingThrowProficiency } from './classes';
+import type { ClassData, SavingThrowProficiency } from './classes';
 import type { DnD5eCharacterData } from '@/types/game-systems';
-
-const statKeys = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const;
-const skillKeys = ['acrobatics', 'animalHandling', 'arcana', 'athletics', 'deception', 'history', 'insight', 'intimidation', 'investigation', 'medicine', 'nature', 'perception', 'performance', 'persuasion', 'religion', 'sleightOfHand', 'stealth', 'survival'] as const;
 
 export const ADDITIONAL_5E_CLASSES: ClassData[] = [
   {

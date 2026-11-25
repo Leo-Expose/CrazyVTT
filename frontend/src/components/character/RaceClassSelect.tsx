@@ -102,7 +102,7 @@ export function RaceSelect({ value, onChange, className, disabled, error }: Race
         className={cn(
           'w-full px-3 py-2 border rounded-lg text-left focus:outline-hidden focus:ring-2 focus:ring-brand',
           disabled ? 'bg-ink/5 cursor-not-allowed opacity-50' : 'bg-white border-ink/20 hover:border-brand/30',
-          error && 'border-danger focus:ring-danger'
+          Boolean(error) && 'border-danger focus:ring-danger'
         )}
       >
         <div className="flex items-center justify-between">
@@ -231,7 +231,7 @@ export function ClassSelect({ value, onChange, className, disabled, error }: Cla
         className={cn(
           'w-full px-3 py-2 border rounded-lg text-left focus:outline-hidden focus:ring-2 focus:ring-brand',
           disabled ? 'bg-ink/5 cursor-not-allowed opacity-50' : 'bg-white border-ink/20 hover:border-brand/30',
-          error && 'border-danger focus:ring-danger'
+          Boolean(error) && 'border-danger focus:ring-danger'
         )}
       >
         <div className="flex items-center justify-between">

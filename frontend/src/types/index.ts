@@ -2932,6 +2932,7 @@ export interface JournalImage {
     filePath: string;
     thumbnailPath: string | null;
     mimeType: string;
+    originalName?: string;
   };
 }
 

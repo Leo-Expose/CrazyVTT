@@ -330,7 +330,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
           setMapLayers(res?.data?.layers || []);
         }
       })
-      .catch(err => {
+      .catch(() => {
         // Safe catch for mocks/offline
       })
       .finally(() => {
@@ -1796,17 +1796,15 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     if (isDM && currentMap && wallSelectKey(e)) return;
 
     // Quick Ambush / Unhide hotkey ('H') for selected token (PRD §12.1)
-    if (isDM && currentMap && selectedTokenId && (e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (isDM && campaign?.id && currentMap && selectedTokenId && !e.repeat && (e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const selected = tokens.find((t) => t.id === selectedTokenId);
       if (selected && keyBelongsToMap(e, layersRef.current, contextMenuRef.current)) {
         e.preventDefault();
         const nextVisible = !selected.visible;
-        useGameStore.getState().patchToken(selected.id, { visible: nextVisible });
-        socket?.emitMapChange({
-          mapId: currentMap.id,
-          patch: { tokens: tokens.map((t) => (t.id === selected.id ? { ...t, visible: nextVisible } : t)) },
-        });
-        showToast(nextVisible ? `Unhid ambush: ${selected.name}` : `Hid token: ${selected.name}`, 'info');
+        void setTokenFlag(campaign.id, currentMap.id, selected, 'visible', nextVisible).then(
+          () => showToast(nextVisible ? `Unhid ambush: ${selected.name}` : `Hid token: ${selected.name}`, 'info'),
+          (err) => showToast(apiErrorMessage(err) || (nextVisible ? 'Could not show the token to players' : 'Could not hide the token from players'), 'error'),
+        );
         return;
       }
     }
@@ -2641,18 +2639,20 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
     // Auto-reveal fog exploration aura around moved token if exploration/lighting is active
     if (currentMap?.fogEnabled && (token.sightRadius ?? 0) > 0 && addExplored) {
       const radiusSquares = Math.max(1, Math.min(12, Math.round(token.sightRadius ?? 2)));
+      const freshCells: number[] = [];
       for (let dx = -radiusSquares; dx <= radiusSquares; dx++) {
         for (let dy = -radiusSquares; dy <= radiusSquares; dy++) {
           if (dx * dx + dy * dy <= radiusSquares * radiusSquares) {
             const cellX = square.x + dx;
             const cellY = square.y + dy;
             if (cellX >= 0 && cellX < currentMap.width && cellY >= 0 && cellY < currentMap.height) {
-              addExplored(cellX + cellY * currentMap.width);
+              freshCells.push(cellX + cellY * currentMap.width);
             }
           }
         }
       }
-      markDirty('terrain');
+      if (freshCells.length > 0) addExplored(freshCells);
+      markDirty('terrain', 'overlay');
     }
 
     return sendable;
@@ -4857,14 +4857,16 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
                 }}
                 onGridSettingsChange={(g) => {
                   if (g.enabled !== undefined) setShowGrid(g.enabled);
-                  if (g.color) setGridColor(g.color);
+                  if (g.color) {
+                    setGridColor(g.color === 'white' || g.color.toLowerCase() === '#ffffff' ? 'white' : 'black');
+                  }
                 }}
-                onUndo={mapDrawings.undo}
-                onRedo={mapDrawings.redo}
+                onUndo={() => {}}
+                onRedo={() => {}}
                 onImportImage={() => {}}
                 onExportMap={() => {}}
-                canUndo={mapDrawings.canUndo}
-                canRedo={mapDrawings.canRedo}
+                canUndo={false}
+                canRedo={false}
                 gridSettings={{
                   enabled: showGrid,
                   size: currentMap.gridSize,
@@ -4875,7 +4877,7 @@ export default function MapCanvas({ onEditToken, onShowShortcuts }: MapCanvasPro
                 }}
                 brushSettings={{
                   tileId: '',
-                  variant: { id: 'default', name: 'Default', rotation: 0, flipH: false, flipV: false },
+                  variant: 'default',
                   size: Math.max(1, Math.round(drawSettings.width / 4)),
                   shape: 'circle',
                   opacity: 1,

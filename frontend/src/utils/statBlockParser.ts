@@ -39,10 +39,6 @@ export interface ParsedStatBlock {
   }>;
 }
 
-function calculateMod(score: number): number {
-  return Math.floor((score - 10) / 2);
-}
-
 export function parseMonsterStatBlock(text: string): ParsedStatBlock {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
 

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Sword, Sparkles, Target, Zap } from 'lucide-react';
+import { Sword, Sparkles, Zap } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -19,7 +19,6 @@ export interface QuickMacroHotbarProps {
 }
 
 export const QuickMacroHotbar: React.FC<QuickMacroHotbarProps> = ({
-  characterId,
   compact = false,
 }) => {
   const { socket } = useWebSocket();

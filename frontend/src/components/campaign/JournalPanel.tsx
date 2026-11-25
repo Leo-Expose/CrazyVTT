@@ -3,7 +3,7 @@
  * Main UI for campaign journal/handouts with rich text editing
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   BookOpen,
   FolderPlus,
@@ -12,30 +12,21 @@ import {
   ChevronRight,
   Edit2,
   Trash2,
-  Eye,
-  EyeOff,
   Users,
   Lock,
   Globe,
-  Tag,
-  Image,
   Loader2,
-  MoreHorizontal,
-  Save,
-  X,
 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useToast } from '@/contexts/ToastContext';
 import api from '@/services/api';
-import { CampaignRole, JournalVisibility } from '@/types';
+import { JournalVisibility } from '@/types';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { apiErrorMessage } from '@/utils/errors';
 import JournalEditor from './JournalEditor';
-import JournalViewer from './JournalViewer';
-import { format } from 'date-fns';
 
 export default function JournalPanel() {
   const { campaign, userRole } = useCampaign();
@@ -46,12 +37,11 @@ export default function JournalPanel() {
   const [folders, setFolders] = useState<import('@/types').JournalFolder[]>([]);
   const [entries, setEntries] = useState<import('@/types').JournalEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<import('@/types').JournalEntry | null>(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showCreateEntry, setShowCreateEntry] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<import('@/types').JournalFolder | null>(null);
   const [folderForm, setFolderForm] = useState({ name: '', parentId: '', color: '#8FBC8F' });
   const [isDM] = useState(userRole === 'DM');
 
@@ -229,7 +219,12 @@ export default function JournalPanel() {
 
   const handleUpdateFolder = async (folder: import('@/types').JournalFolder) => {
     try {
-      await api.updateJournalFolder(campaignId, folder.id, folder);
+      await api.updateJournalFolder(campaignId, folder.id, {
+        name: folder.name,
+        parentId: folder.parentId,
+        color: folder.color ?? undefined,
+        sortOrder: folder.sortOrder,
+      });
       showToast('Folder updated', 'success');
     } catch (err) {
       showToast(apiErrorMessage(err) ?? 'Failed to update folder', 'error');
@@ -343,7 +338,6 @@ export default function JournalPanel() {
                 visibilityIcon={visibilityIcon(entry.visibility)}
                 visibilityLabel={visibilityLabel(entry.visibility)}
                 visibilityColor={visibilityColor(entry.visibility)}
-                canEdit={isDM || entry.createdById === user?.id}
               />
             ))
           )}
@@ -356,7 +350,9 @@ export default function JournalPanel() {
           <div className="flex-1 flex flex-col">
             <div className="p-3 border-b border-warm-amber/20 flex items-center justify-between">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <visibilityIcon className={visibilityColor(selectedEntry.visibility)} />
+                <span className={visibilityColor(selectedEntry.visibility)}>
+                  {visibilityIcon(selectedEntry.visibility)}
+                </span>
                 <input
                   type="text"
                   value={selectedEntry.title}
@@ -553,10 +549,9 @@ interface EntryListItemProps {
   visibilityIcon: React.ReactNode;
   visibilityLabel: string;
   visibilityColor: string;
-  canEdit: boolean;
 }
 
-function EntryListItem({ entry, selected, onClick, visibilityIcon, visibilityLabel, visibilityColor, canEdit }: EntryListItemProps) {
+function EntryListItem({ entry, selected, onClick, visibilityIcon, visibilityLabel, visibilityColor }: EntryListItemProps) {
   const updatedAt = new Date(entry.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (

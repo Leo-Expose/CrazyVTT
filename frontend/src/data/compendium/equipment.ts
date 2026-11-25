@@ -11,8 +11,8 @@ export interface CompendiumEquipment {
   costGP: number;
   weight: number;
   description: string;
-  /** Raw D&D 5e API shape: property reference objects, plus a trailing string[] of "special" descriptions on some weapons. */
-  properties: Array<{ index: string; name: string; url: string } | string[]>;
+  /** Raw D&D 5e API shape: property reference objects, plus trailing string / string[] "special" descriptions on some weapons. */
+  properties: Array<{ index: string; name: string; url: string } | string[] | string>;
   contents?: string[];
   // Armor fields (raw API keys: dex_bonus / max_bonus)
   armorClass?: { base: number; dex_bonus?: boolean; max_bonus?: number } | number;

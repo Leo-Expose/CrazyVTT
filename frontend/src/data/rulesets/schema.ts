@@ -207,7 +207,15 @@ export const RulesetPackSchema = z.object({
   monsters: z.array(RulesetMonsterRefSchema).default([]),
   magicItems: z.array(RulesetMagicItemRefSchema).default([]),
   spells: z.array(RulesetSpellRefSchema).default([]),
-  automation: RulesetAutomationSettingsSchema.default({}),
+  automation: RulesetAutomationSettingsSchema.default({
+    deathSavesEnabled: true,
+    deathSaveSuccessThreshold: 3,
+    deathSaveFailureThreshold: 3,
+    criticalHitRule: 'double_dice',
+    encumbranceRule: 'standard_5e',
+    shortRestRecoveryFormula: 'hit_dice',
+    longRestFullHeal: true,
+  }),
 });
 
 export type RulesetPack = z.infer<typeof RulesetPackSchema>;

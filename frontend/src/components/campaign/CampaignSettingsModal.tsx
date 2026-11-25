@@ -37,7 +37,7 @@ import { CAMPAIGN_LIMITS } from '@/constants/campaignLimits';
 import { QualitativeHealthSettings } from './QualitativeHealthSettings';
 import type { HealthDisplayMode, HealthThresholds } from '@/utils/rules/qualitativeHealth';
 import { DEFAULT_THRESHOLDS } from '@/utils/rules/qualitativeHealth';
-import { RulesetRegistry, type RulesetPack } from '@/data/rulesets';
+import { RulesetRegistry } from '@/data/rulesets';
 import { CustomRulesetEditor } from '@/data/rulesets/CustomRulesetEditor';
 
 interface CampaignSettingsModalProps {
@@ -226,6 +226,7 @@ export default function CampaignSettingsModal({
       const currentVibe = (campaign.vibeSettings as Record<string, unknown>) ?? {};
       await campaignService.updateCampaign(campaign.id, {
         vibeSettings: {
+          periods: [],
           ...currentVibe,
           healthDisplayMode: mode,
           healthThresholds: thresh,

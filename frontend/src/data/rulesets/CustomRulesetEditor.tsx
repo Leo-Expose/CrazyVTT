@@ -38,6 +38,13 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
       actions: [],
       races: [],
       classes: [],
+      subclasses: [],
+      backgrounds: [],
+      feats: [],
+      equipment: [],
+      monsters: [],
+      magicItems: [],
+      spells: [],
       automation: {
         deathSavesEnabled: true,
         deathSaveSuccessThreshold: 3,

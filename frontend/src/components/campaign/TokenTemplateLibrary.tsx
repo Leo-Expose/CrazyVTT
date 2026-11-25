@@ -26,7 +26,7 @@ import api from '@/services/api';
 import { apiErrorMessage } from '@/utils/errors';
 import { STAT_BLOCK_LIMITS } from '@/constants/statBlockLimits';
 import type { TokenTemplate, NpcStatBlock, Campaign } from '@/types';
-import { TokenType, AssetType, AssetScope, CampaignRole } from '@/types';
+import { TokenDisposition, TokenType, AssetType, AssetScope, CampaignRole } from '@/types';
 import type { TokenDisplayMode } from '@/types';
 import StatBlockEditor from './npc-stat-blocks/StatBlockEditor';
 import Button from '@/components/ui/Button';
@@ -424,11 +424,11 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
               imageUrl: item.url,
               size: item.name.includes('Dragon') ? { width: 3, height: 3 } : { width: 1, height: 1 },
               displayMode: 'pog',
-              disposition: item.type === TokenType.PLAYER ? 'friendly' : 'hostile',
+              disposition: item.type === TokenType.PLAYER ? TokenDisposition.FRIENDLY : TokenDisposition.HOSTILE,
               hp: { current: item.hpMax, max: item.hpMax, temp: 0 },
               showHpBar: true,
             });
-            setTemplates((prev) => [created.template, ...prev]);
+            setTemplates((prev) => [created, ...prev]);
             setTotal((p) => p + 1);
           } catch (e) {
             console.error('Failed to seed starter token', e);
@@ -440,17 +440,24 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           try {
-            const asset = await api.uploadAsset(file, AssetType.TOKEN, campaign.id);
             const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+            const formData = new FormData();
+            formData.append('type', AssetType.TOKEN);
+            formData.append('scope', AssetScope.CAMPAIGN);
+            formData.append('campaignId', campaign.id);
+            formData.append('name', assetNameFrom(displayName));
+            formData.append('file', file);
+            const { asset } = await api.uploadAsset(formData);
             const created = await api.createTokenTemplate(campaign.id, {
-              name: name.charAt(0).toUpperCase() + name.slice(1),
+              name: displayName,
               type: TokenType.NPC,
-              imageUrl: asset.filePath,
+              imageUrl: `/api/assets/tokens/${asset.id}`,
               size: { width: 1, height: 1 },
               displayMode: 'pog',
-              disposition: 'hostile',
+              disposition: TokenDisposition.HOSTILE,
             });
-            setTemplates((prev) => [created.template, ...prev]);
+            setTemplates((prev) => [created, ...prev]);
             setTotal((p) => p + 1);
           } catch (err) {
             console.error('Failed to upload batch token', err);

@@ -374,7 +374,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
 
   const isProtected = (layer: MapLayer) => PROTECTED_LAYER_TYPES.includes(layer.type);
 
-  const canMergeDown = (layer: MapLayer, index: number) => {
+  const canMergeDown = (layer: MapLayer, _index?: number) => {
     if (!isDM || isProtected(layer) || layer.locked) return false;
     const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
     const currentIndex = sortedLayers.findIndex(l => l.id === layer.id);
@@ -836,7 +836,7 @@ interface AddLayerMenuProps {
   onLayerCreate: (name: string, type: LayerType) => void;
 }
 
-function AddLayerMenu({ mapId, campaignId, onLayerCreate }: AddLayerMenuProps) {
+function AddLayerMenu({ onLayerCreate }: AddLayerMenuProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [selectedType, setSelectedType] = useState<LayerType>(LayerType.ANNOTATIONS);
   const [newLayerName, setNewLayerName] = useState('');
