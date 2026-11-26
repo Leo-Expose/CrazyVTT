@@ -223,11 +223,11 @@ export default function CampaignSettingsModal({
     const mode = newMode ?? healthDisplayMode;
     const thresh = newThresholds ?? healthThresholds;
     try {
-      const currentVibe = (campaign.vibeSettings as Record<string, unknown>) ?? {};
+      const currentVibe = campaign.vibeSettings ?? { periods: [] };
       await campaignService.updateCampaign(campaign.id, {
         vibeSettings: {
-          periods: [],
           ...currentVibe,
+          periods: Array.isArray(currentVibe.periods) ? currentVibe.periods : [],
           healthDisplayMode: mode,
           healthThresholds: thresh,
         },

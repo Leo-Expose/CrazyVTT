@@ -27,8 +27,6 @@ export const CompendiumItemPickerModal: React.FC<CompendiumItemPickerModalProps>
   onClose,
   onAddItem,
 }) => {
-  if (!isOpen) return null;
-
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'weapons' | 'armor' | 'magic' | 'gear'>('all');
 
@@ -102,12 +100,14 @@ export const CompendiumItemPickerModal: React.FC<CompendiumItemPickerModalProps>
     });
   }, [allItems, search, activeCategory]);
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
       <div className="bg-surface text-ink border border-edge rounded-2xl shadow-2xl max-w-xl w-full p-6 space-y-4 animate-scale-in flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between border-b border-edge pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <Package className="w-6 h-6 text-brand" />
+            <Package className="w-6 h-6 text-brand-ink" />
             <div>
               <h3 className="font-bold text-base">SRD Compendium Equipment &amp; Items</h3>
               <p className="text-xs text-ink-muted">Add standard SRD weapons, armor, magic items, and gear to inventory.</p>
@@ -143,7 +143,7 @@ export const CompendiumItemPickerModal: React.FC<CompendiumItemPickerModalProps>
                 type="button"
                 onClick={() => setActiveCategory(cat)}
                 className={`px-3 py-1 rounded-lg capitalize transition-colors ${
-                  activeCategory === cat ? 'bg-brand text-white shadow-xs' : 'bg-surface-light text-ink-secondary hover:text-ink'
+                  activeCategory === cat ? 'bg-brand text-brand-text shadow-xs' : 'bg-surface-light text-ink-secondary hover:text-ink'
                 }`}
               >
                 {cat}
@@ -169,7 +169,7 @@ export const CompendiumItemPickerModal: React.FC<CompendiumItemPickerModalProps>
                       {item.category}
                     </span>
                     {item.requiresAttunement && (
-                      <span className="px-1.5 py-0.2 rounded bg-brand/15 text-[10px] text-brand font-medium">
+                      <span className="px-1.5 py-0.2 rounded bg-brand/15 text-[10px] text-brand-ink font-medium">
                         Attunement
                       </span>
                     )}

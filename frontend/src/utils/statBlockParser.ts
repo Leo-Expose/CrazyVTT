@@ -72,50 +72,50 @@ export function parseMonsterStatBlock(text: string): ParsedStatBlock {
     const line = lines[i];
 
     // Size, Type, Alignment line (e.g. "Medium humanoid (goblinoid), neutral evil")
-    const metaMatch = line.match(/(Tiny|Small|Medium|Large|Huge|Gargantuan)\s+([\w\s()]+),\s*(.+)/i);
+    const metaMatch = line.match(/^(?:[*_]+)?(Tiny|Small|Medium|Large|Huge|Gargantuan)\s+([\w\s()-]+),\s*([^.,\n]+(?:,\s*[^.\n]+)?)$/i);
     if (metaMatch) {
       size = metaMatch[1] as ParsedStatBlock['size'];
-      type = metaMatch[2];
-      alignment = metaMatch[3];
+      type = metaMatch[2].trim();
+      alignment = metaMatch[3].replace(/[*_]+$/, '').trim();
     }
 
     // Armor Class
-    const acMatch = line.match(/(?:Armor Class|AC)\s*[:]?\s*(\d+)/i);
+    const acMatch = line.match(/^(?:[*_]+)?(?:Armor Class|AC)(?:[*_]+)?\s*[:]?\s*(\d+)/i);
     if (acMatch) {
       armorClass = parseInt(acMatch[1], 10);
     }
 
     // Hit Points
-    const hpMatch = line.match(/(?:Hit Points|HP)\s*[:]?\s*(\d+)(?:\s*\(([^)]+)\))?/i);
+    const hpMatch = line.match(/^(?:[*_]+)?(?:Hit Points|HP)(?:[*_]+)?\s*[:]?\s*(\d+)(?:\s*\(([^)]+)\))?/i);
     if (hpMatch) {
       hitPoints = parseInt(hpMatch[1], 10);
       if (hpMatch[2]) hitDice = hpMatch[2];
     }
 
     // Speed
-    const speedMatch = line.match(/Speed\s*[:]?\s*(.+)/i);
+    const speedMatch = line.match(/^(?:[*_]+)?Speed(?:[*_]+)?\s*[:]?\s*(.+)/i);
     if (speedMatch) {
-      speed = speedMatch[1];
+      speed = speedMatch[1].trim();
     }
 
     // Challenge Rating
-    const crMatch = line.match(/Challenge\s*[:]?\s*([0-9/]+)/i);
+    const crMatch = line.match(/^(?:[*_]+)?(?:Challenge|CR)(?:[*_]+)?\s*[:]?\s*([0-9/]+)/i);
     if (crMatch) {
       challengeRating = crMatch[1];
     }
 
-    // Ability scores: STR DEX CON INT WIS CHA or table format
-    const strMatch = line.match(/STR\s*[:]?\s*(\d+)/i);
+    // Ability scores: STR DEX CON INT WIS CHA (word-bounded so prose like "contain" or "into" cannot match)
+    const strMatch = line.match(/\bSTR\s*[:(]?\s*(\d+)/);
     if (strMatch) stats.strength = parseInt(strMatch[1], 10);
-    const dexMatch = line.match(/DEX\s*[:]?\s*(\d+)/i);
+    const dexMatch = line.match(/\bDEX\s*[:(]?\s*(\d+)/);
     if (dexMatch) stats.dexterity = parseInt(dexMatch[1], 10);
-    const conMatch = line.match(/CON\s*[:]?\s*(\d+)/i);
+    const conMatch = line.match(/\bCON\s*[:(]?\s*(\d+)/);
     if (conMatch) stats.constitution = parseInt(conMatch[1], 10);
-    const intMatch = line.match(/INT\s*[:]?\s*(\d+)/i);
+    const intMatch = line.match(/\bINT\s*[:(]?\s*(\d+)/);
     if (intMatch) stats.intelligence = parseInt(intMatch[1], 10);
-    const wisMatch = line.match(/WIS\s*[:]?\s*(\d+)/i);
+    const wisMatch = line.match(/\bWIS\s*[:(]?\s*(\d+)/);
     if (wisMatch) stats.wisdom = parseInt(wisMatch[1], 10);
-    const chaMatch = line.match(/CHA\s*[:]?\s*(\d+)/i);
+    const chaMatch = line.match(/\bCHA\s*[:(]?\s*(\d+)/);
     if (chaMatch) stats.charisma = parseInt(chaMatch[1], 10);
 
     // Common inline 6-ability row (e.g. "10 (+0) 14 (+2) 12 (+1) 8 (-1) 12 (+1) 6 (-2)")

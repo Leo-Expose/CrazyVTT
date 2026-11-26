@@ -99,8 +99,13 @@ export function parseDiceExpr(expression: string): ParsedExpr {
   const mode = m[3];
   const arg = m[4] ? parseInt(m[4], 10) : undefined;
 
+const MAX_DECK_COMBINATIONS = 10_000;
+
   if (count < 1 || count > 20) throw new Error(`Dice count out of range (1–20): ${count}`);
   if (sides < 2 || sides > 100) throw new Error(`Dice sides out of range (2–100): ${sides}`);
+  if (Math.pow(sides, count) > MAX_DECK_COMBINATIONS) {
+    throw new Error(`Dice expression "${expression}" produces too many combinations for deck mode (max ${MAX_DECK_COMBINATIONS})`);
+  }
 
   const result: ParsedExpr = { count, sides, modifier };
   if (mode === 'kh' && arg !== undefined) result.keepHigh = arg;
@@ -199,32 +204,57 @@ export class DiceDeckService {
    * Reshuffles automatically when the deck is exhausted.
    */
   async draw(campaignId: string, expression: string): Promise<DrawResult> {
-    let deck = await this.getDeck(campaignId, expression);
-    const deckData = deck.deck as unknown as DeckOutcome[];
-
-    // Reshuffle if we've consumed all entries
-    if (deck.position >= deckData.length) {
-      await this.reshuffle(campaignId, expression);
-      deck = await this.getDeck(campaignId, expression);
-    }
-
-    const refreshed = deck.deck as unknown as DeckOutcome[];
-    const position = deck.position;
-    const outcome = refreshed[position];
-    const deckSize = refreshed.length;
-
-    // Advance position
-    await prisma.diceDeck.update({
-      where: { campaignId_expression: { campaignId, expression } },
-      data: { position: position + 1 },
+    // Ensure a deck row exists first (handling concurrent creation on unique key)
+    await this.getDeck(campaignId, expression).catch(async () => {
+      const existing = await prisma.diceDeck.findUnique({
+        where: { campaignId_expression: { campaignId, expression } },
+      });
+      if (!existing) throw new Error(`Failed to initialize dice deck for "${expression}"`);
+      return existing;
     });
 
-    return {
-      outcome,
-      deckPosition: position + 1, // 1-based for display
-      deckSize,
-      seed: deck.seed,
-    };
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "DiceDeck" WHERE "campaignId" = ${campaignId} AND expression = ${expression} FOR UPDATE`;
+      const deck = await tx.diceDeck.findUnique({
+        where: { campaignId_expression: { campaignId, expression } },
+      });
+      if (!deck) throw new Error(`Dice deck not found for "${expression}"`);
+
+      let deckData = deck.deck as unknown as DeckOutcome[];
+      let position = deck.position;
+      let seed = deck.seed;
+
+      // Reshuffle if we've consumed all entries
+      if (position >= deckData.length) {
+        const outcomes = generateDeck(expression);
+        seed = crypto.randomUUID();
+        deckData = shuffleDeck(outcomes, seed);
+        position = 0;
+        await tx.diceDeck.update({
+          where: { id: deck.id },
+          data: {
+            deck: deckData as unknown as Parameters<typeof prisma.diceDeck.update>[0]['data']['deck'],
+            position: 1,
+            seed,
+          },
+        });
+      } else {
+        await tx.diceDeck.update({
+          where: { id: deck.id },
+          data: { position: position + 1 },
+        });
+      }
+
+      const outcome = deckData[position];
+      const deckSize = deckData.length;
+
+      return {
+        outcome,
+        deckPosition: position + 1, // 1-based for display
+        deckSize,
+        seed,
+      };
+    });
   }
 
   /** Reshuffle the deck (called when exhausted or by DM reset). */

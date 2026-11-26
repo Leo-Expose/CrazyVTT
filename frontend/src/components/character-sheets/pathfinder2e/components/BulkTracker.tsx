@@ -11,6 +11,7 @@ import { Package } from 'lucide-react';
 
 import type { PF2eInventoryItem as InventoryItem, PF2eCurrency } from '@/types/game-systems';
 import { formatPf2eBulk, pf2eBulkLimits, pf2eItemBulk, pf2eTotalBulk } from '@/utils/rules/pathfinder2e';
+import { itemValueInGold } from '@/utils/itemValue';
 
 interface BulkTrackerProps {
   inventory: InventoryItem[];
@@ -128,7 +129,7 @@ export const BulkTracker: React.FC<BulkTrackerProps> = ({ inventory, currency, s
                     )}
                   </div>
                   <div>
-                    <span className="font-semibold">Value:</span> {item.value != null ? `${item.value} gp` : '—'}
+                    <span className="font-semibold">Value:</span> {item.value != null ? `${itemValueInGold(item.value)} gp` : '—'}
                   </div>
                 </div>
 

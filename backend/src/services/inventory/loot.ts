@@ -627,7 +627,7 @@ export async function completeDistribution(data: z.infer<typeof completeDistribu
   // Apply all confirmed assignments to character sheets
   for (const assignment of distribution.assignments) {
     if (assignment.confirmedAt) {
-      await applyLootToCharacter(assignment.characterId, assignment);
+      await applyLootToCharacter(assignment.characterId, assignment, validated.completedById);
     }
   }
 
@@ -645,7 +645,7 @@ export async function completeDistribution(data: z.infer<typeof completeDistribu
 /**
  * Apply loot assignment to character sheet
  */
-async function applyLootToCharacter(characterId: string, assignment: LootAssignment) {
+async function applyLootToCharacter(characterId: string, assignment: LootAssignment, completedById: string) {
   const character = await prisma.character.findUnique({
     where: { id: characterId },
     select: { data: true, gameSystem: true },
@@ -699,7 +699,7 @@ async function applyLootToCharacter(characterId: string, assignment: LootAssignm
       cash: assignedCurrency.cash,
       description: `Loot from distribution ${assignment.distributionId}`,
       sourceType: 'LOOT',
-      createdById: 'SYSTEM',
+      createdById: completedById,
     });
   }
 

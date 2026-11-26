@@ -28,7 +28,7 @@ import { HomebrewParserModal } from './HomebrewParserModal';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useGameStore } from '@/stores/gameStore';
 import api from '@/services/api';
-import { apiErrorMessage } from '@/utils/errors';
+import { apiErrorMessage, errorSummary } from '@/utils/errors';
 import { STAT_BLOCK_LIMITS } from '@/constants/statBlockLimits';
 import type { CreatureTemplate, NpcStatBlock } from '@/types';
 import { TokenType, GameSystem, AssetType, TokenDisposition } from '@/types';
@@ -523,7 +523,7 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
           </button>
           <button
             onClick={() => setShowHomebrewParser(true)}
-            className="touch-target flex items-center gap-1 text-xs text-brand hover:text-brand-hover transition-colors"
+            className="touch-target flex items-center gap-1 text-xs text-brand-ink hover:text-brand-hover transition-colors"
             title="Parse monster or NPC stat blocks from text or markdown"
           >
             <Wand2 className="w-3 h-3" /> Parse Stat Block
@@ -761,6 +761,8 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
       onClose={() => setShowHomebrewParser(false)}
       onImportParsed={async (parsed) => {
         try {
+          const sizeKey = (parsed.size || 'Medium').toLowerCase();
+          const dim = sizeKey === 'large' ? 2 : sizeKey === 'huge' ? 3 : sizeKey === 'gargantuan' ? 4 : 1;
           const statBlock: NpcStatBlock = {
             ac: parsed.armorClass,
             hpMax: parsed.hitPoints,
@@ -777,13 +779,17 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
             actions: parsed.actions.map((a) => ({
               name: a.name,
               description: a.description,
+              attackBonus: a.attackBonus,
+              damageExpression: a.damageExpression,
+              damageType: a.damageType,
             })),
           };
 
           const newCreature = await api.createCreature(campaign!.id, {
             name: parsed.name,
-            size: { width: 1, height: 1 },
+            size: { width: dim, height: dim },
             creatureType: parsed.type || 'humanoid',
+            alignment: parsed.alignment || null,
             challengeRating: parsed.challengeRating || '1/4',
             statBlock,
             gameSystem: campaign?.gameSystem || GameSystem.DND_5E,
@@ -793,7 +799,7 @@ export default function CreatureLibrary({ isOpen, onClose }: CreatureLibraryProp
           setTotal((t) => t + 1);
           setShowHomebrewParser(false);
         } catch (err) {
-          console.error('Failed to import parsed creature', err);
+          console.error('Failed to import parsed creature', errorSummary(err));
         }
       }}
     />

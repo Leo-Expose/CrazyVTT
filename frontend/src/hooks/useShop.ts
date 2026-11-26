@@ -40,7 +40,7 @@ export const useShop = (campaignId?: string): UseShopReturn => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get<{ shops: Shop[] }>(`/campaigns/${cid}/shops`);
+      const response = await api.get<{ shops: Shop[] }>(`/api/campaigns/${cid}/shops`);
       setShops(response.data.shops);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch shops');
@@ -52,7 +52,7 @@ export const useShop = (campaignId?: string): UseShopReturn => {
 
   const getShop = useCallback(async (cid: string, shopId: string): Promise<Shop | null> => {
     try {
-      const response = await api.get<{ shop: Shop }>(`/campaigns/${cid}/shops/${shopId}`);
+      const response = await api.get<{ shop: Shop }>(`/api/campaigns/${cid}/shops/${shopId}`);
       return response.data.shop;
     } catch (err) {
       console.error('Failed to fetch shop:', errorSummary(err));
@@ -61,43 +61,43 @@ export const useShop = (campaignId?: string): UseShopReturn => {
   }, []);
 
   const createShop = useCallback(async (cid: string, data: CreateShopInput): Promise<Shop> => {
-    const response = await api.post<{ shop: Shop }>(`/campaigns/${cid}/shops`, data);
+    const response = await api.post<{ shop: Shop }>(`/api/campaigns/${cid}/shops`, data);
     setShops(prev => [response.data.shop, ...prev]);
     return response.data.shop;
   }, []);
 
   const updateShop = useCallback(async (shopId: string, data: UpdateShopInput): Promise<Shop> => {
-    const response = await api.put<{ shop: Shop }>(`/campaigns/${campaignId}/shops/${shopId}`, data);
+    const response = await api.put<{ shop: Shop }>(`/api/campaigns/${campaignId}/shops/${shopId}`, data);
     setShops(prev => prev.map(s => s.id === shopId ? response.data.shop : s));
     return response.data.shop;
   }, [campaignId]);
 
   const deleteShop = useCallback(async (cid: string, shopId: string) => {
-    await api.delete(`/campaigns/${cid}/shops/${shopId}`);
+    await api.delete(`/api/campaigns/${cid}/shops/${shopId}`);
     setShops(prev => prev.filter(s => s.id !== shopId));
   }, []);
 
   const addShopItem = useCallback(async (cid: string, shopId: string, data: CreateShopItemInput): Promise<ShopItem> => {
-    const response = await api.post<{ item: ShopItem }>(`/campaigns/${cid}/shops/${shopId}/items`, data);
+    const response = await api.post<{ item: ShopItem }>(`/api/campaigns/${cid}/shops/${shopId}/items`, data);
     return response.data.item;
   }, []);
 
   const updateShopItem = useCallback(async (shopId: string, itemId: string, data: UpdateShopItemInput): Promise<ShopItem> => {
-    const response = await api.put<{ item: ShopItem }>(`/campaigns/${campaignId}/shops/${shopId}/items/${itemId}`, data);
+    const response = await api.put<{ item: ShopItem }>(`/api/campaigns/${campaignId}/shops/${shopId}/items/${itemId}`, data);
     return response.data.item;
   }, [campaignId]);
 
   const deleteShopItem = useCallback(async (cid: string, shopId: string, itemId: string) => {
-    await api.delete(`/campaigns/${cid}/shops/${shopId}/items/${itemId}`);
+    await api.delete(`/api/campaigns/${cid}/shops/${shopId}/items/${itemId}`);
   }, []);
 
   const reorderItems = useCallback(async (shopId: string, itemOrders: Array<{ id: string; sortOrder: number; category?: string }>) => {
-    await api.post(`/campaigns/${campaignId}/shops/${shopId}/items/reorder`, { itemOrders });
+    await api.post(`/api/campaigns/${campaignId}/shops/${shopId}/items/reorder`, { itemOrders });
   }, [campaignId]);
 
   const buyItems = useCallback(async (shopId: string, characterId: string, data: BuyItemsInput) => {
     const response = await api.post<{ success: boolean; transaction?: any; error?: string }>(
-      `/campaigns/${campaignId}/shops/${shopId}/buy`,
+      `/api/campaigns/${campaignId}/shops/${shopId}/buy`,
       { ...data, characterId }
     );
     return response.data;
@@ -105,25 +105,25 @@ export const useShop = (campaignId?: string): UseShopReturn => {
 
   const sellItems = useCallback(async (shopId: string, characterId: string, data: SellItemsInput) => {
     const response = await api.post<{ success: boolean; transaction?: any; error?: string }>(
-      `/campaigns/${campaignId}/shops/${shopId}/sell`,
+      `/api/campaigns/${campaignId}/shops/${shopId}/sell`,
       { ...data, characterId }
     );
     return response.data;
   }, [campaignId]);
 
   const getTransactions = useCallback(async (shopId: string): Promise<ShopTransaction[]> => {
-    const response = await api.get<{ transactions: ShopTransaction[] }>(`/campaigns/${campaignId}/shops/${shopId}/transactions`);
+    const response = await api.get<{ transactions: ShopTransaction[] }>(`/api/campaigns/${campaignId}/shops/${shopId}/transactions`);
     return response.data.transactions;
   }, [campaignId]);
 
   const getVisits = useCallback(async (shopId: string): Promise<ShopVisit[]> => {
-    const response = await api.get<{ visits: ShopVisit[] }>(`/campaigns/${campaignId}/shops/${shopId}/visits`);
+    const response = await api.get<{ visits: ShopVisit[] }>(`/api/campaigns/${campaignId}/shops/${shopId}/visits`);
     return response.data.visits;
   }, [campaignId]);
 
   const restockShop = useCallback(async (shopId: string, itemIds?: string[]) => {
     const response = await api.post<{ success: boolean; results: any[]; error?: string }>(
-      `/campaigns/${campaignId}/shops/${shopId}/restock`,
+      `/api/campaigns/${campaignId}/shops/${shopId}/restock`,
       { itemIds }
     );
     return response.data;

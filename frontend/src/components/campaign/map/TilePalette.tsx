@@ -110,7 +110,7 @@ const TilePalette = forwardRef<TilePaletteHandle, TilePaletteProps>(({
     if (!campaign?.id) return;
     try {
       setLoading(true);
-      const response = await api.get<{ tiles: MapTile[] }>(`/campaigns/${campaign.id}/tiles`);
+      const response = await api.get<{ tiles: MapTile[] }>(`/api/campaigns/${campaign.id}/maps/tiles`);
       setTiles(response.data.tiles || []);
     } catch {
       console.error('Failed to fetch tiles');
@@ -262,7 +262,7 @@ const TilePalette = forwardRef<TilePaletteHandle, TilePaletteProps>(({
             )}
           </span>
           {brushSettings?.autoTile && (
-            <span className="px-2 py-0.5 bg-success/20 text-success rounded">Auto-tile</span>
+            <span className="px-2 py-0.5 bg-success/20 text-success-ink rounded">Auto-tile</span>
           )}
         </div>
       </div>
@@ -338,7 +338,7 @@ const TilePalette = forwardRef<TilePaletteHandle, TilePaletteProps>(({
             <Grid className="w-12 h-12" />
             <p className="text-sm">No tiles available</p>
             {isDM && (
-              <Button variant="outline" size="sm" onClick={() => showToast('Upload tile assets from the Asset Library', 'info')}>
+              <Button variant="outline" size="sm" onClick={() => showToast('Upload tile assets in the Asset Library first', 'info')}>
                 Add Tiles
               </Button>
             )}

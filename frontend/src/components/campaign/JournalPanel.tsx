@@ -143,7 +143,7 @@ export default function JournalPanel() {
       socket.off('journal.folder.updated', handleFolderUpdated);
       socket.off('journal.folder.deleted', handleFolderDeleted);
     };
-  }, [socket, campaignId, loadEntriesForFolder]);
+  }, [socket, campaignId, loadEntriesForFolder, selectedEntry?.id, selectedFolderId]);
 
   if (!campaignId) return null;
 

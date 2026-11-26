@@ -15,6 +15,14 @@ interface PatchObject { [key: string]: PatchValue }
 type PatchContainer = PatchObject | PatchValue[];
 interface PathTarget { parent: PatchContainer; key: string | number; isArray: boolean }
 
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function assertSafeKey(key: string): void {
+  if (FORBIDDEN_KEYS.has(key)) {
+    throw new Error(`Forbidden patch key: ${key}`);
+  }
+}
+
 function isPatchObject(value: unknown): value is PatchObject {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -23,19 +31,26 @@ function toPatchValue(value: unknown): PatchValue {
   if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
   if (Array.isArray(value)) return value.map(toPatchValue);
   if (isPatchObject(value)) {
-    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, toPatchValue(child)]));
+    const out: PatchObject = {};
+    for (const [key, child] of Object.entries(value)) {
+      assertSafeKey(key);
+      out[key] = toPatchValue(child);
+    }
+    return out;
   }
   throw new Error('Patch values must contain only JSON data');
 }
 
 function getChild(value: PatchValue, key: string): PatchValue | undefined {
+  assertSafeKey(key);
   const bracketIndex = key.match(/^(\w+)\[(\d+)\]$/);
   if (bracketIndex) {
-    const property = isPatchObject(value) ? value[bracketIndex[1]] : undefined;
+    assertSafeKey(bracketIndex[1]);
+    const property = isPatchObject(value) && Object.hasOwn(value, bracketIndex[1]) ? value[bracketIndex[1]] : undefined;
     return Array.isArray(property) ? property[Number(bracketIndex[2])] : undefined;
   }
   if (Array.isArray(value) && /^\d+$/.test(key)) return value[Number(key)];
-  return isPatchObject(value) ? value[key] : undefined;
+  return isPatchObject(value) && Object.hasOwn(value, key) ? value[key] : undefined;
 }
 
 function readTarget(target: PathTarget): PatchValue | undefined {
@@ -74,9 +89,11 @@ function getParentAndKey(obj: object, path: string): PathTarget | null {
   }
 
   const lastKey = keys[keys.length - 1];
+  assertSafeKey(lastKey);
   const arrayMatch = lastKey.match(/^(\w+)\[(\d+)\]$/);
   if (arrayMatch) {
-    const parent = isPatchObject(current) ? current[arrayMatch[1]] : undefined;
+    assertSafeKey(arrayMatch[1]);
+    const parent = isPatchObject(current) && Object.hasOwn(current, arrayMatch[1]) ? current[arrayMatch[1]] : undefined;
     return Array.isArray(parent) ? { parent, key: Number(arrayMatch[2]), isArray: true } : null;
   }
   if (Array.isArray(current) && /^\d+$/.test(lastKey)) {

@@ -163,7 +163,7 @@ def main():
         runs = (
             ('as shipped', environment, empty, empty, ()),
             ('with proxies', {**environment, 'NGINX_TRUSTED_PROXIES': TRUSTED_PROXIES}, empty, empty, RENDERED),
-            ('with HTTPS', environment, conf_d, certs, ('listen 443 ssl;', 'include /etc/nginx/cozyvtt/locations.conf;')),
+            ('with HTTPS', environment, conf_d, certs, ('listen 443 ssl;', 'include /etc/nginx/templates/locations.conf;')),
         )
         for label, env, conf, cert, expected in runs:
             passed, printed = nginx_t(service, env, conf, cert)

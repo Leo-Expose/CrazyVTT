@@ -23,10 +23,10 @@ import {
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useGameStore } from '@/stores/gameStore';
 import api from '@/services/api';
-import { apiErrorMessage } from '@/utils/errors';
+import { apiErrorMessage, errorSummary } from '@/utils/errors';
 import { STAT_BLOCK_LIMITS } from '@/constants/statBlockLimits';
 import type { TokenTemplate, NpcStatBlock, Campaign } from '@/types';
-import { TokenDisposition, TokenType, AssetType, AssetScope, CampaignRole } from '@/types';
+import { TokenType, TokenDisposition, AssetType, AssetScope, CampaignRole } from '@/types';
 import type { TokenDisplayMode } from '@/types';
 import StatBlockEditor from './npc-stat-blocks/StatBlockEditor';
 import Button from '@/components/ui/Button';
@@ -301,7 +301,7 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
           </button>
           <button
             onClick={() => setShowBatchModal(true)}
-            className="flex items-center gap-1 text-xs text-brand hover:text-brand-hover transition-colors font-medium"
+            className="flex items-center gap-1 text-xs text-brand-ink hover:text-brand-hover transition-colors font-medium"
             title="Seed starter vector tokens or batch import token images"
           >
             <Download className="w-3 h-3" /> Import Tokens
@@ -431,7 +431,7 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
             setTemplates((prev) => [created, ...prev]);
             setTotal((p) => p + 1);
           } catch (e) {
-            console.error('Failed to seed starter token', e);
+            console.error('Failed to seed starter token', errorSummary(e));
           }
         }
       }}
@@ -460,7 +460,7 @@ export default function TokenTemplateLibrary({ isOpen, onClose }: TokenTemplateL
             setTemplates((prev) => [created, ...prev]);
             setTotal((p) => p + 1);
           } catch (err) {
-            console.error('Failed to upload batch token', err);
+            console.error('Failed to upload batch token', errorSummary(err));
           }
         }
       }}

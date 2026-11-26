@@ -3,7 +3,7 @@
 // Supports: brush, shape, freehand, text, erase, select
 // ============================================
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MapTool, PointerAt } from './types';
 import { randomId } from '@/utils/uuid';
 import { douglasPeucker } from '@/utils/geometry';
@@ -32,7 +32,7 @@ interface DrawingToolOptions {
   gridSettings: GridSettings;
   mapControls: ReturnType<typeof import('@/hooks/useMapControls').useMapControls>;
   markDirty: (...layers: string[]) => void;
-  onTilePlace?: (tileId: string, x: number, y: number, variant: TileVariant) => void;
+  onTilePlace?: (tileId: string, x: number, y: number, variant: TileVariant | string) => void;
   onShapeDraw?: (shape: ShapeDefinition) => void;
   onFreehandDraw?: (stroke: FreehandStroke) => void;
   onTextPlace?: (annotation: TextAnnotation) => void;
@@ -44,27 +44,27 @@ interface DrawingState {
   // Brush
   brushStroke: {
     tileId: string;
-    variant: string | undefined;
-    points: Array<{ x: number; y: number }>;
+    variant: TileVariant | string;
+    points: Array<[number, number]>;
     previewId: string;
   } | null;
   
   // Shape
-  shapeStart: { x: number; y: number } | null;
+  shapeStart: [number, number] | null;
   shapePreview: ShapeDefinition | null;
   
   // Freehand
-  freehandPoints: Array<{ x: number; y: number }>;
+  freehandPoints: Array<[number, number]>;
   freehandPreviewId: string | null;
   
   // Text
-  textPosition: { x: number; y: number } | null;
+  textPosition: [number, number] | null;
   textDraft: string;
   textEditing: boolean;
   
   // Select
   selectedElement: { type: string; id: string; element: unknown } | null;
-  selectStart: { x: number; y: number } | null;
+  selectStart: [number, number] | null;
   selectBox: { x1: number; y1: number; x2: number; y2: number } | null;
   transforming: boolean;
   transformHandle: string | null;
@@ -76,23 +76,8 @@ interface DrawingState {
   panning: boolean;
 }
 
-export interface DrawingPreviewItem {
-  type: 'brush' | 'shape' | 'freehand' | 'text' | 'select';
-  [key: string]: unknown;
-}
-
-const DEFAULT_TILE_VARIANT: TileVariant = {
-  id: 'default',
-  name: 'Default',
-  rotation: 0,
-  flipH: false,
-  flipV: false,
-};
-
-const round = (p: { x: number; y: number }): { x: number; y: number } => ({
-  x: Math.round(p.x),
-  y: Math.round(p.y),
-});
+const round = (p: { x: number; y: number } | readonly [number, number]) =>
+  (Array.isArray(p) ? [Math.round(p[0]), Math.round(p[1])] : [Math.round((p as { x: number; y: number }).x), Math.round((p as { x: number; y: number }).y)]) as [number, number];
 const FRAME_MS = 50; // ~20fps for preview updates
 
 export function useDrawingTool(options: DrawingToolOptions) {
@@ -100,10 +85,6 @@ export function useDrawingTool(options: DrawingToolOptions) {
     mapId,
     gridSize,
     activeLayerId,
-    brushSettings,
-    shapeSettings,
-    freehandSettings,
-    textSettings,
     mapControls,
     markDirty,
     onTilePlace,
@@ -135,10 +116,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
   });
   
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const textInputElRef = useRef<HTMLInputElement | null>(null);
-  const setTextInputRef = useCallback((el: HTMLInputElement | null) => {
-    textInputElRef.current = el;
-  }, []);
+  const [textInputRef, setTextInputRef] = useState<HTMLInputElement | null>(null);
   const latest = useRef(options);
   
   useEffect(() => {
@@ -147,10 +125,9 @@ export function useDrawingTool(options: DrawingToolOptions) {
 
   const audience = useCallback((): 'ALL' | 'DM' => 'ALL', []);
 
-  const snapped = useCallback((point: { x: number; y: number }): { x: number; y: number } => {
-    if (latest.current.gridSettings.snapMode === 'off') return point;
-    const [x, y] = snapToGrid([point.x, point.y], latest.current.gridSize);
-    return { x, y };
+  const snapped = useCallback((point: { x: number; y: number }): [number, number] => {
+    if (latest.current.gridSettings.snapMode === 'off') return [point.x, point.y];
+    return snapToGrid([point.x, point.y], latest.current.gridSize);
   }, []);
 
   const sendPreview = useCallback((event: string, data: Record<string, unknown>) => {
@@ -183,7 +160,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     stateRef.current.brushStroke = {
       tileId,
-      variant,
+      variant: variant ?? 'default',
       points: [point],
       previewId,
     };
@@ -198,7 +175,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [brushSettings, mapId, sendPreview, markDirty]);
+  }, [mapId, sendPreview, markDirty]);
 
   const continueBrushStroke = useCallback((at: PointerAt) => {
     const stroke = stateRef.current.brushStroke;
@@ -208,7 +185,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     const lastPoint = stroke.points[stroke.points.length - 1];
     
     // Only add if moved enough
-    const dist = Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y);
+    const dist = Math.hypot(point[0] - lastPoint[0], point[1] - lastPoint[1]);
     if (dist < gridSize * 0.5) return true;
     
     stroke.points.push(point);
@@ -234,11 +211,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
     clearTimer('brush-preview');
     
     // Place tiles at all points
-    const tileVariant: TileVariant = stroke.variant
-      ? { ...DEFAULT_TILE_VARIANT, id: stroke.variant, name: stroke.variant }
-      : DEFAULT_TILE_VARIANT;
     stroke.points.forEach(point => {
-      onTilePlace(stroke.tileId, point.x, point.y, tileVariant);
+      onTilePlace(stroke.tileId, point[0], point[1], stroke.variant);
     });
     
     // Send end preview
@@ -272,7 +246,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [mapId, snapped, shapeSettings, markDirty]);
+  }, [mapId, snapped, markDirty]);
 
   const continueShape = useCallback((at: PointerAt) => {
     const start = stateRef.current.shapeStart;
@@ -299,7 +273,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     // Only create if has size
     const [p1, p2] = preview.points;
-    if (p1.x === p2.x && p1.y === p2.y) {
+    if (p1[0] === p2[0] && p1[1] === p2[1]) {
       stateRef.current.shapeStart = null;
       stateRef.current.shapePreview = null;
       markDirty('overlay');
@@ -310,10 +284,10 @@ export function useDrawingTool(options: DrawingToolOptions) {
 
     // If Instant Room mode: automatically generate 4 vision-blocking wall segments
     if (preview.type === 'room') {
-      const minX = Math.min(p1.x, p2.x);
-      const maxX = Math.max(p1.x, p2.x);
-      const minY = Math.min(p1.y, p2.y);
-      const maxY = Math.max(p1.y, p2.y);
+      const minX = Math.min(p1[0], p2[0]);
+      const maxX = Math.max(p1[0], p2[0]);
+      const minY = Math.min(p1[1], p2[1]);
+      const maxY = Math.max(p1[1], p2[1]);
 
       const wallCorners = [
         { x: minX, y: minY },
@@ -355,7 +329,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     // Check if clicking near first point to close
     if (preview.points.length >= 3) {
       const firstPoint = preview.points[0];
-      const dist = Math.hypot(roundedPoint.x - firstPoint.x, roundedPoint.y - firstPoint.y);
+      const dist = Math.hypot(roundedPoint[0] - firstPoint[0], roundedPoint[1] - firstPoint[1]);
       if (dist < gridSize * 0.5) {
         // Close polygon
         preview.points.push(firstPoint);
@@ -393,7 +367,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [mapId, freehandSettings, audience, sendPreview, markDirty]);
+  }, [mapId, audience, sendPreview, markDirty]);
 
   const continueFreehand = useCallback((at: PointerAt) => {
     const points = stateRef.current.freehandPoints;
@@ -402,7 +376,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     const point = round(at.mapPx);
     const lastPoint = points[points.length - 1];
     
-    const dist = Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y);
+    const dist = Math.hypot(point[0] - lastPoint[0], point[1] - lastPoint[1]);
     if (dist < 2) return true; // Minimum distance
     
     points.push(point);
@@ -420,7 +394,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     markDirty('overlay');
     return true;
-  }, [freehandSettings, audience, sendPreview, markDirty, setTimer]);
+  }, [audience, sendPreview, markDirty, setTimer]);
 
   const endFreehand = useCallback(() => {
     const points = stateRef.current.freehandPoints;
@@ -430,8 +404,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
     clearTimer('freehand-preview');
     
     // Simplify stroke
-    const simplified = douglasPeucker(points, 2 / latest.current.mapControls.zoom);
-    const simplifiedPoints = simplified.map(round);
+    const simplified = douglasPeucker(points.map(([x, y]) => ({ x, y })), 2 / latest.current.mapControls.zoom);
+    const simplifiedPoints = simplified.map(p => [Math.round(p.x), Math.round(p.y)] as [number, number]);
     
     const stroke: FreehandStroke = {
       id: randomId(),
@@ -463,12 +437,12 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     // Focus text input after a tick
     setTimeout(() => {
-      textInputElRef.current?.focus();
+      textInputRef?.focus();
     }, 0);
     
     markDirty('overlay');
     return true;
-  }, [mapId, markDirty]);
+  }, [mapId, textInputRef, markDirty]);
 
   const commitText = useCallback(() => {
     const position = stateRef.current.textPosition;
@@ -477,8 +451,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     const annotation: TextAnnotation = {
       id: randomId(),
-      x: position.x,
-      y: position.y,
+      x: position[0],
+      y: position[1],
       text: draft,
       fontSize: latest.current.textSettings.fontSize,
       color: latest.current.textSettings.color,
@@ -494,7 +468,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     stateRef.current.textDraft = '';
     stateRef.current.textEditing = false;
     markDirty('overlay');
-  }, [onTextPlace, textSettings, markDirty]);
+  }, [onTextPlace, markDirty]);
 
   const cancelText = useCallback(() => {
     stateRef.current.textPosition = null;
@@ -520,7 +494,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     // Actual erase would be handled by server response
     markDirty('overlay');
-  }, [onErase, mapId, brushSettings, gridSize, sendPreview, markDirty]);
+  }, [onErase, mapId, gridSize, sendPreview, markDirty]);
 
   // ============================================
   // SELECT MODE
@@ -531,7 +505,7 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     const point = round(at.mapPx);
     stateRef.current.selectStart = point;
-    stateRef.current.selectBox = { x1: point.x, y1: point.y, x2: point.x, y2: point.y };
+    stateRef.current.selectBox = { x1: point[0], y1: point[1], x2: point[0], y2: point[1] };
     
     markDirty('overlay');
     return true;
@@ -543,10 +517,10 @@ export function useDrawingTool(options: DrawingToolOptions) {
     
     const point = round(at.mapPx);
     stateRef.current.selectBox = {
-      x1: start.x,
-      y1: start.y,
-      x2: point.x,
-      y2: point.y,
+      x1: start[0],
+      y1: start[1],
+      x2: point[0],
+      y2: point[1],
     };
     
     markDirty('overlay');
@@ -722,8 +696,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
   // PREVIEW RENDERING DATA
   // ============================================
   
-  const getPreviews = useCallback((): DrawingPreviewItem[] => {
-    const previews: DrawingPreviewItem[] = [];
+  const getPreviews = useCallback(() => {
+    const previews: unknown[] = [];
     const state = stateRef.current;
     
     if (state.brushStroke) {
@@ -754,8 +728,8 @@ export function useDrawingTool(options: DrawingToolOptions) {
     if (state.textPosition && state.textDraft) {
       previews.push({
         type: 'text',
-        x: state.textPosition.x,
-        y: state.textPosition.y,
+        x: state.textPosition[0],
+        y: state.textPosition[1],
         text: state.textDraft,
         fontSize: latest.current.textSettings.fontSize,
         color: latest.current.textSettings.color,
@@ -771,12 +745,13 @@ export function useDrawingTool(options: DrawingToolOptions) {
     }
     
     return previews;
-  }, [freehandSettings, textSettings]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      Object.values(timersRef.current).forEach(clearTimeout);
+      Object.values(timers).forEach(clearTimeout);
     };
   }, []);
 

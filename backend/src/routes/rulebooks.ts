@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import type { Prisma } from '@prisma/client';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { AuthenticatedRequest } from '../middleware/rbac';
-import { authenticated, campaignDM } from '../middleware/compose';
+import { authenticated } from '../middleware/compose';
 import { prisma } from '../config/database';
 import { UploadRequest, uploadGeneric, handleUploadError } from '../middleware/upload';
 import { validateFileType, validateFileSize } from '../middleware/fileValidation';
@@ -261,7 +261,10 @@ router.get('/:id', authenticated, async (req: AuthenticatedRequest, res: Respons
 router.get('/:id/chunks', authenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.session!.userId!;
-    const queryResult = RulebookChunkListQuerySchema.safeParse(req.query);
+    const queryResult = RulebookChunkListQuerySchema.safeParse({
+      ...req.query,
+      rulebookId: req.query.rulebookId ?? req.params.id,
+    });
     if (!queryResult.success) {
       return res.status(400).json({ error: 'Validation Error', message: queryResult.error.issues[0]?.message });
     }
@@ -312,8 +315,9 @@ router.get('/:id/chunks', authenticated, async (req: AuthenticatedRequest, res: 
  * POST /api/rulebooks/:id/process
  * Start processing a rulebook (extract text, chunk, LLM extraction)
  */
-router.post('/:id/process', authenticated, campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/process', authenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const userId = req.session!.userId!;
     const { id } = req.params;
     const processResult = ProcessRulebookSchema.safeParse({ rulebookId: id });
     if (!processResult.success) {
@@ -327,6 +331,13 @@ router.post('/:id/process', authenticated, campaignDM, async (req: Authenticated
 
     if (!rulebook) {
       return res.status(404).json({ error: 'Not Found', message: 'Rulebook not found' });
+    }
+
+    const membership = await prisma.campaignMembership.findUnique({
+      where: { userId_campaignId: { userId, campaignId: rulebook.campaignId } },
+    });
+    if (!membership || membership.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'DM access required' });
     }
 
     if (rulebook.status === 'PROCESSING') {
@@ -386,7 +397,7 @@ router.get('/:id/processing-status', authenticated, async (req: AuthenticatedReq
  * POST /api/rulebooks/:id/activate
  * Activate rulebook content for a campaign
  */
-router.post('/:id/activate', authenticated, campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/activate', authenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.session!.userId!;
     const { id } = req.params;
@@ -405,6 +416,13 @@ router.post('/:id/activate', authenticated, campaignDM, async (req: Authenticate
 
     if (!rulebook) {
       return res.status(404).json({ error: 'Not Found', message: 'Rulebook not found' });
+    }
+
+    const membership = await prisma.campaignMembership.findUnique({
+      where: { userId_campaignId: { userId, campaignId: rulebook.campaignId } },
+    });
+    if (!membership || membership.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'DM access required' });
     }
 
     // Check if activation already exists
@@ -493,8 +511,9 @@ router.get('/:id/activations', authenticated, async (req: AuthenticatedRequest, 
  * DELETE /api/rulebooks/:id/activations/:activationId
  * Deactivate rulebook content
  */
-router.delete('/:id/activations/:activationId', authenticated, campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id/activations/:activationId', authenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const userId = req.session!.userId!;
     const { id, activationId } = req.params;
 
     const activation = await prisma.rulebookActivation.findUnique({
@@ -504,6 +523,13 @@ router.delete('/:id/activations/:activationId', authenticated, campaignDM, async
 
     if (!activation || activation.rulebookId !== id) {
       return res.status(404).json({ error: 'Not Found', message: 'Activation not found' });
+    }
+
+    const membership = await prisma.campaignMembership.findUnique({
+      where: { userId_campaignId: { userId, campaignId: activation.campaignId } },
+    });
+    if (!membership || membership.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'DM access required' });
     }
 
     await prisma.rulebookActivation.delete({ where: { id: activationId } });
@@ -519,8 +545,9 @@ router.delete('/:id/activations/:activationId', authenticated, campaignDM, async
  * DELETE /api/rulebooks/:id
  * Delete a rulebook (DM only)
  */
-router.delete('/:id', authenticated, campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', authenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const userId = req.session!.userId!;
     const { id } = req.params;
 
     const rulebook = await prisma.rulebook.findUnique({
@@ -530,6 +557,13 @@ router.delete('/:id', authenticated, campaignDM, async (req: AuthenticatedReques
 
     if (!rulebook) {
       return res.status(404).json({ error: 'Not Found', message: 'Rulebook not found' });
+    }
+
+    const membership = await prisma.campaignMembership.findUnique({
+      where: { userId_campaignId: { userId, campaignId: rulebook.campaignId } },
+    });
+    if (!membership || membership.role !== 'DM') {
+      return res.status(403).json({ error: 'Forbidden', message: 'DM access required' });
     }
 
     // Delete file

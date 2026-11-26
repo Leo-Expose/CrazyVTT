@@ -331,7 +331,7 @@ export type ShapeType = 'rect' | 'circle' | 'polygon' | 'line' | 'arrow' | 'room
 export interface ShapeDefinition {
   id: string;
   type: ShapeType;
-  points: Array<{ x: number; y: number }>; // In map pixels
+  points: Array<[number, number]>; // In map pixels
   color: string;
   fillColor?: string;
   strokeWidth: number;
@@ -343,7 +343,7 @@ export interface ShapeDefinition {
 
 export interface FreehandStroke {
   id: string;
-  points: Array<{ x: number; y: number }>;
+  points: Array<[number, number]>;
   color: string;
   strokeWidth: number;
 }
@@ -363,7 +363,7 @@ export interface TextAnnotation {
 
 export interface BrushSettings {
   tileId: string;
-  variant?: string;
+  variant?: TileVariant | string;
   size: number; // Brush radius in grid cells
   shape: 'circle' | 'square';
   opacity: number;
@@ -2296,7 +2296,6 @@ export interface CombatState {
   active: boolean;
   round: number;
   currentTokenId: string | null;
-  currentIndex: number;
   combatants: CombatantEntry[];
 }
 

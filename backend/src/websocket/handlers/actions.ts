@@ -8,6 +8,11 @@ import { AuthenticatedSocket } from '../auth';
 import { prisma } from '../../config/database';
 import { withinCeiling } from '../shared';
 import { ackFrom, refuseRequest } from '../ack';
+import { withMapsLocked } from '../../utils/mapTokens';
+import { canControlToken, canReadMap } from '../../services/permissions';
+import { tokenForRecipient, getSpiritVisibilityBatch, filterTokensByRole, playerSightOnLitMap, viewerIdFor } from '../../utils/spirit-layer';
+import { campaignSockets, stillInCampaign } from '../utils';
+import type { Token } from '../shared';
 import { 
   getCharacterActions, 
   setActionUsed,
@@ -78,12 +83,17 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
         return;
       }
-      
+
       if (!withinCeiling(socket, 'action:getRegistry', ack)) return;
+
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.characterId) {
+        refuse('characterId is required');
+        return;
+      }
 
       const { characterId, forceRefresh } = data;
       
@@ -126,18 +136,31 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
         return;
       }
-      
+
       if (!withinCeiling(socket, 'action:preview', ack)) return;
 
-      const { actionId, actionType, actionData, initiatorId, targetIds } = data;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        refuse('Invalid payload');
+        return;
+      }
 
-      // Get initiator stats for preview
+      const { actionId, actionType, actionData, initiatorId, targetIds } = data;
+      if (!initiatorId || typeof initiatorId !== 'string') {
+        refuse('initiatorId is required');
+        return;
+      }
+
+      // Get initiator stats for preview (scoped to campaign)
       const initiator = await getInitiatorStats(initiatorId, socket.campaignId);
-      
+      if (!initiator) {
+        refuse('Initiator not found in this campaign');
+        return;
+      }
+
       const preview = await generateActionPreview({
         actionId,
         actionType,
@@ -148,7 +171,7 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
       });
 
       ack?.({ ok: true, preview });
-      
+
       logger.debug('action:preview', { actionType, initiatorId });
     } catch (error) {
       logger.error('action:preview failed', { err: error });
@@ -162,46 +185,66 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
   socket.on('action:startResolution', async (data: ActionPreviewData, ackArg?: unknown) => {
     const ack = ackFrom(ackArg);
     const refuse = (message: string) => refuseRequest(socket, ack, message);
-    
+
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
         return;
       }
-      
+
       if (!withinCeiling(socket, 'action:startResolution', ack)) return;
 
-      const { actionId, actionType, actionData, initiatorId, targetIds } = data;
-
-      // Verify initiator can act
-      const initiator = await getInitiatorStats(initiatorId, socket.campaignId);
-      if (!initiator) {
-        refuse('Initiator not found');
+      if (socket.role === 'SPECTATOR') {
+        refuse('Spectators cannot perform actions');
         return;
       }
 
-      // Check if it's the initiator's turn (if in combat)
-      await prisma.campaign.findUnique({
-        where: { id: socket.campaignId },
-        select: { id: true },
-      });
-      
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        refuse('Invalid payload');
+        return;
+      }
+
+      const { actionId, actionType, actionData, initiatorId, targetIds } = data;
+      if (!initiatorId || typeof initiatorId !== 'string') {
+        refuse('initiatorId is required');
+        return;
+      }
+
+      // Verify initiator belongs to this campaign and this user may act for it
+      const authorized = await canActAsInitiator(socket, socket.campaignId, initiatorId);
+      if (!authorized.ok) {
+        refuse(authorized.error);
+        return;
+      }
+
+      if (actionId) {
+        const action = await prisma.characterAction.findUnique({
+          where: { id: actionId },
+          select: { character: { select: { userId: true, campaignId: true } } },
+        });
+        if (!action || action.character.campaignId !== socket.campaignId ||
+            (socket.role !== 'DM' && action.character.userId !== socket.userId)) {
+          refuse('Action not found or not authorized');
+          return;
+        }
+      }
+
       // Create resolution record in PREVIEW state
       const resolution = await prisma.actionResolution.create({
         data: {
           campaignId: socket.campaignId,
           initiatorId,
-          targetIds: targetIds || [],
+          targetIds: Array.isArray(targetIds) ? targetIds : [],
           actionId,
           actionType,
-          actionData: JSON.parse(JSON.stringify(actionData)) as Prisma.InputJsonValue,
+          actionData: JSON.parse(JSON.stringify(actionData ?? {})) as Prisma.InputJsonValue,
           status: 'PREVIEW',
         },
       });
 
       // If action has a cost, mark it as used (tentatively)
       if (actionId) {
-        await setActionUsed(actionId, true);
+        await setActionUsed(actionId, true).catch(() => {});
       }
 
       // Broadcast to campaign
@@ -210,12 +253,12 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
         initiatorId,
         actionType,
         actionData,
-        targetIds: targetIds || [],
+        targetIds: Array.isArray(targetIds) ? targetIds : [],
         status: 'PREVIEW',
       });
 
       ack?.({ ok: true, resolutionId: resolution.id });
-      
+
       logger.info('action:startResolution', { resolutionId: resolution.id, actionType });
     } catch (error) {
       logger.error('action:startResolution failed', { err: error });
@@ -229,14 +272,24 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
   socket.on('action:roll', async (data: ActionRollData, ackArg?: unknown) => {
     const ack = ackFrom(ackArg);
     const refuse = (message: string) => refuseRequest(socket, ack, message);
-    
+
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
         return;
       }
-      
+
       if (!withinCeiling(socket, 'action:roll', ack)) return;
+
+      if (socket.role === 'SPECTATOR') {
+        refuse('Spectators cannot roll actions');
+        return;
+      }
+
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.resolutionId) {
+        refuse('resolutionId is required');
+        return;
+      }
 
       const { resolutionId, attackRolls, saveRolls } = data;
 
@@ -251,6 +304,12 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
 
       if (resolution.campaignId !== socket.campaignId) {
         refuse('Resolution not in this campaign');
+        return;
+      }
+
+      const authorized = await canActAsInitiator(socket, socket.campaignId, resolution.initiatorId);
+      if (!authorized.ok) {
+        refuse(authorized.error);
         return;
       }
 
@@ -405,8 +464,17 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
     const refuse = (message: string) => refuseRequest(socket, ack, message);
     
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'action:reactionPrompt', ack)) return;
+      if (socket.role === 'SPECTATOR') {
+        refuse('Spectators cannot prompt reactions');
+        return;
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.responderId || !data.reactionId) {
+        refuse('responderId and reactionId are required');
         return;
       }
 
@@ -438,10 +506,19 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
   socket.on('action:reactionResponse', async (data: { reactionId: string; use: boolean; actionData?: { actionId?: string } }, ackArg?: unknown) => {
     const ack = ackFrom(ackArg);
     const refuse = (message: string) => refuseRequest(socket, ack, message);
-    
+
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'action:reactionResponse', ack)) return;
+      if (socket.role === 'SPECTATOR') {
+        refuse('Spectators cannot respond to reactions');
+        return;
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.reactionId) {
+        refuse('reactionId is required');
         return;
       }
 
@@ -449,17 +526,23 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
       io.to(socket.campaignId).emit('action:reactionResolved', {
         reactionId: data.reactionId,
         responderId: socket.userId,
-        use: data.use,
+        use: Boolean(data.use),
         actionData: data.actionData,
       });
 
-      // If reaction used, mark it as used
+      // If reaction used, mark it as used (only if owned by user/DM in this campaign)
       if (data.use && data.actionData?.actionId) {
-        await setActionUsed(data.actionData.actionId, true);
+        const action = await prisma.characterAction.findUnique({
+          where: { id: data.actionData.actionId },
+          select: { character: { select: { userId: true, campaignId: true } } },
+        });
+        if (action?.character?.campaignId === socket.campaignId && (socket.role === 'DM' || action.character.userId === socket.userId)) {
+          await setActionUsed(data.actionData.actionId, true);
+        }
       }
 
       ack?.({ ok: true });
-      
+
       logger.debug('action:reactionResponse', { reactionId: data.reactionId, use: data.use });
     } catch (error) {
       logger.error('action:reactionResponse failed', { err: error });
@@ -473,14 +556,21 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
   socket.on('action:resetUsed', async (data: { characterId: string; restType: 'SHORT_REST' | 'LONG_REST' | 'TURN_START' }, ackArg?: unknown) => {
     const ack = ackFrom(ackArg);
     const refuse = (message: string) => refuseRequest(socket, ack, message);
-    
+
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
         return;
       }
-      
       if (!withinCeiling(socket, 'action:resetUsed', ack)) return;
+      if (socket.role === 'SPECTATOR') {
+        refuse('Spectators cannot reset actions');
+        return;
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.characterId || !data.restType) {
+        refuse('characterId and restType are required');
+        return;
+      }
 
       const { characterId, restType } = data;
 
@@ -490,14 +580,14 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
         select: { userId: true, campaignId: true },
       });
 
-      if (!character) {
+      if (!character || character.campaignId !== socket.campaignId) {
         refuse('Character not found');
         return;
       }
 
       const isOwner = character.userId === socket.userId;
       const isDM = socket.role === 'DM';
-      
+
       if (!isOwner && !isDM) {
         refuse('Not authorized');
         return;
@@ -508,7 +598,7 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
       io.to(socket.campaignId).emit('action:usedReset', { characterId, restType });
 
       ack?.({ ok: true });
-      
+
       logger.info('action:resetUsed', { characterId, restType });
     } catch (error) {
       logger.error('action:resetUsed failed', { err: error });
@@ -539,12 +629,34 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
     const refuse = (message: string) => refuseRequest(socket, ack, message);
 
     try {
-      if (!socket.campaignId) {
+      if (!socket.campaignId || !socket.userId) {
         refuse('Not authenticated to a campaign');
+        return;
+      }
+      if (!withinCeiling(socket, 'action:resolve', ack)) return;
+      if (socket.role === 'SPECTATOR') {
+        refuse('Spectators cannot resolve actions');
+        return;
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.targets)) {
+        refuse('targets array is required');
         return;
       }
 
       const { actionId, actionName, initiatorId, targets, effects, dmModifications } = data;
+
+      if (socket.role !== 'DM') {
+        if (!initiatorId || typeof initiatorId !== 'string') {
+          refuse('initiatorId is required');
+          return;
+        }
+        const authorized = await canActAsInitiator(socket, socket.campaignId, initiatorId);
+        if (!authorized.ok) {
+          refuse(authorized.error);
+          return;
+        }
+      }
+
       const appliedResults: Array<{
         targetId: string;
         previousHP?: number;
@@ -552,81 +664,164 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
         appliedConditions?: string[];
       }> = [];
 
-      // 1. If an action is identified, mark it as used
+      // 1. If an action is identified, mark it as used (verify campaign & ownership)
       if (actionId) {
-        await setActionUsed(actionId, true).catch(() => {});
+        const action = await prisma.characterAction.findUnique({
+          where: { id: actionId },
+          select: { character: { select: { userId: true, campaignId: true } } },
+        });
+        if (action?.character?.campaignId === socket.campaignId && (socket.role === 'DM' || action.character.userId === socket.userId)) {
+          await setActionUsed(actionId, true).catch(() => {});
+        }
       }
 
-      // 2. Apply effects to each target token or character
-      for (const target of targets) {
-        // Look up maps containing this token
-        const mapList: Array<{ id: string; tokens: unknown }> = await prisma.map.findMany({
-          where: { campaignId: socket.campaignId },
-          select: { id: true, tokens: true },
+      const campaign = await prisma.campaign.findUnique({
+        where: { id: socket.campaignId },
+        select: { currentMapId: true },
+      });
+      const currentMapId = campaign?.currentMapId ?? null;
+
+      // 2. Apply effects to each target token under map lock
+      const campaignMaps = await prisma.map.findMany({
+        where: { campaignId: socket.campaignId },
+        select: { id: true, tokens: true, lightingEnabled: true, globalIllumination: true, wallSegments: true, lights: true },
+      });
+
+      const readableMaps = campaignMaps.filter((m) => canReadMap(socket.role, m.id, currentMapId));
+      const targetIds = new Set(targets.map((t) => t.id));
+      const affectedMapIds = readableMaps
+        .filter((m) => {
+          const toks = Array.isArray(m.tokens) ? (m.tokens as Array<Record<string, unknown>>) : [];
+          return toks.some((tok) => typeof tok.id === 'string' && targetIds.has(tok.id));
+        })
+        .map((m) => m.id);
+
+      const updatedBroadcasts: Array<{ mapId: string; tokens: Array<Record<string, unknown>> }> = [];
+
+      if (affectedMapIds.length > 0) {
+        await withMapsLocked(affectedMapIds, async (tx) => {
+          for (const mapId of affectedMapIds) {
+            const freshMap = await tx.map.findUnique({
+              where: { id: mapId },
+              select: { id: true, tokens: true },
+            });
+            if (!freshMap) continue;
+            const mapTokens = Array.isArray(freshMap.tokens)
+              ? [...(freshMap.tokens as Array<Record<string, unknown>>)]
+              : [];
+            const changedTokens: Array<Record<string, unknown>> = [];
+
+            for (const target of targets) {
+              const tokenIndex = mapTokens.findIndex((tok) => tok.id === target.id);
+              if (tokenIndex === -1) continue;
+
+              const token = { ...mapTokens[tokenIndex] };
+              const hp = (token.hp as { current: number; max?: number; maximum?: number; temp?: number; temporary?: number }) || null;
+              const newHP = hp ? { ...hp } : null;
+
+              if (newHP) {
+                const maxVal = newHP.maximum ?? newHP.max ?? newHP.current;
+                let tempVal = newHP.temporary ?? newHP.temp ?? 0;
+
+                if (typeof effects?.damage === 'number' && Number.isFinite(effects.damage) && effects.damage > 0) {
+                  let damageRemaining = effects.damage;
+                  if (tempVal > 0) {
+                    const absorbed = Math.min(tempVal, damageRemaining);
+                    tempVal -= absorbed;
+                    damageRemaining -= absorbed;
+                  }
+                  newHP.current = Math.max(0, newHP.current - damageRemaining);
+                }
+                if (typeof effects?.healing === 'number' && Number.isFinite(effects.healing) && effects.healing > 0) {
+                  newHP.current = Math.min(maxVal, newHP.current + effects.healing);
+                }
+                if (typeof effects?.tempHP === 'number' && Number.isFinite(effects.tempHP) && effects.tempHP > 0) {
+                  tempVal = Math.max(tempVal, effects.tempHP);
+                }
+                if (newHP.temporary !== undefined) newHP.temporary = tempVal;
+                else newHP.temp = tempVal;
+                token.hp = newHP;
+              }
+
+              const conditions = Array.isArray(token.conditions) ? [...(token.conditions as string[])] : [];
+              if (Array.isArray(effects?.conditions)) {
+                for (const c of effects.conditions) {
+                  if (c?.name && !conditions.includes(c.name)) {
+                    conditions.push(c.name);
+                  }
+                }
+                token.conditions = conditions;
+              }
+
+              mapTokens[tokenIndex] = token;
+              changedTokens.push(token);
+
+              appliedResults.push({
+                targetId: target.id,
+                previousHP: hp?.current,
+                newHP: newHP?.current,
+                appliedConditions: effects?.conditions?.map((c) => c.name),
+              });
+            }
+
+            if (changedTokens.length > 0) {
+              await tx.map.update({
+                where: { id: mapId },
+                data: { tokens: mapTokens as unknown as Prisma.InputJsonValue },
+              });
+              updatedBroadcasts.push({ mapId, tokens: changedTokens });
+            }
+          }
         });
+      }
 
-        for (const currentMap of mapList) {
-          const mapTokens = (currentMap.tokens as Array<Record<string, unknown>>) || [];
-          const tokenIndex = mapTokens.findIndex((tok: Record<string, unknown>) => tok.id === target.id);
-          if (tokenIndex !== -1) {
-            const token = mapTokens[tokenIndex];
-            const hp = (token.hp as { current: number; max: number; temp?: number }) || null;
-            let newHP = hp ? { ...hp } : null;
+      // Broadcast each updated token masked per recipient role, plane, and sight
+      if (updatedBroadcasts.length > 0) {
+        const sockets = await campaignSockets(io, socket.campaignId);
+        const visibility = await getSpiritVisibilityBatch(
+          socket.campaignId,
+          sockets.map((s) => (s as unknown as AuthenticatedSocket).userId).filter((id): id is string => !!id)
+        );
+        const fullMaps = await prisma.map.findMany({
+          where: { id: { in: updatedBroadcasts.map((u) => u.mapId) } },
+          select: { id: true, tokens: true, width: true, height: true, gridSize: true, lightingEnabled: true, globalIllumination: true, wallSegments: true, lights: true },
+        });
+        const mapById = new Map(fullMaps.map((m) => [m.id, m]));
 
-            if (newHP) {
-              // Apply damage
-              if (effects?.damage && effects.damage > 0) {
-                let damageRemaining = effects.damage;
-                if (newHP.temp && newHP.temp > 0) {
-                  const absorbed = Math.min(newHP.temp, damageRemaining);
-                  newHP.temp -= absorbed;
-                  damageRemaining -= absorbed;
-                }
-                newHP.current = Math.max(0, newHP.current - damageRemaining);
-              }
-              // Apply healing
-              if (effects?.healing && effects.healing > 0) {
-                newHP.current = Math.min(newHP.max, newHP.current + effects.healing);
-              }
-              // Apply temp HP
-              if (effects?.tempHP && effects.tempHP > 0) {
-                newHP.temp = Math.max(newHP.temp || 0, effects.tempHP);
-              }
+        for (const broadcast of updatedBroadcasts) {
+          const mapMeta = mapById.get(broadcast.mapId);
+          for (const s of stillInCampaign(sockets, socket.campaignId)) {
+            const member = s as unknown as AuthenticatedSocket;
+            if (!canReadMap(member.role, broadcast.mapId, currentMapId)) continue;
+            const spiritVisible = member.role === 'DM' ? true : member.userId ? (visibility.get(member.userId) ?? false) : false;
+            const viewer = viewerIdFor(member.role, member.userId);
+            const roleTokens = filterTokensByRole(mapMeta?.tokens ?? [], member.role || 'PLAYER', spiritVisible, member.userId);
+            const sight = (member.role !== 'DM' && mapMeta?.lightingEnabled)
+              ? playerSightOnLitMap(
+                  roleTokens,
+                  viewer,
+                  mapMeta.wallSegments,
+                  mapMeta.width,
+                  mapMeta.height,
+                  mapMeta.gridSize,
+                  mapMeta.lights,
+                  mapMeta.globalIllumination ?? true
+                )
+              : null;
 
-              token.hp = newHP;
+            for (const rawTok of broadcast.tokens) {
+              const tok = rawTok as unknown as Token;
+              if (member.role !== 'DM') {
+                if (tok.visible === false) continue;
+                if (spiritVisible && tok.layer !== 'spirit') continue;
+                if (!spiritVisible && tok.layer !== 'token') continue;
+                if (sight && !sight.seesToken(tok)) continue;
+              }
+              s.emit('token:updated', {
+                mapId: broadcast.mapId,
+                token: tokenForRecipient(tok, viewer),
+              });
             }
-
-            // Apply conditions
-            const conditions = Array.isArray(token.conditions) ? [...(token.conditions as string[])] : [];
-            if (effects?.conditions) {
-              for (const c of effects.conditions) {
-                if (!conditions.includes(c.name)) {
-                  conditions.push(c.name);
-                }
-              }
-              token.conditions = conditions;
-            }
-
-            mapTokens[tokenIndex] = token;
-
-            // Persist updated token to map
-            await prisma.map.update({
-              where: { id: currentMap.id },
-              data: { tokens: mapTokens as unknown as Prisma.InputJsonValue },
-            });
-
-            appliedResults.push({
-              targetId: target.id,
-              previousHP: hp?.current,
-              newHP: newHP?.current,
-              appliedConditions: effects?.conditions?.map((c) => c.name),
-            });
-
-            // Broadcast token update
-            io.to(socket.campaignId).emit('token:updated', {
-              mapId: currentMap.id,
-              token,
-            });
           }
         }
       }
@@ -656,17 +851,54 @@ export function registerActionHandlers(io: Server, socket: AuthenticatedSocket):
   });
 }
 
+async function canActAsInitiator(
+  socket: AuthenticatedSocket,
+  campaignId: string,
+  initiatorId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const character = await prisma.character.findUnique({
+    where: { id: initiatorId },
+    select: { userId: true, campaignId: true },
+  });
+  if (character) {
+    if (character.campaignId !== campaignId) {
+      return { ok: false, error: 'Initiator is not in this campaign' };
+    }
+    if (socket.role === 'DM' || character.userId === socket.userId) {
+      return { ok: true };
+    }
+    return { ok: false, error: 'You do not control this character' };
+  }
+
+  const maps = await prisma.map.findMany({
+    where: { campaignId },
+    select: { tokens: true },
+  });
+  for (const m of maps) {
+    const tokens = Array.isArray(m.tokens) ? (m.tokens as Array<{ id?: string; controlledBy?: string | null }>) : [];
+    const token = tokens.find((t) => t.id === initiatorId);
+    if (token) {
+      if (canControlToken(socket.role, token.controlledBy, socket.userId)) {
+        return { ok: true };
+      }
+      return { ok: false, error: 'You do not control this token' };
+    }
+  }
+
+  return { ok: false, error: 'Initiator not found' };
+}
+
 /**
  * Get initiator stats for preview calculations
  */
-async function getInitiatorStats(initiatorId: string, _campaignId: string) {
-  // Try character first
+async function getInitiatorStats(initiatorId: string, campaignId: string) {
+  // Try character first (scoped to campaign)
   const character = await prisma.character.findUnique({
     where: { id: initiatorId },
-    select: { data: true, gameSystem: true },
+    select: { data: true, gameSystem: true, campaignId: true },
   });
 
-  if (character && character.gameSystem === 'DND_5E') {
+  if (character && character.campaignId === campaignId && character.gameSystem === 'DND_5E') {
     const data = character.data as unknown as { level?: number; proficiencyBonus?: number; spellcastingAbility?: string; spellAttackBonus?: number; spellSaveDC?: number };
     return {
       level: data.level || 1,
@@ -677,9 +909,9 @@ async function getInitiatorStats(initiatorId: string, _campaignId: string) {
     };
   }
 
-  // Try token
+  // Try token (scoped to campaign)
   const maps = await prisma.map.findMany({
-    where: { tokens: { path: '$[*].id', equals: initiatorId } },
+    where: { campaignId, tokens: { path: '$[*].id', equals: initiatorId } },
     select: { tokens: true },
   });
 
@@ -695,12 +927,10 @@ async function getInitiatorStats(initiatorId: string, _campaignId: string) {
         spellSaveDC: token.statBlock.spellSaveDC,
       };
     }
+    return { level: 1, proficiencyBonus: 2 };
   }
 
-  return {
-    level: 1,
-    proficiencyBonus: 2,
-  };
+  return null;
 }
 
 /**

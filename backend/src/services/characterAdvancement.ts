@@ -132,8 +132,8 @@ export async function getAdvancement(characterId: string): Promise<CharacterAdva
  * Calculate XP progress to next level
  */
 function calculateXpProgress(currentXp: number, level: number, gameSystem: GameSystem): { xpToNextLevel: number; progressPercent: number } {
-  let xpForCurrentLevel = 0;
-  let xpForNextLevel = 0;
+  let xpForCurrentLevel: number;
+  let xpForNextLevel: number;
 
   switch (gameSystem) {
     case GameSystem.DND_5E: {

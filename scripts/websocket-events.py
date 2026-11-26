@@ -90,7 +90,9 @@ def sources():
             if '__tests__' in normalised or normalised in seen:
                 continue
             seen.add(normalised)
-            yield path, io.open(path, encoding='utf-8').read()
+            with io.open(path, encoding='utf-8') as source:
+                text = source.read()
+            yield path, text
 
 
 def describe(text, index):
@@ -508,7 +510,8 @@ def main():
     rendered = table(inbound, outbound)
 
     if args.check or args.write:
-        doc = io.open(DOC, encoding='utf-8').read()
+        with io.open(DOC, encoding='utf-8') as source:
+            doc = source.read()
         if BEGIN not in doc or END not in doc:
             print(f'{DOC} has no generated block; add {BEGIN} / {END}')
             return 1
@@ -530,7 +533,8 @@ def main():
 
         updated = (doc[:doc.index(BEGIN) + len(BEGIN)] + '\n\n' + rendered + '\n\n'
                    + doc[doc.index(END):])
-        io.open(DOC, 'w', encoding='utf-8', newline='\n').write(updated)
+        with io.open(DOC, 'w', encoding='utf-8', newline='\n') as output:
+            output.write(updated)
         print(f'Wrote {len(inbound)} inbound and {len(outbound)} outbound events into {DOC}')
         return 0
 

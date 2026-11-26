@@ -35,7 +35,7 @@ export const MobileActionFab: React.FC<MobileActionFabProps> = ({
               setOpen(false);
               onOpenCombatAction?.();
             }}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand text-white shadow-xl hover:bg-brand-hover text-xs font-semibold transition-all active:scale-95"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand text-brand-text shadow-xl hover:bg-brand-hover text-xs font-semibold transition-all active:scale-95"
           >
             <Sword className="w-4 h-4" />
             Attack / Cast Action
@@ -49,7 +49,7 @@ export const MobileActionFab: React.FC<MobileActionFabProps> = ({
             }}
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-elevated text-ink border border-edge shadow-xl hover:bg-surface-light text-xs font-semibold transition-all active:scale-95"
           >
-            <Dice5 className="w-4 h-4 text-brand" />
+            <Dice5 className="w-4 h-4 text-brand-ink" />
             Roll D20 / Check
           </button>
 
@@ -72,7 +72,7 @@ export const MobileActionFab: React.FC<MobileActionFabProps> = ({
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-label={open ? 'Close quick action menu' : 'Open mobile action drawer'}
-        className="w-12 h-12 rounded-full bg-brand text-white shadow-2xl flex items-center justify-center hover:bg-brand-hover active:scale-95 transition-all pointer-events-auto border-2 border-white/20"
+        className="w-12 h-12 rounded-full bg-brand text-brand-text shadow-2xl flex items-center justify-center hover:bg-brand-hover active:scale-95 transition-all pointer-events-auto border-2 border-white/20"
       >
         {open ? <X className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
       </button>

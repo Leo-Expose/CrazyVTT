@@ -17,7 +17,7 @@ const ESM_ONLY = [
   '@tokenizer/inflate',
   'uint8array-extras',
   '@borewit/text-codec',
-].join('|');
+].map((pkg) => pkg.replace('/', '[\\\\/]')).join('|');
 
 module.exports = {
   preset: 'ts-jest',
@@ -56,14 +56,14 @@ module.exports = {
   // --experimental-vm-modules. The warning is turned off instead.
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { diagnostics: { ignoreCodes: [151002] } }],
-    [`/node_modules/(${ESM_ONLY})/.+\\.js$`]: [
+    [`[\\\\/]node_modules[\\\\/](${ESM_ONLY})[\\\\/].+\\.js$`]: [
       'ts-jest',
       { tsconfig: { allowJs: true, module: 'commonjs', target: 'ES2022' }, diagnostics: false },
     ],
   },
   // A package is judged by the innermost node_modules it sits in: npm nests
   // otplib's copy of @noble/hashes inside the plugin that uses it.
-  transformIgnorePatterns: [`/node_modules/(?!(${ESM_ONLY})/)(?!.*/node_modules/)`],
+  transformIgnorePatterns: [`[\\\\/]node_modules[\\\\/](?!(${ESM_ONLY})[\\\\/])(?!.*[\\\\/]node_modules[\\\\/])`],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

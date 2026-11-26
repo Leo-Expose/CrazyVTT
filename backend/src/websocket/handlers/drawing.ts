@@ -4,7 +4,7 @@
 // ============================================
 
 import { Server } from 'socket.io';
-import { Prisma } from '@prisma/client';
+import { LayerType, Prisma } from '@prisma/client';
 import { AuthenticatedSocket } from '../auth';
 import { prisma } from '../../config/database';
 import { emitToMapReaders } from '../utils';
@@ -64,9 +64,19 @@ function toPrismaJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
-export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket): void {
-  if (!socket.campaignId) return;
+function asLayerDataObject(raw: unknown): Record<string, unknown> {
+  return raw !== null && typeof raw === 'object' && !Array.isArray(raw)
+    ? { ...(raw as Record<string, unknown>) }
+    : {};
+}
 
+function isPlainPayload(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+const VALID_LAYER_TYPES = new Set<string>(Object.values(LayerType));
+
+export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket): void {
   /**
    * SHAPE.DRAW - Draw a shape on a layer
    * DM only
@@ -77,6 +87,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     shape: ShapeDefinition;
   }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'shape:draw')) return;
 
       if (socket.role !== 'DM') {
@@ -84,43 +98,45 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, layerId, shape } = data;
-      if (!mapId || !layerId || !shape) {
+      if (!mapId || !layerId || !shape || typeof shape.id !== 'string') {
         socket.emit('error', { message: 'mapId, layerId, and shape required' });
         return;
       }
 
-      // Verify map belongs to campaign
       const map = await prisma.map.findUnique({ where: { id: mapId } });
       if (!map || map.campaignId !== socket.campaignId) {
         socket.emit('error', { message: 'Map not found' });
         return;
       }
 
-      // Verify layer exists and is an annotations layer
-      const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId } });
-      if (!layer) {
-        socket.emit('error', { message: 'Layer not found' });
-        return;
-      }
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE id = ${layerId} FOR UPDATE`;
+        const layer = await tx.mapLayer.findUnique({ where: { id: layerId, mapId } });
+        if (!layer) return { error: 'Layer not found' } as const;
+        if (layer.type !== 'ANNOTATIONS') {
+          return { error: 'Shapes can only be drawn on annotation layers' } as const;
+        }
+        const currentData = asLayerDataObject(layer.data);
+        const shapes = Array.isArray(currentData.shapes) ? [...(currentData.shapes as ShapeDefinition[])] : [];
+        shapes.push(shape);
 
-      if (layer.type !== 'ANNOTATIONS') {
-        socket.emit('error', { message: 'Shapes can only be drawn on annotation layers' });
-        return;
-      }
-
-      // Get current shapes and add new one
-      const currentData = layer.data as unknown as { shapes?: ShapeDefinition[] } | null;
-      const shapes = currentData?.shapes || [];
-      shapes.push(shape);
-
-      // Update layer data
-      await prisma.mapLayer.update({
-        where: { id: layerId },
-        data: { data: toPrismaJson({ shapes }) }
+        await tx.mapLayer.update({
+          where: { id: layerId },
+          data: { data: toPrismaJson({ ...currentData, shapes }) },
+        });
+        return { ok: true } as const;
       });
 
-      // Broadcast to all campaign members
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
+        return;
+      }
+
       await emitToMapReaders(io, socket.campaignId, mapId, 'shape:drawn', { mapId, layerId, shape });
 
       logger.info('shape:draw', { mapId, layerId, shapeId: shape.id, userId: socket.userId });
@@ -141,6 +157,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     updates: Partial<ShapeDefinition>;
   }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'shape:update')) return;
 
       if (socket.role !== 'DM') {
@@ -148,32 +168,42 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, layerId, shapeId, updates } = data;
-      if (!mapId || !layerId || !shapeId) {
-        socket.emit('error', { message: 'mapId, layerId, and shapeId required' });
+      if (!mapId || !layerId || !shapeId || !isPlainPayload(updates)) {
+        socket.emit('error', { message: 'mapId, layerId, shapeId, and updates required' });
         return;
       }
 
-      // Verify map belongs to campaign
       const map = await prisma.map.findUnique({ where: { id: mapId } });
       if (!map || map.campaignId !== socket.campaignId) {
         socket.emit('error', { message: 'Map not found' });
         return;
       }
 
-      const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId } });
-      if (!layer) {
-        socket.emit('error', { message: 'Layer not found' });
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE id = ${layerId} FOR UPDATE`;
+        const layer = await tx.mapLayer.findUnique({ where: { id: layerId, mapId } });
+        if (!layer) return { error: 'Layer not found' } as const;
+
+        const currentData = asLayerDataObject(layer.data);
+        const existingShapes = Array.isArray(currentData.shapes) ? (currentData.shapes as ShapeDefinition[]) : [];
+        const shapes = existingShapes.map((s) => (s.id === shapeId ? { ...s, ...updates, id: s.id } : s));
+
+        await tx.mapLayer.update({
+          where: { id: layerId },
+          data: { data: toPrismaJson({ ...currentData, shapes }) },
+        });
+        return { ok: true } as const;
+      });
+
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
         return;
       }
-
-      const currentData = layer.data as unknown as { shapes?: ShapeDefinition[] } | null;
-      const shapes = (currentData?.shapes || []).map(s => s.id === shapeId ? { ...s, ...updates } : s);
-
-      await prisma.mapLayer.update({
-        where: { id: layerId },
-        data: { data: toPrismaJson({ shapes }) }
-      });
 
       await emitToMapReaders(io, socket.campaignId, mapId, 'shape:updated', { mapId, layerId, shapeId, updates });
 
@@ -190,6 +220,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
    */
   socket.on('shape:delete', async (data: { mapId: string; layerId: string; shapeId: string }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'shape:delete')) return;
 
       if (socket.role !== 'DM') {
@@ -197,6 +231,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, layerId, shapeId } = data;
       if (!mapId || !layerId || !shapeId) {
         socket.emit('error', { message: 'mapId, layerId, and shapeId required' });
@@ -209,19 +247,26 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId } });
-      if (!layer) {
-        socket.emit('error', { message: 'Layer not found' });
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE id = ${layerId} FOR UPDATE`;
+        const layer = await tx.mapLayer.findUnique({ where: { id: layerId, mapId } });
+        if (!layer) return { error: 'Layer not found' } as const;
+
+        const currentData = asLayerDataObject(layer.data);
+        const existingShapes = Array.isArray(currentData.shapes) ? (currentData.shapes as ShapeDefinition[]) : [];
+        const shapes = existingShapes.filter((s) => s.id !== shapeId);
+
+        await tx.mapLayer.update({
+          where: { id: layerId },
+          data: { data: toPrismaJson({ ...currentData, shapes }) },
+        });
+        return { ok: true } as const;
+      });
+
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
         return;
       }
-
-      const currentData = layer.data as unknown as { shapes?: ShapeDefinition[] } | null;
-      const shapes = (currentData?.shapes || []).filter(s => s.id !== shapeId);
-
-      await prisma.mapLayer.update({
-        where: { id: layerId },
-        data: { data: toPrismaJson({ shapes }) }
-      });
 
       await emitToMapReaders(io, socket.campaignId, mapId, 'shape:deleted', { mapId, layerId, shapeId });
 
@@ -242,17 +287,24 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     stroke: FreehandStroke;
   }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'drawing:stroke')) return;
 
-      // Check permissions - DM or player with draw permission
       const canDraw = socket.role === 'DM' || await checkDrawPermission(socket);
       if (!canDraw) {
         socket.emit('error', { message: 'You do not have permission to draw' });
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, layerId, stroke } = data;
-      if (!mapId || !layerId || !stroke) {
+      if (!mapId || !layerId || !stroke || typeof stroke.id !== 'string') {
         socket.emit('error', { message: 'mapId, layerId, and stroke required' });
         return;
       }
@@ -263,25 +315,29 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId } });
-      if (!layer) {
-        socket.emit('error', { message: 'Layer not found' });
-        return;
-      }
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE id = ${layerId} FOR UPDATE`;
+        const layer = await tx.mapLayer.findUnique({ where: { id: layerId, mapId } });
+        if (!layer) return { error: 'Layer not found' } as const;
+        if (layer.type !== 'ANNOTATIONS') {
+          return { error: 'Freehand can only be drawn on annotation layers' } as const;
+        }
 
-      if (layer.type !== 'ANNOTATIONS') {
-        socket.emit('error', { message: 'Freehand can only be drawn on annotation layers' });
-        return;
-      }
+        const currentData = asLayerDataObject(layer.data);
+        const strokes = Array.isArray(currentData.strokes) ? [...(currentData.strokes as FreehandStroke[])] : [];
+        strokes.push(stroke);
 
-      const currentData = layer.data as unknown as { strokes?: FreehandStroke[] } | null;
-      const strokes = currentData?.strokes || [];
-      strokes.push(stroke);
-
-      await prisma.mapLayer.update({
-        where: { id: layerId },
-        data: { data: toPrismaJson({ strokes }) }
+        await tx.mapLayer.update({
+          where: { id: layerId },
+          data: { data: toPrismaJson({ ...currentData, strokes }) },
+        });
+        return { ok: true } as const;
       });
+
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
+        return;
+      }
 
       await emitToMapReaders(io, socket.campaignId, mapId, 'stroke:drawn', { mapId, layerId, stroke });
 
@@ -302,6 +358,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     annotation: TextAnnotation;
   }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'text:place')) return;
 
       const canDraw = socket.role === 'DM' || await checkDrawPermission(socket);
@@ -310,8 +370,12 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, layerId, annotation } = data;
-      if (!mapId || !layerId || !annotation) {
+      if (!mapId || !layerId || !annotation || typeof annotation.id !== 'string') {
         socket.emit('error', { message: 'mapId, layerId, and annotation required' });
         return;
       }
@@ -322,25 +386,29 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId } });
-      if (!layer) {
-        socket.emit('error', { message: 'Layer not found' });
-        return;
-      }
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE id = ${layerId} FOR UPDATE`;
+        const layer = await tx.mapLayer.findUnique({ where: { id: layerId, mapId } });
+        if (!layer) return { error: 'Layer not found' } as const;
+        if (layer.type !== 'ANNOTATIONS') {
+          return { error: 'Text can only be placed on annotation layers' } as const;
+        }
 
-      if (layer.type !== 'ANNOTATIONS') {
-        socket.emit('error', { message: 'Text can only be placed on annotation layers' });
-        return;
-      }
+        const currentData = asLayerDataObject(layer.data);
+        const texts = Array.isArray(currentData.texts) ? [...(currentData.texts as TextAnnotation[])] : [];
+        texts.push(annotation);
 
-      const currentData = layer.data as unknown as { texts?: TextAnnotation[] } | null;
-      const texts = currentData?.texts || [];
-      texts.push(annotation);
-
-      await prisma.mapLayer.update({
-        where: { id: layerId },
-        data: { data: toPrismaJson({ texts }) }
+        await tx.mapLayer.update({
+          where: { id: layerId },
+          data: { data: toPrismaJson({ ...currentData, texts }) },
+        });
+        return { ok: true } as const;
       });
+
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
+        return;
+      }
 
       await emitToMapReaders(io, socket.campaignId, mapId, 'text:placed', { mapId, layerId, annotation });
 
@@ -360,6 +428,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     imageMap: ImageMapData;
   }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'image:upload')) return;
 
       if (socket.role !== 'DM') {
@@ -367,8 +439,12 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, imageMap } = data;
-      if (!mapId || !imageMap) {
+      if (!mapId || !imageMap || typeof imageMap.assetId !== 'string') {
         socket.emit('error', { message: 'mapId and imageMap required' });
         return;
       }
@@ -379,42 +455,49 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      // Verify asset exists
       const asset = await prisma.asset.findUnique({ where: { id: imageMap.assetId } });
       if (!asset) {
         socket.emit('error', { message: 'Asset not found' });
         return;
       }
-
-      // Get or create an IMAGE layer for this map
-      let imageLayer = await prisma.mapLayer.findFirst({
-        where: { mapId, type: 'ANNOTATIONS' } // Using annotations layer for images
-      });
-
-      if (!imageLayer) {
-        imageLayer = await prisma.mapLayer.create({
-          data: {
-            mapId,
-            name: 'Images',
-            type: 'ANNOTATIONS',
-            order: 999, // Top layer
-            visible: true,
-            locked: false,
-            data: toPrismaJson({ images: [] }),
-          }
-        });
+      if (asset.campaignId && asset.campaignId !== socket.campaignId) {
+        socket.emit('error', { message: 'Asset does not belong to this campaign' });
+        return;
       }
 
-      const currentData = imageLayer.data as unknown as { images?: ImageMapData[] } | null;
-      const images = currentData?.images || [];
-      images.push(imageMap);
+      const layerId = await prisma.$transaction(async (tx) => {
+        let imageLayer = await tx.mapLayer.findFirst({
+          where: { mapId, type: 'ANNOTATIONS' },
+        });
 
-      await prisma.mapLayer.update({
-        where: { id: imageLayer.id },
-        data: { data: toPrismaJson({ images }) }
+        if (!imageLayer) {
+          imageLayer = await tx.mapLayer.create({
+            data: {
+              mapId,
+              name: 'Images',
+              type: 'ANNOTATIONS',
+              order: 999,
+              visible: true,
+              locked: false,
+              data: toPrismaJson({ images: [] }),
+            },
+          });
+        }
+
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE id = ${imageLayer.id} FOR UPDATE`;
+        const freshLayer = await tx.mapLayer.findUnique({ where: { id: imageLayer.id } });
+        const currentData = asLayerDataObject(freshLayer?.data);
+        const images = Array.isArray(currentData.images) ? [...(currentData.images as ImageMapData[])] : [];
+        images.push(imageMap);
+
+        await tx.mapLayer.update({
+          where: { id: imageLayer.id },
+          data: { data: toPrismaJson({ ...currentData, images }) },
+        });
+        return imageLayer.id;
       });
 
-      await emitToMapReaders(io, socket.campaignId, mapId, 'image:placed', { mapId, layerId: imageLayer.id, imageMap });
+      await emitToMapReaders(io, socket.campaignId, mapId, 'image:placed', { mapId, layerId, imageMap });
 
       logger.info('image:upload', { mapId, imageId: imageMap.id, userId: socket.userId });
     } catch (error) {
@@ -425,7 +508,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
 
   /**
    * ERASE - Erase an element (tile, shape, stroke, text)
-   * DM only (or owner)
+   * DM only
    */
   socket.on('erase', async (data: {
     mapId: string;
@@ -434,6 +517,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     id: string;
   }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'erase')) return;
 
       if (socket.role !== 'DM') {
@@ -441,9 +528,17 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, layerId, type, id } = data;
       if (!mapId || !layerId || !type || !id) {
         socket.emit('error', { message: 'mapId, layerId, type, and id required' });
+        return;
+      }
+      if (!['tile', 'shape', 'stroke', 'text', 'image'].includes(type)) {
+        socket.emit('error', { message: 'Invalid element type' });
         return;
       }
 
@@ -453,32 +548,38 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      const layer = await prisma.mapLayer.findUnique({ where: { id: layerId, mapId } });
-      if (!layer) {
-        socket.emit('error', { message: 'Layer not found' });
+      const outcome = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE id = ${layerId} FOR UPDATE`;
+        const layer = await tx.mapLayer.findUnique({ where: { id: layerId, mapId } });
+        if (!layer) return { error: 'Layer not found' } as const;
+
+        const currentData = asLayerDataObject(layer.data);
+        const dataKey = `${type}s`;
+        const rawList = currentData[dataKey];
+        if (!Array.isArray(rawList)) return { updated: false } as const;
+
+        const filtered = rawList.filter((item) => {
+          if (item !== null && typeof item === 'object' && 'id' in item) {
+            return (item as { id?: unknown }).id !== id;
+          }
+          return true;
+        });
+
+        if (filtered.length === rawList.length) return { updated: false } as const;
+
+        await tx.mapLayer.update({
+          where: { id: layerId },
+          data: { data: toPrismaJson({ ...currentData, [dataKey]: filtered }) },
+        });
+        return { updated: true } as const;
+      });
+
+      if ('error' in outcome) {
+        socket.emit('error', { message: outcome.error });
         return;
       }
 
-      const currentData = layer.data as unknown as Record<string, unknown[]> | null;
-      if (!currentData) return;
-
-      let updated = false;
-      const dataKey = `${type}s`; // tiles, shapes, strokes, texts, images
-      if (currentData[dataKey]) {
-        const items = currentData[dataKey];
-        const filtered = items.filter((item: any) => item.id !== id);
-        if (filtered.length !== items.length) {
-          currentData[dataKey] = filtered;
-          updated = true;
-        }
-      }
-
-      if (updated) {
-        await prisma.mapLayer.update({
-          where: { id: layerId },
-          data: { data: toPrismaJson(currentData) }
-        });
-
+      if (outcome.updated) {
         await emitToMapReaders(io, socket.campaignId, mapId, 'erased', { mapId, layerId, type, id });
       }
 
@@ -495,6 +596,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
    */
   socket.on('map:undo', async (data: { mapId: string; entryId: string }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'map:undo')) return;
 
       if (socket.role !== 'DM') {
@@ -502,6 +607,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, entryId } = data;
       if (!mapId || !entryId) {
         socket.emit('error', { message: 'mapId and entryId required' });
@@ -514,8 +623,6 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      // In a full implementation, this would look up the history entry and reverse it
-      // For now, broadcast the undo event
       await emitToMapReaders(io, socket.campaignId, mapId, 'map:undone', { mapId, entryId });
 
       logger.info('map:undo', { mapId, entryId, userId: socket.userId });
@@ -531,6 +638,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
    */
   socket.on('map:redo', async (data: { mapId: string; entryId: string }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'map:redo')) return;
 
       if (socket.role !== 'DM') {
@@ -538,6 +649,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, entryId } = data;
       if (!mapId || !entryId) {
         socket.emit('error', { message: 'mapId and entryId required' });
@@ -550,7 +665,6 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      // Broadcast the redo event
       await emitToMapReaders(io, socket.campaignId, mapId, 'map:redone', { mapId, entryId });
 
       logger.info('map:redo', { mapId, entryId, userId: socket.userId });
@@ -571,6 +685,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
     order?: number;
   }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'layer:create')) return;
 
       if (socket.role !== 'DM') {
@@ -578,9 +696,17 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, name, type, order } = data;
       if (!mapId || !name || !type) {
         socket.emit('error', { message: 'mapId, name, and type required' });
+        return;
+      }
+      if (!VALID_LAYER_TYPES.has(type)) {
+        socket.emit('error', { message: 'Invalid layer type' });
         return;
       }
 
@@ -590,8 +716,7 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      // Determine order if not provided
-      let layerOrder = order ?? 0;
+      let layerOrder = typeof order === 'number' && Number.isInteger(order) ? order : 0;
       if (order === undefined) {
         const maxOrder = await prisma.mapLayer.aggregate({
           where: { mapId },
@@ -604,12 +729,12 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         data: {
           mapId,
           name,
-          type: type as any,
+          type: type as LayerType,
           order: layerOrder,
           visible: true,
           locked: false,
           data: toPrismaJson({}),
-        }
+        },
       });
 
       await emitToMapReaders(io, socket.campaignId, mapId, 'layer:added', { mapId, layer });
@@ -627,6 +752,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
    */
   socket.on('layer:merge-down', async (data: { mapId: string; layerId: string }) => {
     try {
+      if (!socket.campaignId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
       if (!withinCeiling(socket, 'layer:merge-down')) return;
 
       if (socket.role !== 'DM') {
@@ -634,6 +763,10 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
+      if (!isPlainPayload(data)) {
+        socket.emit('error', { message: 'Invalid payload' });
+        return;
+      }
       const { mapId, layerId } = data;
       if (!mapId || !layerId) {
         socket.emit('error', { message: 'mapId and layerId required' });
@@ -646,53 +779,56 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
         return;
       }
 
-      // Get all layers ordered
-      const layers = await prisma.mapLayer.findMany({
-        where: { mapId },
-        orderBy: { order: 'asc' },
+      const updatedLayers = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MapLayer" WHERE "mapId" = ${mapId} FOR UPDATE`;
+        const layers = await tx.mapLayer.findMany({
+          where: { mapId },
+          orderBy: { order: 'asc' },
+        });
+
+        const layerIndex = layers.findIndex((l) => l.id === layerId);
+        if (layerIndex <= 0) {
+          return null;
+        }
+
+        const layer = layers[layerIndex];
+        const layerBelow = layers[layerIndex - 1];
+
+        const layerData = asLayerDataObject(layer.data);
+        const mergedData = asLayerDataObject(layerBelow.data);
+
+        for (const key of Object.keys(layerData)) {
+          const incoming = layerData[key];
+          if (Array.isArray(incoming)) {
+            const existing = mergedData[key];
+            mergedData[key] = Array.isArray(existing) ? [...existing, ...incoming] : [...incoming];
+          }
+        }
+
+        await tx.mapLayer.update({
+          where: { id: layerBelow.id },
+          data: { data: toPrismaJson(mergedData) },
+        });
+        await tx.mapLayer.delete({ where: { id: layerId } });
+
+        const remainingLayers = layers.filter((l) => l.id !== layerId);
+        for (let index = 0; index < remainingLayers.length; index++) {
+          await tx.mapLayer.update({
+            where: { id: remainingLayers[index].id },
+            data: { order: index },
+          });
+        }
+
+        return tx.mapLayer.findMany({
+          where: { mapId },
+          orderBy: { order: 'asc' },
+        });
       });
 
-      const layerIndex = layers.findIndex(l => l.id === layerId);
-      if (layerIndex <= 0) {
+      if (!updatedLayers) {
         socket.emit('error', { message: 'Cannot merge bottom layer' });
         return;
       }
-
-      const layer = layers[layerIndex];
-      const layerBelow = layers[layerIndex - 1];
-
-      // Merge data from layer into layerBelow
-      const layerData = layer.data as Record<string, unknown>;
-      const belowData = layerBelow.data as Record<string, unknown>;
-      
-      // Merge arrays (tiles, shapes, strokes, texts, images)
-      const mergedData = { ...belowData };
-      for (const key of Object.keys(layerData)) {
-        if (Array.isArray(layerData[key]) && Array.isArray(mergedData[key])) {
-          mergedData[key] = [...mergedData[key], ...layerData[key]];
-        }
-      }
-
-      await prisma.$transaction([
-        prisma.mapLayer.update({
-          where: { id: layerBelow.id },
-          data: { data: toPrismaJson(mergedData) }
-        }),
-        prisma.mapLayer.delete({ where: { id: layerId } }),
-      ]);
-
-      // Reorder remaining layers
-      const remainingLayers = layers.filter(l => l.id !== layerId);
-      await prisma.$transaction(
-        remainingLayers.map((l, index) =>
-          prisma.mapLayer.update({ where: { id: l.id }, data: { order: index } })
-        )
-      );
-
-      const updatedLayers = await prisma.mapLayer.findMany({
-        where: { mapId },
-        orderBy: { order: 'asc' }
-      });
 
       await emitToMapReaders(io, socket.campaignId, mapId, 'layers:reordered', { mapId, layers: updatedLayers });
 
@@ -705,18 +841,17 @@ export function registerDrawingHandlers(io: Server, socket: AuthenticatedSocket)
 }
 
 async function checkDrawPermission(socket: AuthenticatedSocket): Promise<boolean> {
-  // Check if player has draw permission for the campaign
-  if (!socket.campaignId || !socket.userId) return false;
-  
+  if (!socket.campaignId || !socket.userId || socket.role === 'SPECTATOR') return false;
+
   const membership = await prisma.campaignMembership.findUnique({
     where: {
       userId_campaignId: {
         userId: socket.userId,
         campaignId: socket.campaignId,
-      }
+      },
     },
-    include: { campaign: true }
+    include: { campaign: true },
   });
-  
+
   return membership?.campaign?.playersMayDraw ?? false;
 }

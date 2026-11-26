@@ -20,6 +20,7 @@ export interface RecordOverrideInput {
 
 export interface RevertOverrideInput {
   overrideId: string;
+  campaignId?: string;
   revertedById: string;
   revertReason: string;
 }
@@ -63,6 +64,10 @@ export class OverrideService {
 
     if (!existing) {
       throw new Error(`Override ${data.overrideId} not found.`);
+    }
+
+    if (data.campaignId && existing.campaignId !== data.campaignId) {
+      throw new Error(`Override ${data.overrideId} does not belong to this campaign.`);
     }
 
     if (existing.revertedAt) {

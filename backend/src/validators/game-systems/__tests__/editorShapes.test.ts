@@ -45,6 +45,13 @@ const slots = (ranks: number) =>
   Object.fromEntries(Array.from({ length: ranks }, (_, i) => [String(i + 1), { total: 1, expended: 1 }]));
 
 describe('what the D&D 5e editor writes', () => {
+  it('preserves character size and inventory item identifiers', () => {
+    expectKeptWhole(GameSystem.DND_5E, {
+      ...blank(GameSystem.DND_5E),
+      size: 'Small',
+      inventory: [{ id: 'item-1', name: 'Rope' }],
+    });
+  });
   it('is kept whole', () => {
     const sheet = blank(GameSystem.DND_5E);
     const skills = sheet.skills as Record<string, Sheet>;

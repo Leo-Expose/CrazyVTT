@@ -114,7 +114,7 @@ export async function getJournalEntries(
   const { folderId, userId, userRole, visibility } = options;
 
   // Build visibility filter
-  let visibilityFilter: Prisma.JournalEntryWhereInput = {};
+  const visibilityFilter: Prisma.JournalEntryWhereInput = {};
   if (visibility) {
     visibilityFilter.visibility = visibility;
   } else {

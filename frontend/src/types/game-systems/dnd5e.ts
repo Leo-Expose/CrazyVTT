@@ -170,11 +170,12 @@ export interface DnD5eAttack {
  * Currency tracking
  */
 export interface DnD5eCurrency {
-  cp: number;
-  sp: number;
-  ep: number;
-  gp: number;
-  pp: number;
+  cp?: number;
+  sp?: number;
+  ep?: number;
+  gp?: number;
+  pp?: number;
+  containers?: Array<{ id: string; name: string; cp: number; sp: number; ep: number; gp: number; pp: number }>;
 }
 
 /**
@@ -190,7 +191,15 @@ export interface DnD5eInventoryItem {
   equipped?: boolean;
   requiresAttunement?: boolean;
   attuned?: boolean;
-  value?: number;
+  containerId?: string;
+  location?: 'EQUIPPED' | 'CARRIED' | 'STOWED' | 'CONTAINER';
+  capacity?: number;
+  capacityUnit?: 'LBS' | 'BULK';
+  attunementNotes?: string;
+  magical?: boolean;
+  charges?: { max: number; current: number; recharge?: string };
+  value?: number | { amount: number; currency?: 'CP' | 'SP' | 'EP' | 'GP' | 'PP' };
+  valueLegacy?: number;
 }
 
 /**

@@ -378,7 +378,8 @@ export interface SR6FakeID {
  * Currency
  */
 export interface SR6Currency {
-  nuyen: number;
+  nuyen?: number;
+  containers?: Array<{ id: string; name: string; nuyen: number }>;
 }
 
 /**
@@ -389,6 +390,12 @@ export interface SR6GearItem {
   rating: number | null;
   quantity: number;
   notes: string;
+  containerId?: string;
+  location?: 'EQUIPPED' | 'CARRIED' | 'STOWED' | 'CONTAINER';
+  weight?: number;
+  capacity?: number;
+  capacityUnit?: 'LBS' | 'BULK' | 'KG';
+  value?: number;
 }
 
 /**

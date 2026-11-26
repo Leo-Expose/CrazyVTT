@@ -41,12 +41,12 @@ export const useCampaign = (campaignId?: string): UseCampaignReturn => {
         lootRes,
         mapsRes,
       ] = await Promise.all([
-        api.get<{ items?: any[] }>(`/campaigns/${cid}/rulebooks/items`),
-        api.get<{ items?: any[] }>(`/campaigns/${cid}/custom-items`),
-        api.get<{ templates?: any[] }>(`/character-templates`),
-        api.get<{ templates?: any[] }>(`/campaigns/${cid}/token-templates`),
-        api.get<{ tables?: any[] }>(`/campaigns/${cid}/loot/tables`),
-        api.get<{ maps?: any[] }>(`/campaigns/${cid}/maps`),
+        api.get<{ items?: any[] }>(`/api/campaigns/${cid}/rulebooks/items`),
+        api.get<{ items?: any[] }>(`/api/campaigns/${cid}/custom-items`),
+        api.get<{ templates?: any[] }>(`/api/character-templates`),
+        api.get<{ templates?: any[] }>(`/api/campaigns/${cid}/token-templates`),
+        api.get<{ tables?: any[] }>(`/api/campaigns/${cid}/loot/tables`),
+        api.get<{ maps?: any[] }>(`/api/campaigns/${cid}/maps`),
       ]);
 
       setRulebookItems(rulebooksRes.data.items || []);

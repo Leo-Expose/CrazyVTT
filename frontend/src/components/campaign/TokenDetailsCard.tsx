@@ -147,7 +147,7 @@ export default function TokenDetailsCard({ token, square, hp, imageSrc, mayMove,
               {/* Elevation / Flying Badge (PRD §11.1, §13) */}
               {token.metadata?.elevation !== undefined && Number(token.metadata.elevation) !== 0 && (
                 <Row label="Elevation">
-                  <span className="font-mono font-semibold text-brand">
+                  <span className="font-mono font-semibold text-brand-ink">
                     {Number(token.metadata.elevation) > 0 ? `+${token.metadata.elevation} ft (Flying)` : `${token.metadata.elevation} ft`}
                   </span>
                 </Row>

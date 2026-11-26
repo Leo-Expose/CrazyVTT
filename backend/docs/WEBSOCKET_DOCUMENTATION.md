@@ -785,6 +785,12 @@ Three things decide what a player's map shows, and each has one source of truth.
 | `character.hp.update` | 50 a second | `error` once |
 | `character.hp.temporary` | 20 a second | `error` once |
 | `character.hitdice.spend` | 50 a second | `error` once |
+| `character.rest`, `movement:reachable`, `movement:reaction` | 10 a second | `error` once |
+| `character.spellslot.use`, `movement:start`, `movement:commit`, `movement:dm_override`, `movement:dash`, `movement:disengage`, `movement:bonus_action`, `movement:cancel`, `action:getRegistry`, `action:preview`, `action:startResolution`, `action:roll`, `action:resolve`, `action:reactionPrompt`, `action:reactionResponse`, `character:draft:join`, `character:draft:leave`, `character:draft:patch`, `character:draft:resolve`, `character:draft:history` | 30 a second | `error` once |
+| `movement:mode_change` | 20 a second | `error` once |
+| `character:draft:cursor` | 60 a second | `error` once |
+| `spell:cast` | 30 a minute | `error` once |
+| `action:dmReview`, `action:resetUsed`, `character:draft:lock`, `character:draft:unlock`, `character:draft:suggest`, `character:draft:override`, `spell:resolve`, `override:issue`, `override:revert`, `fog:toggle_party_vision`, `dice.setMode`, `dice.audit`, `dice.reshuffleDeck`, `layer:update`, `layer:reorder`, `layer:data:update`, `tile:place`, `tile:remove`, `tile:rectangle`, `shape:draw`, `shape:update`, `shape:delete`, `drawing:stroke`, `text:place`, `image:upload`, `erase`, `map:undo`, `map:redo`, `layer:create`, `layer:merge-down` | 50 a second | `error` once |
 | `token.move.start` | 30 a second | `error` once |
 | `token.move.end` | 30 a second, a budget of its own | `error` once |
 | The DM's events: `map.change`, `atmosphere.effect.set`, `atmosphere.audio.set`, `vibe.update`, `spirit_layer.toggle`, `spirit_layer.style_change`, `spirit_layer.token.toggle`, `initiative.add`, `initiative.remove`, `initiative.set`, `initiative.reorder`, `initiative.start`, `initiative.next`, `initiative.end`, the DM's own `initiative.roll`, `dice.clearHistory`, `exploration:reset` | 50 a second, each | `error` once |
@@ -1296,26 +1302,57 @@ _Who may send it is read from the shared permission predicates each handler call
 
 | Event | Who may send it | What it does |
 | --- | --- | --- |
+| `action:dmReview` | DM only | DM approves/modifies/cancels resolution |
+| `action:getRegistry` | Any member | Get character's available actions |
+| `action:preview` | Any member | Generate preview for an action |
+| `action:reactionPrompt` | Any member | Request a reaction from a player/DM |
+| `action:reactionResponse` | Any member | Player responds to reaction prompt |
+| `action:resetUsed` | Any member | Reset used actions (short/long rest) |
+| `action:resolve` | Any member | Direct effect resolution (PRD §10.3) Direct apply of damage, healing, resource deduction, and conditions to target tokens/characters |
+| `action:roll` | Any member | Roll dice for an action (enters ROLLING state) |
+| `action:startResolution` | DM, or the character's owner, never a spectator | Create a new action resolution (enters PREVIEW state) |
 | `atmosphere.audio.set` | DM only | DM queues or stops ambient audio for all players. |
 | `atmosphere.effect.set` | DM only | DM sets a visual particle overlay on the map canvas. |
 | `authenticate` | Any member | — |
 | `character.hitdice.spend` | DM, or the character's owner, never a spectator | spend one D&D 5e hit die. |
 | `character.hp.temporary` | DM, or the character's owner, never a spectator | CHARACTER.HP.TEMPORARY: the character takes `temporary` temporary hit points in place of any it has. |
 | `character.hp.update` | DM, or the character's owner, never a spectator | — |
+| `character.rest` | DM, or the character's owner, never a spectator | Long Rest / Short Rest automated recovery engine (PRD §5, §10.3) Automatically recovers hit points, refreshes expended spell slots, resets death saves, and replenishes hit dice per 5e rules. |
+| `character.spellslot.use` | DM, or the character's owner, never a spectator | Deduct or refund a spell slot on cast (PRD §5, §10.3) |
+| `character:draft:cursor` | Any member | Update cursor position for presence |
+| `character:draft:history` | Any member | Get change history |
+| `character:draft:join` | Any member | User joins a character draft editing session |
+| `character:draft:leave` | Any member | User leaves a character draft editing session |
+| `character:draft:lock` | Any member | DM locks a field |
+| `character:draft:override` | Any member | DM forces a change |
+| `character:draft:patch` | Any member | Apply JSON Patch to draft (real-time sync) |
+| `character:draft:resolve` | Any member | Player resolves a conflict |
+| `character:draft:suggest` | Any member | DM suggests a change |
+| `character:draft:unlock` | Any member | DM unlocks a field |
 | `chat.message` | Any member | User sends chat message. |
+| `dice.audit` | DM only | Generate a statistical audit report for the campaign. |
 | `dice.clearHistory` | DM only | DM clears dice roll history (DM-only). |
+| `dice.reshuffleDeck` | DM only | DM manually reshuffles the deck for an expression. |
 | `dice.roll` | DM and players | User rolls dice Validates expression, calculates result, saves to database, and broadcasts. |
+| `dice.roll.v2` | DM and players | DICE.ROLL (enhanced) — now also saves mode + deck metadata. |
+| `dice.setMode` | DM only | DM switches between TRUE_RANDOM and WEIGHTED_DECK. |
 | `drawing:add` | DM, or a player while **Players may draw** is on and the session is live | Draw on a map: the DM, or a player while Players may draw is on and the session is live. |
 | `drawing:clear` | DM only | DM erases every drawing on one layer of a map, the markup layer so far, or one member's. |
 | `drawing:clear_mine` | DM, or the drawing's player | Erase every drawing of the sender's on a map's markup layer, at any time; never a spectator. |
 | `drawing:preview` | DM, or a player while **Players may draw** is on and the session is live | One frame of a stroke on its way, or of the laser pointer, from someone who may draw there now; nothing is stored. |
 | `drawing:remove` | DM, or the drawing's player | Erase one drawing: the DM any, a player their own, at any time. |
+| `drawing:stroke` | Any member | Freehand stroke DM only (or players with draw permission) |
 | `drawings:request` | Any member | Any campaign member asks for a map's drawings, on (re)join and on opening a map. |
+| `erase` | DM only | Erase an element (tile, shape, stroke, text) DM only |
 | `exploration:request` | Any member | what this user has explored on a map. |
 | `exploration:reset` | DM only | DM forgets every player's explored areas on a map. |
 | `exploration:reveal` | Any member | a player's vision covered these cells; remember them (a DM names a player with userId to record theirs). |
 | `fog:operation` | DM only | DM applies a fog operation (reveal/hide cells). |
+| `fog:request_party_vision` | Any member | Request current party vision merge state for a map. |
 | `fog:request_state` | Any member | Any campaign member requests current fog state on (re)join. |
+| `fog:reveal_shape` | DM only | DM applies a fog shape operation (reveal/hide using spell shapes). |
+| `fog:toggle_party_vision` | DM only | DM toggles the "Share Explored Areas with Party" setting. |
+| `image:upload` | DM only | Upload and place an image map DM only |
 | `initiative.add` | DM only | DM adds a token to the combatant list. |
 | `initiative.end` | DM only | DM ends combat and clears all state. |
 | `initiative.next` | DM only | DM advances to the next combatant. |
@@ -1325,6 +1362,11 @@ _Who may send it is read from the shared permission predicates each handler call
 | `initiative.roll` | DM, or the token's player: once the DM has put it in the order, before the fight starts, once each time it joins the order | roll initiative for a token using a dice expression. |
 | `initiative.set` | DM only | DM manually sets a token's initiative value. |
 | `initiative.start` | DM only | DM begins combat (round 1, first combatant active). |
+| `layer:create` | DM only | Create a new layer DM only |
+| `layer:data:update` | DM only | Update layer tile data (for tile-based layers) DM only |
+| `layer:merge-down` | DM only | Merge a layer into the one below it DM only |
+| `layer:reorder` | DM only | Reorder layers DM only |
+| `layer:update` | DM only | Update layer properties (visibility, lock, order, data) DM only |
 | `light:add` | DM only | DM places a single light source. |
 | `light:remove` | DM only | DM removes a light source by id. |
 | `light:update` | DM only | DM updates a light source (position, radius, color, enabled, etc.). |
@@ -1332,10 +1374,36 @@ _Who may send it is read from the shared permission predicates each handler call
 | `lights:request` | Any member | Any campaign member requests current light sources on (re)join. |
 | `map.change` | DM only | DM switches to a different map. |
 | `map.ping` | Any member | user points at a location. |
+| `map:redo` | DM only | Redo last undone action DM only |
+| `map:undo` | DM only | Undo last action DM only |
+| `movement:bonus_action` | DM, or the token's player while the session is live | Spend bonus action movement (Cunning Action, Step of the Wind) |
+| `movement:cancel` | Any member | Cancel movement and return to start |
+| `movement:commit` | DM, or the token's player while the session is live | Finalize movement |
+| `movement:dash` | DM, or the token's player while the session is live | Use Dash action to double movement |
+| `movement:disengage` | DM, or the token's player while the session is live | Use Disengage action to avoid AoO |
+| `movement:dm_override` | DM only | DM override for movement |
+| `movement:get_bonus_speed` | DM, or the token's player | Get available bonus action movement speed |
+| `movement:mode_change` | DM only | Change movement mode |
+| `movement:move` | DM, or the token's player while the session is live | Update ghost token position during drag |
+| `movement:reachable` | DM, or the token's player while the session is live | Calculate reachable squares for a token |
+| `movement:reaction` | Any member | Player response to AoO prompt |
+| `movement:start` | DM, or the token's player while the session is live | Begin a movement drag with reachable area preview |
+| `override:history` | Any member | — |
+| `override:issue` | DM only | — |
+| `override:revert` | DM only | — |
 | `presence.request` | Any member | — |
+| `shape:delete` | DM only | Delete a shape DM only |
+| `shape:draw` | DM only | Draw a shape on a layer DM only |
+| `shape:update` | DM only | Update an existing shape DM only |
+| `spell:cast` | Any member | — |
+| `spell:resolve` | DM only | — |
 | `spirit_layer.style_change` | DM only | DM changes the realm atmosphere style. |
 | `spirit_layer.toggle` | DM only | DM toggles spirit layer visibility for the campaign. |
 | `spirit_layer.token.toggle` | DM only | DM toggles visibility of a specific token. |
+| `text:place` | Any member | Place text annotation DM only (or players with draw permission) |
+| `tile:place` | DM only | Place a single tile (optimized for real-time stamping) DM only |
+| `tile:rectangle` | DM only | Fill a rectangle with a tile DM only |
+| `tile:remove` | DM only | Remove a tile DM only |
 | `token.move` | DM, or the token's player while the session is live | — |
 | `token.move.end` | DM, or the token's player while the session is live | User finishes dragging (final position) Updates database and broadcasts to campaign |
 | `token.move.start` | DM, or the token's player while the session is live | User begins dragging a token Validates permission and broadcasts to campaign |
@@ -1352,6 +1420,15 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 
 | Event | Sent to | Emitted from |
 | --- | --- | --- |
+| `action:dmReviewRequired` | The campaign | `actions.ts` |
+| `action:reactionRequested` | Members the handler picks | `actions.ts` |
+| `action:reactionResolved` | The campaign | `actions.ts` |
+| `action:resolutionApplied` | The campaign | `actions.ts` |
+| `action:resolutionCancelled` | The campaign | `actions.ts` |
+| `action:resolutionStarted` | The campaign | `actions.ts` |
+| `action:resolved` | The campaign | `actions.ts` |
+| `action:rolled` | The campaign | `actions.ts` |
+| `action:usedReset` | The campaign | `actions.ts` |
 | `atmosphere.audio.updated` | The campaign | `atmosphereAudio.ts` |
 | `atmosphere.effect.updated` | The campaign | `atmosphere.ts` |
 | `authenticated` | The sender | `events.ts` |
@@ -1359,12 +1436,25 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 | `campaign.dm.transferred` | The campaign | `campaigns.ts` |
 | `campaign.role.changed` | The campaign | `campaigns.ts` |
 | `campaign.settings.updated` | The campaign | `campaigns.ts` |
+| `character.advancement` | The campaign | `characterAdvancement.ts` |
 | `character.hp.updated` | The campaign | `characters.ts` |
 | `character.updated` | Members the handler picks; the campaign | `utils.ts` |
+| `character:draft:cursor` | The campaign but the sender | `characterDraft.ts` |
+| `character:draft:history` | The sender | `characterDraft.ts` |
+| `character:draft:locked` | The campaign | `characterDraft.ts` |
+| `character:draft:overridden` | The campaign | `characterDraft.ts` |
+| `character:draft:patched` | The campaign | `characterDraft.ts` |
+| `character:draft:presence` | The campaign | `characterDraft.ts` |
+| `character:draft:resolved` | The campaign | `characterDraft.ts` |
+| `character:draft:state` | The sender | `characterDraft.ts` |
+| `character:draft:suggested` | The campaign | `characterDraft.ts` |
+| `character:draft:unlocked` | The campaign | `characterDraft.ts` |
 | `chat.message` | Members the handler picks | `chat.ts` |
 | `chat.system` | The campaign | `utils.ts` |
 | `connected` | The sender | `events.ts` |
+| `dice.deckReshuffled` | The campaign | `dice.ts` |
 | `dice.historyCleared` | The campaign | `dice.ts` |
+| `dice.modeChanged` | The campaign | `dice.ts` |
 | `dice.rolled` | Members the handler picks; the campaign; the sender | `dice.ts` |
 | `dice.rolled.secret` | Members the handler picks | `dice.ts` |
 | `drawing:added` | Map readers, as their role sees it | `drawings.ts` |
@@ -1372,11 +1462,27 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 | `drawing:removed` | Map readers, as their role sees it | `drawings.ts` |
 | `drawings:cleared` | Map readers, as their role sees it | `drawings.ts` |
 | `drawings:state` | Map readers, as their role sees it; the sender | `drawings.ts` |
+| `erased` | Map readers | `drawing.ts` |
+| `exploration:party_merge` | Members the handler picks; the sender | `fog.ts` |
 | `exploration:state` | Map readers; members the handler picks; the sender | `exploration.ts` |
 | `fog:cells` | Members the handler picks; the sender | `fog.ts` |
 | `fog:updated` | Members the handler picks; the sender | `fog.ts` |
+| `image:placed` | Map readers | `drawing.ts` |
 | `initiative.state` | Members the handler picks | `initiative.ts` |
 | `invitation.received` | One user's sockets | `campaigns.ts` |
+| `journal.created` | The campaign | `journal.ts` |
+| `journal.deleted` | The campaign | `journal.ts` |
+| `journal.folder.created` | The campaign | `journal.ts` |
+| `journal.folder.deleted` | The campaign | `journal.ts` |
+| `journal.folder.updated` | The campaign | `journal.ts` |
+| `journal.image.added` | The campaign | `journal.ts` |
+| `journal.image.removed` | The campaign | `journal.ts` |
+| `journal.updated` | The campaign | `journal.ts` |
+| `layer:added` | Map readers | `drawing.ts` |
+| `layer:data:updated` | Map readers | `layers.ts` |
+| `layer:removed` | Map readers | `maps.ts` |
+| `layer:updated` | Map readers | `layers.ts` |
+| `layers:reordered` | Map readers | `drawing.ts` |
 | `light:added` | Map readers, as their role sees it | `lights.ts` |
 | `light:removed` | Map readers, as their role sees it | `lights.ts` |
 | `light:updated` | Map readers, as their role sees it | `lights.ts` |
@@ -1384,21 +1490,51 @@ _Sent to: map readers are every member while the map is the one the campaign is 
 | `map.changed` | Members the handler picks | `shared.ts` |
 | `map.deleted` | Map readers | `maps.ts` |
 | `map.pinged` | Map readers | `pings.ts` |
+| `map:redone` | Map readers | `drawing.ts` |
 | `map:settings:updated` | Map readers | `maps.ts` |
+| `map:undone` | Map readers | `drawing.ts` |
+| `movement:bonus_action:applied` | The campaign | `movement.ts` |
+| `movement:bonus_action:response` | The sender | `movement.ts` |
+| `movement:dash:applied` | The campaign | `movement.ts` |
+| `movement:dash:response` | The sender | `movement.ts` |
+| `movement:disengage:applied` | The campaign | `movement.ts` |
+| `movement:disengage:response` | The sender | `movement.ts` |
+| `movement:get_bonus_speed:response` | The sender | `movement.ts` |
+| `movement:reachable:result` | The sender | `movement.ts` |
+| `override:applied` | The campaign; the sender | `overrides.ts` |
+| `override:history:response` | The sender | `overrides.ts` |
+| `override:reverted` | The campaign; the sender | `overrides.ts` |
 | `pong` | The sender | `events.ts` |
+| `pool.created` | The campaign | `partyPool.ts` |
+| `pool.deleted` | The campaign | `partyPool.ts` |
+| `pool.updated` | The campaign | `partyPool.ts` |
 | `presence.state` | The campaign; the sender | `events.ts` |
 | `roster.updated` | The campaign | `utils.ts` |
 | `session.ended` | The campaign | `campaigns.ts` |
 | `session.paused` | The campaign | `campaigns.ts` |
 | `session.resumed` | The campaign | `campaigns.ts` |
 | `session.started` | The campaign | `campaigns.ts` |
+| `shape:deleted` | Map readers | `drawing.ts` |
+| `shape:drawn` | Map readers | `drawing.ts` |
+| `shape:updated` | Map readers | `drawing.ts` |
+| `shop:transaction` | The campaign | `shops.ts` |
+| `shop:updated` | The campaign | `shops.ts` |
+| `spell:resolved` | The campaign | `spells.ts` |
+| `spell:review` | The campaign | `spells.ts` |
 | `spirit_layer.style_changed` | The campaign | `spirit.ts` |
 | `spirit_layer.toggled` | The campaign | `spirit.ts` |
 | `spirit_layer.token.toggled` | Members the handler picks | `spirit.ts` |
+| `stroke:drawn` | Map readers | `drawing.ts` |
+| `text:placed` | Map readers | `drawing.ts` |
+| `tile:autotile:suggest` | Map readers | `layers.ts` |
+| `tile:placed` | Map readers | `layers.ts` |
+| `tile:removed` | Map readers | `layers.ts` |
+| `tiles:placed` | Map readers | `layers.ts` |
 | `token.move.start` | Members the handler picks | `tokens.ts` |
 | `token.moved` | Map readers sent the token; members the handler picks | `tokens.ts` |
 | `token:appeared` | Members the handler picks | `tokens.ts` |
 | `token:disappeared` | Members the handler picks | `tokens.ts` |
+| `token:updated` | Members the handler picks | `actions.ts` |
 | `user.joined` | The campaign but the sender | `events.ts` |
 | `user.left` | The campaign but the sender | `events.ts` |
 | `vibe.settings.updated` | The campaign | `vibeSave.ts` |

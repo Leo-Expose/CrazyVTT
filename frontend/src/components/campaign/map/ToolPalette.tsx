@@ -116,7 +116,6 @@ export default function ToolPalette({
   const [showTextOptions, setShowTextOptions] = useState(false);
   const [showGridOptions, setShowGridOptions] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
   const handleModeChange = useCallback((mode: DrawingMode) => {
     setActiveMode(mode);
@@ -286,6 +285,7 @@ export default function ToolPalette({
             settings={brushSettings}
             onSizeChange={handleBrushSizeChange}
             onShapeChange={handleBrushShapeChange}
+            onAutoTileChange={(autoTile) => onBrushSettingsChange({ ...brushSettings, autoTile })}
             onClose={() => setShowBrushOptions(false)}
             onColorChange={(color) => handleColorChange('stroke', color)}
             onBrushSettingsChange={onBrushSettingsChange}
@@ -332,6 +332,7 @@ export default function ToolPalette({
             onSnapModeChange={handleSnapModeChange}
             onColorChange={(color) => onGridSettingsChange({ color })}
             onOpacityChange={(opacity) => onGridSettingsChange({ opacity })}
+            onShowCoordinatesChange={(showCoordinates) => onGridSettingsChange({ showCoordinates })}
             onClose={() => setShowGridOptions(false)}
             onGridSettingsChange={onGridSettingsChange}
           />
@@ -396,7 +397,7 @@ export default function ToolPalette({
           >
             <Grid className="w-4 h-4 mr-1" />
             Grid
-            {gridSettings.enabled && <span className="ml-1 text-[10px] bg-success/20 text-success px-1 rounded">On</span>}
+            {gridSettings.enabled && <span className="ml-1 text-[10px] bg-success/20 text-success-ink px-1 rounded">On</span>}
           </Button>
           <Button
             variant="ghost"
@@ -438,13 +439,6 @@ export default function ToolPalette({
           socket={socket}
         />
       )}
-
-      {/* History Panel */}
-      {showHistory && (
-        <HistoryPanel
-          onClose={() => setShowHistory(false)}
-        />
-      )}
     </div>
   );
 }
@@ -457,12 +451,13 @@ interface BrushOptionsPanelProps {
   settings: BrushSettings;
   onSizeChange: (size: number) => void;
   onShapeChange: (shape: 'circle' | 'square') => void;
+  onAutoTileChange: (autoTile: boolean) => void;
   onClose: () => void;
   onColorChange: (color: string) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
 }
 
-function BrushOptionsPanel({ settings, onSizeChange, onShapeChange, onClose, onColorChange, onBrushSettingsChange }: BrushOptionsPanelProps) {
+function BrushOptionsPanel({ settings, onSizeChange, onShapeChange, onAutoTileChange, onClose, onColorChange }: BrushOptionsPanelProps) {
   return (
     <div id="brush-options" className="p-3 border-t border-border bg-muted/30 space-y-3">
       <div className="flex items-center justify-between">
@@ -515,7 +510,7 @@ function BrushOptionsPanel({ settings, onSizeChange, onShapeChange, onClose, onC
         <input
           type="checkbox"
           checked={settings.autoTile}
-          onChange={(e) => onBrushSettingsChange({ ...settings, autoTile: e.target.checked })}
+          onChange={(e) => onAutoTileChange(e.target.checked)}
         />
         <span>Auto-tile (Wang tiles)</span>
       </label>
@@ -744,11 +739,12 @@ interface GridOptionsPanelProps {
   onSnapModeChange: (mode: GridSettings['snapMode']) => void;
   onColorChange: (color: string) => void;
   onOpacityChange: (opacity: number) => void;
+  onShowCoordinatesChange: (show: boolean) => void;
   onClose: () => void;
   onGridSettingsChange: (settings: Partial<GridSettings>) => void;
 }
 
-function GridOptionsPanel({ settings, onEnabledChange, onSnapModeChange, onColorChange, onOpacityChange, onClose, onGridSettingsChange }: GridOptionsPanelProps) {
+function GridOptionsPanel({ settings, onEnabledChange, onSnapModeChange, onColorChange, onOpacityChange, onShowCoordinatesChange, onClose }: GridOptionsPanelProps) {
   return (
     <div id="grid-options" className="p-3 border-t border-border bg-muted/30 space-y-3">
       <div className="flex items-center justify-between">
@@ -811,7 +807,7 @@ function GridOptionsPanel({ settings, onEnabledChange, onSnapModeChange, onColor
         <input
           type="checkbox"
           checked={settings.showCoordinates}
-          onChange={(e) => onGridSettingsChange({ showCoordinates: e.target.checked })}
+          onChange={(e) => onShowCoordinatesChange(e.target.checked)}
         />
         <span>Show Coordinates</span>
       </label>
@@ -826,7 +822,7 @@ interface LayerPanelDropdownProps {
   onClose: () => void;
   isDM: boolean;
   mapId: string;
-  socket: any;
+  socket: ReturnType<typeof useWebSocket>['socket'];
 }
 
 function LayerPanelDropdown({ layers, activeLayerId, onLayerChange, onClose, isDM, mapId, socket }: LayerPanelDropdownProps) {
@@ -1012,17 +1008,5 @@ function LayerDropdownItem({
         {layer.type}
       </span>
     </li>
-  );
-}
-
-function HistoryPanel({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="border-t border-border bg-surface p-3 max-h-96 overflow-y-auto">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-medium">History</h4>
-        <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">×</button>
-      </div>
-      <p className="text-sm text-muted-foreground text-center py-8">History panel - coming soon</p>
-    </div>
   );
 }

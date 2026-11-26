@@ -29,6 +29,12 @@ function open(overrides: Record<string, unknown>, tab: RegExp) {
 const rope = { name: 'Rope', quantity: 1, bulk: 'L', value: 0 };
 
 describe('the boxes', () => {
+  it('edits a silver value as gold without changing its worth', async () => {
+    const save = open({ inventory: [{ ...rope, value: { amount: 5, currency: 'SP' } }] }, /Inventory/);
+    expect(screen.getByPlaceholderText('Value')).toHaveValue(0.5);
+    fireEvent.change(screen.getByPlaceholderText('Value'), { target: { value: '0.6' } });
+    expect((await save()).inventory[0].value).toBe(0.6);
+  });
   it('keep a fraction of a gold piece as an item\'s value', async () => {
     const save = open({ inventory: [rope] }, /Inventory/);
     fireEvent.change(screen.getByPlaceholderText('Value'), { target: { value: '0.5' } });

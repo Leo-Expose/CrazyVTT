@@ -49,7 +49,7 @@ beforeEach(() => {
 describe('the active-turn banner', () => {
   it('calls a nameless current combatant an unknown creature, as the rows do', () => {
     useGameStore.getState().setCombatState({
-      active: true, round: 1, currentIndex: 0, currentTokenId: 'v',
+      active: true, round: 1, currentTokenId: 'v',
       combatants: [entry('v', '', 18), entry('h', 'Hero', 12)],
     });
 
@@ -60,7 +60,7 @@ describe('the active-turn banner', () => {
 
   it('names a known current combatant', () => {
     useGameStore.getState().setCombatState({
-      active: true, round: 1, currentIndex: 0, currentTokenId: 'h',
+      active: true, round: 1, currentTokenId: 'h',
       combatants: [entry('v', '', 18), entry('h', 'Hero', 12)],
     });
 
@@ -72,7 +72,7 @@ describe('the active-turn banner', () => {
 
 describe('the tracker from the keyboard', () => {
   const threeReady = () => useGameStore.getState().setCombatState({
-    active: false, round: 0, currentIndex: 0, currentTokenId: null,
+    active: false, round: 0, currentTokenId: null,
     combatants: [entry('h', 'Hero', 18), entry('g', 'Goblin', 12), entry('o', 'Ogre', 6)],
   });
 

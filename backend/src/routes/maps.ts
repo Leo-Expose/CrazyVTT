@@ -766,6 +766,278 @@ async function importUvttFile(req: AuthenticatedRequest, res: Response, signal: 
     }
 }
 
+// ============================================
+// MAP TILE ENDPOINTS (registered before /:id so /tiles is not shadowed)
+// ============================================
+
+/**
+ * GET /api/campaigns/:campaignId/maps/tiles
+ * Get all tiles for a campaign
+ * Query: category (optional)
+ */
+router.get('/tiles', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId } = req.params;
+    const { category } = req.query;
+
+    const tiles = await prisma.mapTile.findMany({
+      where: {
+        campaignId,
+        ...(typeof category === 'string' && Object.values(TileCategory).includes(category as TileCategory)
+          ? { category: category as TileCategory }
+          : {}),
+      },
+      include: {
+        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
+        createdBy: { select: { id: true, displayName: true } },
+      },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+
+    return res.status(200).json({ tiles });
+  } catch (error) {
+    logger.error('Error fetching map tiles', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch map tiles' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/maps/tiles
+ * Create a new map tile (DM only)
+ */
+router.post('/tiles', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId } = req.params;
+    const userId = req.session.userId!;
+    const isAdmin = req.session.platformRole === 'ADMIN';
+    const { name, category, assetId, width, height, connections } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Tile name is required' });
+    }
+    if (!category || !Object.values(['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL']).includes(category)) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Invalid tile category' });
+    }
+    if (!assetId || typeof assetId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
+    }
+    if (!Number.isInteger(width) || width < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Width must be a positive integer' });
+    }
+    if (!Number.isInteger(height) || height < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Height must be a positive integer' });
+    }
+    if (!(await canReadAssetById(assetId, userId, isAdmin))) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that asset' });
+    }
+
+    const tile = await prisma.mapTile.create({
+      data: {
+        campaignId,
+        name,
+        category,
+        assetId,
+        width,
+        height,
+        connections: connections as Prisma.InputJsonValue | undefined,
+        isDefault: false,
+        createdById: userId,
+      },
+      include: {
+        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
+        createdBy: { select: { id: true, displayName: true } },
+      },
+    });
+
+    return res.status(201).json({ tile });
+  } catch (error) {
+    logger.error('Error creating map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create map tile' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/maps/tiles/auto-slice
+ * Auto-slice a tile sheet into individual tiles (DM only)
+ */
+router.post('/tiles/auto-slice', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId } = req.params;
+    const userId = req.session.userId!;
+    const isAdmin = req.session.platformRole === 'ADMIN';
+    const { assetId, tileWidth, tileHeight, spacing = 0, margin = 0, namePrefix, category, columns, rows } = req.body;
+
+    if (!assetId || typeof assetId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
+    }
+    if (!Number.isInteger(tileWidth) || tileWidth < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'tileWidth must be a positive integer' });
+    }
+    if (!Number.isInteger(tileHeight) || tileHeight < 1) {
+      return res.status(400).json({ error: 'Validation Error', message: 'tileHeight must be a positive integer' });
+    }
+    if (!(await canReadAssetById(assetId, userId, isAdmin))) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that asset' });
+    }
+
+    const tileService = await import('../services/tileService.js');
+    const result = await tileService.autoSliceTileSheet(assetId, campaignId, tileWidth, tileHeight, spacing, margin, {
+      namePrefix,
+      category: category || 'FLOOR',
+      createdById: userId,
+      columns,
+      rows,
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    logger.error('Error auto-slicing tile sheet', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : 'Failed to auto-slice tile sheet' });
+  }
+});
+
+/**
+ * POST /api/campaigns/:campaignId/maps/tiles/detect-connections
+ * Detect Wang tile connections from a tile image (DM only)
+ */
+router.post('/tiles/detect-connections', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.session.userId!;
+    const isAdmin = req.session.platformRole === 'ADMIN';
+    const { assetId, threshold = 128 } = req.body;
+
+    if (!assetId || typeof assetId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
+    }
+    if (!(await canReadAssetById(assetId, userId, isAdmin))) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You do not have access to that asset' });
+    }
+
+    const tileService = await import('../services/tileService.js');
+    const connections = await tileService.detectWangConnections(assetId, threshold);
+
+    return res.status(200).json({ connections });
+  } catch (error) {
+    logger.error('Error detecting tile connections', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : 'Failed to detect tile connections' });
+  }
+});
+
+/**
+ * GET /api/campaigns/:campaignId/maps/tiles/:tileId
+ * Get a specific tile
+ */
+router.get('/tiles/:tileId', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, tileId } = req.params;
+
+    const tile = await prisma.mapTile.findFirst({
+      where: { id: tileId, campaignId },
+      include: {
+        asset: true,
+        createdBy: { select: { id: true, displayName: true } },
+        campaign: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!tile) {
+      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
+    }
+
+    return res.status(200).json({ tile });
+  } catch (error) {
+    logger.error('Error fetching map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch map tile' });
+  }
+});
+
+/**
+ * PUT /api/campaigns/:campaignId/maps/tiles/:tileId
+ * Update a tile (DM only)
+ */
+router.put('/tiles/:tileId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, tileId } = req.params;
+    const { name, category, width, height, connections } = req.body;
+
+    const tile = await prisma.mapTile.findFirst({ where: { id: tileId, campaignId } });
+    if (!tile) {
+      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
+    }
+    if (tile.isDefault) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Cannot modify default tiles' });
+    }
+
+    const updateData: Prisma.MapTileUpdateInput = {};
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Tile name cannot be empty' });
+      }
+      updateData.name = name.trim();
+    }
+    if (category !== undefined) {
+      if (!Object.values(['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL']).includes(category)) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Invalid tile category' });
+      }
+      updateData.category = category;
+    }
+    if (width !== undefined) {
+      if (!Number.isInteger(width) || width < 1) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Width must be a positive integer' });
+      }
+      updateData.width = width;
+    }
+    if (height !== undefined) {
+      if (!Number.isInteger(height) || height < 1) {
+        return res.status(400).json({ error: 'Validation Error', message: 'Height must be a positive integer' });
+      }
+      updateData.height = height;
+    }
+    if (connections !== undefined) {
+      updateData.connections = connections as Prisma.InputJsonValue;
+    }
+
+    const updatedTile = await prisma.mapTile.update({
+      where: { id: tileId },
+      data: updateData,
+      include: {
+        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
+        createdBy: { select: { id: true, displayName: true } },
+      },
+    });
+
+    return res.status(200).json({ tile: updatedTile });
+  } catch (error) {
+    logger.error('Error updating map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update map tile' });
+  }
+});
+
+/**
+ * DELETE /api/campaigns/:campaignId/maps/tiles/:tileId
+ * Delete a tile (DM only)
+ */
+router.delete('/tiles/:tileId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId, tileId } = req.params;
+
+    const tile = await prisma.mapTile.findFirst({ where: { id: tileId, campaignId } });
+    if (!tile) {
+      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
+    }
+    if (tile.isDefault) {
+      return res.status(400).json({ error: 'Validation Error', message: 'Cannot delete default tiles' });
+    }
+
+    await prisma.mapTile.delete({ where: { id: tileId } });
+
+    return res.status(200).json({ message: 'Tile deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting map tile', { err: error });
+    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete map tile' });
+  }
+});
+
 /**
  * GET /api/campaigns/:campaignId/maps/:id/export-uvtt
  * Export a map as a Universal VTT (.uvtt) file download.
@@ -2974,264 +3246,6 @@ router.post('/:id/layers/initialize', campaignDM, async (req: AuthenticatedReque
   } catch (error) {
     logger.error('Error initializing map layers', { err: error });
     return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to initialize map layers' });
-  }
-});
-
-// ============================================
-// MAP TILE ENDPOINTS
-// ============================================
-
-/**
- * GET /api/campaigns/:campaignId/tiles
- * Get all tiles for a campaign
- * Query: category (optional)
- */
-router.get('/tiles', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { campaignId } = req.params;
-    const { category } = req.query;
-
-    const tiles = await prisma.mapTile.findMany({
-      where: {
-        campaignId,
-        ...(typeof category === 'string' && Object.values(TileCategory).includes(category as TileCategory)
-          ? { category: category as TileCategory }
-          : {})
-      },
-      include: {
-        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
-        createdBy: { select: { id: true, displayName: true } }
-      },
-      orderBy: [{ category: 'asc' }, { name: 'asc' }]
-    });
-
-    return res.status(200).json({ tiles });
-  } catch (error) {
-    logger.error('Error fetching map tiles', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch map tiles' });
-  }
-});
-
-/**
- * POST /api/campaigns/:campaignId/tiles
- * Create a new map tile (DM only)
- */
-router.post('/tiles', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { campaignId } = req.params;
-    const { name, category, assetId, width, height, connections, isDefault = false } = req.body;
-
-    if (!name || typeof name !== 'string') {
-      return res.status(400).json({ error: 'Validation Error', message: 'Tile name is required' });
-    }
-    if (!category || !Object.values(['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL']).includes(category)) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Invalid tile category' });
-    }
-    if (!assetId || typeof assetId !== 'string') {
-      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
-    }
-    if (!Number.isInteger(width) || width < 1) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Width must be a positive integer' });
-    }
-    if (!Number.isInteger(height) || height < 1) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Height must be a positive integer' });
-    }
-
-    const tile = await prisma.mapTile.create({
-      data: {
-        campaignId,
-        name,
-        category,
-        assetId,
-        width,
-        height,
-        connections: connections as Prisma.InputJsonValue | undefined,
-        isDefault,
-        createdById: req.session.userId,
-      },
-      include: {
-        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
-        createdBy: { select: { id: true, displayName: true } }
-      }
-    });
-
-    return res.status(201).json({ tile });
-  } catch (error) {
-    logger.error('Error creating map tile', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to create map tile' });
-  }
-});
-
-/**
- * GET /api/campaigns/:campaignId/tiles/:tileId
- * Get a specific tile
- */
-router.get('/tiles/:tileId', campaignMember, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { campaignId, tileId } = req.params;
-
-    const tile = await prisma.mapTile.findFirst({
-      where: { id: tileId, campaignId },
-      include: {
-        asset: true,
-        createdBy: { select: { id: true, displayName: true } },
-        campaign: { select: { id: true, name: true } }
-      }
-    });
-
-    if (!tile) {
-      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
-    }
-
-    return res.status(200).json({ tile });
-  } catch (error) {
-    logger.error('Error fetching map tile', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to fetch map tile' });
-  }
-});
-
-/**
- * PUT /api/campaigns/:campaignId/tiles/:tileId
- * Update a tile (DM only)
- */
-router.put('/tiles/:tileId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { campaignId, tileId } = req.params;
-    const { name, category, width, height, connections } = req.body;
-
-    const tile = await prisma.mapTile.findFirst({ where: { id: tileId, campaignId } });
-    if (!tile) {
-      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
-    }
-    if (tile.isDefault) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Cannot modify default tiles' });
-    }
-
-    const updateData: Prisma.MapTileUpdateInput = {};
-    if (name !== undefined) {
-      if (typeof name !== 'string' || name.trim().length === 0) {
-        return res.status(400).json({ error: 'Validation Error', message: 'Tile name cannot be empty' });
-      }
-      updateData.name = name.trim();
-    }
-    if (category !== undefined) {
-      if (!Object.values(['FLOOR', 'WALL', 'CORNER', 'DOOR', 'FURNITURE', 'PROP', 'STAIRS', 'SPECIAL']).includes(category)) {
-        return res.status(400).json({ error: 'Validation Error', message: 'Invalid tile category' });
-      }
-      updateData.category = category;
-    }
-    if (width !== undefined) {
-      if (!Number.isInteger(width) || width < 1) {
-        return res.status(400).json({ error: 'Validation Error', message: 'Width must be a positive integer' });
-      }
-      updateData.width = width;
-    }
-    if (height !== undefined) {
-      if (!Number.isInteger(height) || height < 1) {
-        return res.status(400).json({ error: 'Validation Error', message: 'Height must be a positive integer' });
-      }
-      updateData.height = height;
-    }
-    if (connections !== undefined) {
-      updateData.connections = connections as Prisma.InputJsonValue;
-    }
-
-    const updatedTile = await prisma.mapTile.update({
-      where: { id: tileId },
-      data: updateData,
-      include: {
-        asset: { select: { id: true, filePath: true, thumbnailPath: true, originalName: true, mimeType: true } },
-        createdBy: { select: { id: true, displayName: true } }
-      }
-    });
-
-    return res.status(200).json({ tile: updatedTile });
-  } catch (error) {
-    logger.error('Error updating map tile', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update map tile' });
-  }
-});
-
-/**
- * DELETE /api/campaigns/:campaignId/tiles/:tileId
- * Delete a tile (DM only)
- */
-router.delete('/tiles/:tileId', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { campaignId, tileId } = req.params;
-
-    const tile = await prisma.mapTile.findFirst({ where: { id: tileId, campaignId } });
-    if (!tile) {
-      return res.status(404).json({ error: 'Not Found', message: 'Tile not found' });
-    }
-    if (tile.isDefault) {
-      return res.status(400).json({ error: 'Validation Error', message: 'Cannot delete default tiles' });
-    }
-
-    await prisma.mapTile.delete({ where: { id: tileId } });
-
-    return res.status(200).json({ message: 'Tile deleted successfully' });
-  } catch (error) {
-    logger.error('Error deleting map tile', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: 'Failed to delete map tile' });
-  }
-});
-
-/**
- * POST /api/campaigns/:campaignId/tiles/auto-slice
- * Auto-slice a tile sheet into individual tiles (DM only)
- */
-router.post('/tiles/auto-slice', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { campaignId } = req.params;
-    const { assetId, tileWidth, tileHeight, spacing = 0, margin = 0, namePrefix, category, columns, rows } = req.body;
-
-    if (!assetId || typeof assetId !== 'string') {
-      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
-    }
-    if (!Number.isInteger(tileWidth) || tileWidth < 1) {
-      return res.status(400).json({ error: 'Validation Error', message: 'tileWidth must be a positive integer' });
-    }
-    if (!Number.isInteger(tileHeight) || tileHeight < 1) {
-      return res.status(400).json({ error: 'Validation Error', message: 'tileHeight must be a positive integer' });
-    }
-
-    const tileService = await import('../services/tileService.js');
-    const result = await tileService.autoSliceTileSheet(assetId, campaignId, tileWidth, tileHeight, spacing, margin, {
-      namePrefix,
-      category: category || 'FLOOR',
-      createdById: req.session.userId,
-      columns,
-      rows
-    });
-
-    return res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error auto-slicing tile sheet', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : 'Failed to auto-slice tile sheet' });
-  }
-});
-
-/**
- * POST /api/campaigns/:campaignId/tiles/detect-connections
- * Detect Wang tile connections from a tile image (DM only)
- */
-router.post('/tiles/detect-connections', campaignDM, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { campaignId: _campaignId } = req.params;
-    const { assetId, threshold = 128 } = req.body;
-
-    if (!assetId || typeof assetId !== 'string') {
-      return res.status(400).json({ error: 'Validation Error', message: 'Asset ID is required' });
-    }
-
-    const tileService = await import('../services/tileService.js');
-    const connections = await tileService.detectWangConnections(assetId, threshold);
-
-    return res.status(200).json({ connections });
-  } catch (error) {
-    logger.error('Error detecting tile connections', { err: error });
-    return res.status(500).json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : 'Failed to detect tile connections' });
   }
 });
 

@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { useToast } from '@/contexts/ToastContext';
-import type { ToastType } from '@/components/Toast';
 import type { CharacterAction } from '@/types';
 
 interface ReactionPrompt {
@@ -31,12 +30,7 @@ interface UseReactionsReturn {
 export function useReactions(characterId?: string): UseReactionsReturn {
   const { socket, status } = useWebSocket();
   const { campaign } = useCampaign();
-  let showToast: (msg: string, type?: ToastType, duration?: number) => void = () => {};
-  try {
-    showToast = useToast().showToast;
-  } catch {
-    // Graceful fallback outside ToastProvider
-  }
+  const { showToast } = useToast();
   const [pendingReaction, setPendingReaction] = useState<ReactionPrompt | null>(null);
   const [usedReactions, setUsedReactions] = useState<Set<string>>(new Set());
   const [reactionTimeout, setReactionTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);

@@ -14,7 +14,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
   onSave,
   onCancel,
 }) => {
-  const [pack, setPack] = useState<RulesetPack>(
+  const [pack, setPack] = useState<RulesetPack>(() =>
     initialPack || {
       id: `custom-${Date.now()}`,
       version: '1.0.0',
@@ -54,7 +54,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
         shortRestRecoveryFormula: 'hit_dice',
         longRestFullHeal: true,
       },
-    },
+    }
   );
 
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +116,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
     <div className="bg-surface text-ink p-6 rounded-2xl border border-edge shadow-xl max-w-3xl w-full mx-auto space-y-6">
       <div className="flex items-center justify-between border-b border-edge pb-4">
         <div className="flex items-center gap-3">
-          <BookOpen className="w-6 h-6 text-brand" />
+          <BookOpen className="w-6 h-6 text-brand-ink" />
           <div>
             <h2 className="text-lg font-bold">Custom Ruleset Editor</h2>
             <p className="text-xs text-ink-muted">Modular ruleset pack builder (PRD §9.1-9.3)</p>
@@ -150,7 +150,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
             type="button"
             onClick={() => setActiveTab(tab)}
             className={`px-3 py-1.5 rounded-lg capitalize transition-colors ${
-              activeTab === tab ? 'bg-brand/15 text-brand font-semibold' : 'text-ink-muted hover:text-ink'
+              activeTab === tab ? 'bg-brand/15 text-brand-ink font-semibold' : 'text-ink-muted hover:text-ink'
             }`}
           >
             {tab}
@@ -245,7 +245,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
               <label className="block text-xs font-medium text-ink-muted mb-1">Grid Type</label>
               <select
                 value={pack.measurements.gridType}
-                onChange={(e) => setPack({ ...pack, measurements: { ...pack.measurements, gridType: e.target.value as any } })}
+                onChange={(e) => setPack({ ...pack, measurements: { ...pack.measurements, gridType: e.target.value as RulesetPack['measurements']['gridType'] } })}
                 className="w-full bg-surface-light border border-edge rounded-lg px-3 py-2 text-sm"
               >
                 <option value="square">Square</option>
@@ -258,7 +258,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
               <label className="block text-xs font-medium text-ink-muted mb-1">Diagonal Movement Rule</label>
               <select
                 value={pack.measurements.diagonalRule}
-                onChange={(e) => setPack({ ...pack, measurements: { ...pack.measurements, diagonalRule: e.target.value as any } })}
+                onChange={(e) => setPack({ ...pack, measurements: { ...pack.measurements, diagonalRule: e.target.value as RulesetPack['measurements']['diagonalRule'] } })}
                 className="w-full bg-surface-light border border-edge rounded-lg px-3 py-2 text-sm"
               >
                 <option value="dnd5e_standard">5e Standard (1:1 / 5 ft)</option>
@@ -317,7 +317,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
               <div className="flex gap-2">
                 <select
                   value={newActionType}
-                  onChange={(e) => setNewActionType(e.target.value as any)}
+                  onChange={(e) => setNewActionType(e.target.value as RulesetPack['actions'][0]['actionType'])}
                   className="bg-surface border border-edge rounded px-2 py-1.5 text-xs flex-1"
                 >
                   <option value="ATTACK_MELEE">Melee Attack</option>
@@ -333,7 +333,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
                 </select>
                 <select
                   value={newActionCost}
-                  onChange={(e) => setNewActionCost(e.target.value as any)}
+                  onChange={(e) => setNewActionCost(e.target.value as RulesetPack['actions'][0]['cost'])}
                   className="bg-surface border border-edge rounded px-2 py-1.5 text-xs"
                 >
                   <option value="ACTION">Action</option>
@@ -383,14 +383,14 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
                 <div>
                   <div className="font-semibold flex items-center gap-2">
                     {act.name}
-                    <span className="px-1.5 py-0.2 bg-brand/15 text-brand rounded text-[10px]">{act.cost}</span>
+                    <span className="px-1.5 py-0.2 bg-brand/15 text-brand-ink rounded text-[10px]">{act.cost}</span>
                   </div>
                   <p className="text-ink-muted text-[11px] mt-0.5">{act.description}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPack({ ...pack, actions: pack.actions.filter((_, idx) => idx !== i) })}
-                  className="text-danger hover:text-danger-ink p-1"
+                  className="text-danger-ink hover:text-danger-ink p-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -462,7 +462,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
                 <button
                   type="button"
                   onClick={() => setPack({ ...pack, conditions: pack.conditions.filter((_, idx) => idx !== i) })}
-                  className="text-danger hover:text-danger-ink p-1"
+                  className="text-danger-ink hover:text-danger-ink p-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -500,7 +500,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
               <label className="block text-xs font-medium text-ink-muted mb-1">Critical Hit Rule</label>
               <select
                 value={pack.automation.criticalHitRule}
-                onChange={(e) => setPack({ ...pack, automation: { ...pack.automation, criticalHitRule: e.target.value as any } })}
+                onChange={(e) => setPack({ ...pack, automation: { ...pack.automation, criticalHitRule: e.target.value as RulesetPack['automation']['criticalHitRule'] } })}
                 className="w-full bg-surface-light border border-edge rounded-lg px-3 py-2 text-sm"
               >
                 <option value="double_dice">Double all damage dice</option>
@@ -512,7 +512,7 @@ export const CustomRulesetEditor: React.FC<CustomRulesetEditorProps> = ({
               <label className="block text-xs font-medium text-ink-muted mb-1">Encumbrance Rule</label>
               <select
                 value={pack.automation.encumbranceRule}
-                onChange={(e) => setPack({ ...pack, automation: { ...pack.automation, encumbranceRule: e.target.value as any } })}
+                onChange={(e) => setPack({ ...pack, automation: { ...pack.automation, encumbranceRule: e.target.value as RulesetPack['automation']['encumbranceRule'] } })}
                 className="w-full bg-surface-light border border-edge rounded-lg px-3 py-2 text-sm"
               >
                 <option value="standard_5e">Standard (15x Strength)</option>

@@ -345,7 +345,7 @@ export function useFogShapeTool({
         markDirty('terrain', 'tokens', 'overlay');
         return true;
       }
-      if (shapeState.origin && !shapeState.dragging) {
+      if (shapeState.origin) {
         return updateShape(mapPx);
       }
       return false;

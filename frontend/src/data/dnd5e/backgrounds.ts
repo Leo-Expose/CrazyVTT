@@ -149,17 +149,18 @@ export function applyBackgroundToSheet(
 
   const updates: Partial<DnD5eCharacterData> = {};
 
-  // 1. Skill Proficiencies - ensure we have a complete skills object
-  const baseSkills = sheet.skills || getEmptySkills();
-  const skills = { ...baseSkills };
-  let skillsChanged = false;
-  for (const skillKey of bg.skillProficiencies) {
-    if (skills[skillKey] && !skills[skillKey].proficient) {
-      skills[skillKey] = { ...skills[skillKey], proficient: true };
-      skillsChanged = true;
+  // 1. Skill Proficiencies
+  {
+    const skills: DnD5eSkills = { ...(sheet.skills ?? getEmptySkills()) };
+    let skillsChanged = false;
+    for (const skillKey of bg.skillProficiencies) {
+      if (skills[skillKey] && !skills[skillKey].proficient) {
+        skills[skillKey] = { ...skills[skillKey], proficient: true };
+        skillsChanged = true;
+      }
     }
+    if (skillsChanged) updates.skills = skills;
   }
-  if (skillsChanged) updates.skills = skills;
 
   // 2. Tool & Language Proficiencies
   const existingProfs = sheet.proficienciesAndLanguages || [];
@@ -175,7 +176,7 @@ export function applyBackgroundToSheet(
 
   // 3. Background Feature
   const features = sheet.featuresAndTraits ? [...sheet.featuresAndTraits] : [];
-  if (!features.some((f): f is FeatureEntry => typeof f === 'object' && f.name === bg.feature.name)) {
+  if (!features.some((f) => (typeof f === 'string' ? f === bg.feature.name : f.name === bg.feature.name))) {
     features.push(bg.feature);
     updates.featuresAndTraits = features;
   }
@@ -185,7 +186,6 @@ export function applyBackgroundToSheet(
   for (const item of bg.startingEquipment) {
     if (!inventory.some((i) => i.name.toLowerCase() === item.name.toLowerCase())) {
       inventory.push({
-        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         name: item.name,
         quantity: item.quantity,
         weight: item.weight,

@@ -309,7 +309,7 @@ export function formatPoolCurrency(
 ): FormattedPoolCurrency {
   const parts: string[] = [];
   const shortParts: string[] = [];
-  let totalInLowest = 0;
+  let totalInLowest: number;
 
   switch (gameSystem) {
     case 'DND_5E':

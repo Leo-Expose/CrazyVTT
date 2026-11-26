@@ -192,7 +192,7 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
       
       const reachableResult = calculateReachableArea(options);
       
-      // Store drag state
+      // Store drag state keyed per socket+token so sockets never collide
       const dragState: DragMovementState = {
         tokenId,
         mapId,
@@ -204,8 +204,8 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
         dmOverrides: [],
         decidedAt: Date.now(),
       };
-      
-      movementDrags.set(tokenId, dragState);
+
+      movementDrags.set(`${socket.id}:${tokenId}`, dragState);
       
       // Broadcast to campaign
       await emitMovementStart(token, mapId, reachableResult, socket.userId ?? null);
@@ -233,7 +233,7 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
       
       if (!tokenId || !mapId || typeof x !== 'number' || typeof y !== 'number') return;
       
-      const dragState = movementDrags.get(tokenId);
+      const dragState = movementDrags.get(`${socket.id}:${tokenId}`);
       if (!dragState) return; // No active drag
       
       const map = await prisma.map.findUnique({
@@ -303,7 +303,7 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
         return;
       }
       
-      const dragState = movementDrags.get(tokenId);
+      const dragState = movementDrags.get(`${socket.id}:${tokenId}`);
       if (!dragState) {
         socket.emit('error', { message: 'No active movement to commit' });
         return;
@@ -427,7 +427,7 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
       await emitMovementCommit(token, mapId, x, y, path, speedUsed, dragState.opportunityAttacksTriggered, socket.userId ?? null);
       
       // Clean up drag state
-      movementDrags.delete(tokenId);
+      movementDrags.delete(`${socket.id}:${tokenId}`);
       
       logger.debug('movement:commit', { tokenId, x, y, speedUsed, userId: socket.userId });
     } catch (error) {
@@ -441,12 +441,17 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
    */
   socket.on('movement:cancel', async (data: { tokenId: string; mapId: string }) => {
     try {
+      if (!socket.campaignId) return;
+      if (!withinCeiling(socket, 'movement:cancel')) return;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return;
       const { tokenId, mapId } = data;
-      const dragState = movementDrags.get(tokenId);
-      
-      if (dragState) {
-        await cancelMovement(tokenId, mapId, dragState.startPosition, socket.campaignId!, io);
-        movementDrags.delete(tokenId);
+      if (!tokenId || !mapId) return;
+      const dragKey = `${socket.id}:${tokenId}`;
+      const dragState = movementDrags.get(dragKey);
+
+      if (dragState && dragState.mapId === mapId) {
+        await cancelMovement(tokenId, mapId, dragState.startPosition, socket.campaignId, io);
+        movementDrags.delete(dragKey);
       }
     } catch (error) {
       logger.error('movement:cancel failed', { err: error });
@@ -473,22 +478,29 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
       }
       
       // Only DM can change movement mode of tokens they don't control
-      // But players can change their own token's mode
-      const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (!map || map.campaignId !== socket.campaignId) {
+      // But players can change their own token's mode on readable maps when permitted
+      const map = await prisma.map.findUnique({
+        where: { id: mapId },
+        include: { campaign: { select: { status: true, currentMapId: true } } },
+      });
+      if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
         socket.emit('error', { message: 'Map not found' });
         return;
       }
-      
+      if (!canMoveTokensNow(socket.role, map.campaign.status)) {
+        socket.emit('error', { message: PAUSED_MOVE_REFUSAL });
+        return;
+      }
+
       const tokensArray = (Array.isArray(map.tokens) ? map.tokens : []) as unknown as Token[];
       const token = tokensArray.find(t => t.id === tokenId);
-      
+
       if (!token) {
         socket.emit('error', { message: 'Token not found' });
         return;
       }
-      
-      if (!canControlToken(socket.role, token.controlledBy, socket.userId) && socket.role !== 'DM') {
+
+      if (!canControlToken(socket.role, token.controlledBy, socket.userId)) {
         socket.emit('error', { message: 'Only the DM can change movement mode for other tokens' });
         return;
       }
@@ -670,31 +682,38 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
         return;
       }
       
-      if (socket.role !== 'DM' && !withinCeiling(socket, 'movement:dash')) return;
-      
-      const { tokenId, mapId } = data;
-      
+      if (!withinCeiling(socket, 'movement:dash')) return;
+
+      const { tokenId, mapId } = data && typeof data === 'object' && !Array.isArray(data) ? data : { tokenId: '', mapId: '' };
+
       if (!tokenId || !mapId) {
         ack({ ok: false, error: 'tokenId and mapId required' });
         return;
       }
-      
-      const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (!map || map.campaignId !== socket.campaignId) {
+
+      const map = await prisma.map.findUnique({
+        where: { id: mapId },
+        include: { campaign: { select: { status: true, currentMapId: true } } },
+      });
+      if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
         ack({ ok: false, error: 'Map not found' });
         return;
       }
-      
+      if (!canMoveTokensNow(socket.role, map.campaign.status)) {
+        ack({ ok: false, error: PAUSED_MOVE_REFUSAL });
+        return;
+      }
+
       const tokensArray = (Array.isArray(map.tokens) ? map.tokens : []) as unknown as Token[];
       const token = tokensArray.find(t => t.id === tokenId);
-      
+
       if (!token) {
         ack({ ok: false, error: 'Token not found' });
         return;
       }
-      
+
       // Check permission
-      if (!canControlToken(socket.role, token.controlledBy, socket.userId) && socket.role !== 'DM') {
+      if (!canControlToken(socket.role, token.controlledBy, socket.userId)) {
         ack({ ok: false, error: 'Not authorized' });
         return;
       }
@@ -724,31 +743,38 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
         return;
       }
       
-      if (socket.role !== 'DM' && !withinCeiling(socket, 'movement:disengage')) return;
-      
-      const { tokenId, mapId } = data;
-      
+      if (!withinCeiling(socket, 'movement:disengage')) return;
+
+      const { tokenId, mapId } = data && typeof data === 'object' && !Array.isArray(data) ? data : { tokenId: '', mapId: '' };
+
       if (!tokenId || !mapId) {
         ack({ ok: false, error: 'tokenId and mapId required' });
         return;
       }
-      
-      const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (!map || map.campaignId !== socket.campaignId) {
+
+      const map = await prisma.map.findUnique({
+        where: { id: mapId },
+        include: { campaign: { select: { status: true, currentMapId: true } } },
+      });
+      if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
         ack({ ok: false, error: 'Map not found' });
         return;
       }
-      
+      if (!canMoveTokensNow(socket.role, map.campaign.status)) {
+        ack({ ok: false, error: PAUSED_MOVE_REFUSAL });
+        return;
+      }
+
       const tokensArray = (Array.isArray(map.tokens) ? map.tokens : []) as unknown as Token[];
       const token = tokensArray.find(t => t.id === tokenId);
-      
+
       if (!token) {
         ack({ ok: false, error: 'Token not found' });
         return;
       }
-      
+
       // Check permission
-      if (!canControlToken(socket.role, token.controlledBy, socket.userId) && socket.role !== 'DM') {
+      if (!canControlToken(socket.role, token.controlledBy, socket.userId)) {
         ack({ ok: false, error: 'Not authorized' });
         return;
       }
@@ -780,29 +806,38 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
       
       if (!withinCeiling(socket, 'movement:bonus_action')) return;
       
-      const { tokenId, mapId, feet } = data;
-      
-      if (!tokenId || !mapId || typeof feet !== 'number') {
-        ack({ ok: false, error: 'tokenId, mapId, and feet required' });
+      const { tokenId, mapId, feet } = data && typeof data === 'object' && !Array.isArray(data)
+        ? data
+        : { tokenId: '', mapId: '', feet: NaN };
+
+      if (!tokenId || !mapId || typeof feet !== 'number' || !Number.isInteger(feet) || feet <= 0 || feet > 1000) {
+        ack({ ok: false, error: 'tokenId, mapId, and positive integer feet required' });
         return;
       }
-      
-      const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (!map || map.campaignId !== socket.campaignId) {
+
+      const map = await prisma.map.findUnique({
+        where: { id: mapId },
+        include: { campaign: { select: { status: true, currentMapId: true } } },
+      });
+      if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
         ack({ ok: false, error: 'Map not found' });
         return;
       }
-      
+      if (!canMoveTokensNow(socket.role, map.campaign.status)) {
+        ack({ ok: false, error: PAUSED_MOVE_REFUSAL });
+        return;
+      }
+
       const tokensArray = (Array.isArray(map.tokens) ? map.tokens : []) as unknown as Token[];
       const token = tokensArray.find(t => t.id === tokenId);
-      
+
       if (!token) {
         ack({ ok: false, error: 'Token not found' });
         return;
       }
-      
+
       // Check permission
-      if (!canControlToken(socket.role, token.controlledBy, socket.userId) && socket.role !== 'DM') {
+      if (!canControlToken(socket.role, token.controlledBy, socket.userId)) {
         ack({ ok: false, error: 'Not authorized' });
         return;
       }
@@ -830,44 +865,59 @@ export function registerMovementHandlers(io: Server, socket: AuthenticatedSocket
    */
   socket.on('movement:get_bonus_speed', async (data: { tokenId: string; mapId: string }, ackArg?: unknown) => {
     const ack = ackFrom(ackArg) ?? ((response: AckAnswer) => socket.emit('movement:get_bonus_speed:response', response));
-    
+
     try {
       if (!socket.campaignId) {
         ack({ ok: false, error: 'Not authenticated to a campaign' });
         return;
       }
-      
-      const { tokenId, mapId } = data;
-      
-      const map = await prisma.map.findUnique({ where: { id: mapId } });
-      if (!map || map.campaignId !== socket.campaignId) {
+
+      const { tokenId, mapId } = data && typeof data === 'object' && !Array.isArray(data) ? data : { tokenId: '', mapId: '' };
+      if (!tokenId || !mapId) {
+        ack({ ok: false, error: 'tokenId and mapId required' });
+        return;
+      }
+
+      const map = await prisma.map.findUnique({
+        where: { id: mapId },
+        include: { campaign: { select: { currentMapId: true } } },
+      });
+      if (!map || map.campaignId !== socket.campaignId || !canReadMap(socket.role, mapId, map.campaign.currentMapId)) {
         ack({ ok: false, error: 'Map not found' });
         return;
       }
-      
+
       const tokensArray = (Array.isArray(map.tokens) ? map.tokens : []) as unknown as Token[];
       const token = tokensArray.find(t => t.id === tokenId);
-      
+
       if (!token) {
         ack({ ok: false, error: 'Token not found' });
         return;
       }
-      
+      if (!canControlToken(socket.role, token.controlledBy, socket.userId)) {
+        ack({ ok: false, error: 'Not authorized' });
+        return;
+      }
+
       const bonusSpeed = getBonusActionMovementSpeed(token);
-      
+
       ack({ ok: true, bonusSpeed });
     } catch (error) {
       logger.error('movement:get_bonus_speed failed', { err: error });
       ack({ ok: false, error: 'Failed to get bonus action speed' });
     }
   });
-  
-  // Cleanup on disconnect
+
+  // Cleanup on disconnect (only drags belonging to this socket)
   socket.on('disconnect', () => {
-    for (const [tokenId, dragState] of movementDrags.entries()) {
-      if (dragState.mapId) {
-        // Return token to start position for this socket's drag
-        cancelMovement(tokenId, dragState.mapId, dragState.startPosition, socket.campaignId!, io);
+    const prefix = `${socket.id}:`;
+    for (const [key, dragState] of movementDrags.entries()) {
+      if (key.startsWith(prefix)) {
+        const tokenId = key.slice(prefix.length);
+        if (dragState.mapId && socket.campaignId) {
+          void cancelMovement(tokenId, dragState.mapId, dragState.startPosition, socket.campaignId, io);
+        }
+        movementDrags.delete(key);
       }
     }
   });

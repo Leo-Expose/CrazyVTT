@@ -275,6 +275,7 @@ const itemValueSchema = z.object({
  * Most fields optional for quick item addition
  */
 const inventoryItemSchema = z.object({
+  id: shortText.optional(),
   name: shortText.min(1),
   quantity: z.number().int().min(0).optional(),
   weight: z.number().min(0).optional(),
@@ -446,6 +447,7 @@ export const dnd5eCharacterDataSchema = z.object({
   // total, kept for exports and anything else reading the blob.
   initiativeBonus: manualBonusSchema.optional(),
   speed: z.number().int().min(0).optional(),
+  size: z.enum(['Small', 'Medium']).optional(),
   hp: hitPointsSchema.optional(),
   conditions: sheetList(shortText).optional(),
   // Exhaustion is six cumulative levels, not a condition you either have or do

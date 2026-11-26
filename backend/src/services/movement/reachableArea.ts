@@ -79,6 +79,9 @@ function getMovementSpeed(token: Token, mode: string, overrideSpeed?: number): n
 function getTerrainMultiplier(mode: string, terrainType: TerrainType, ignoreDifficult: boolean, ignoreHazardous: boolean): number {
   // Teleport ignores all terrain
   if (mode === 'teleport') return 1;
+  // Flying and burrowing can traverse otherwise impassable ground.
+  if ((mode === 'fly' || mode === 'burrow') && terrainType === 'impassable') return 1;
+  if (mode === 'fly' && terrainType === 'difficult') return 1;
   
   switch (terrainType) {
     case 'normal':
@@ -152,20 +155,21 @@ export function calculateReachableArea(options: MovementCalculationOptions): Rea
   const startY = token.position.y;
   const startIndex = startY * terrainGrid.width + startX;
   
-  // A* data structures
+  // Dijkstra/A* data structures
   interface Node {
     x: number;
     y: number;
     index: number;
     gCost: number; // Cost from start
-    fCost: number; // gCost + heuristic
+    fCost: number; // Priority cost
+    diagonalCount: number; // Alternating 5/10ft diagonals taken along this path
     parent: Node | null;
   }
-  
+
   const openSet: Node[] = [];
   const closedSet = new Set<number>();
   const nodeMap = new Map<number, Node>();
-  
+
   // Start node
   const startNode: Node = {
     x: startX,
@@ -173,12 +177,13 @@ export function calculateReachableArea(options: MovementCalculationOptions): Rea
     index: startIndex,
     gCost: 0,
     fCost: 0,
+    diagonalCount: 0,
     parent: null,
   };
-  
+
   openSet.push(startNode);
-  nodeMap.set(startIndex, startNode);
-  
+  nodeMap.set(startIndex * 2, startNode);
+
   // Directions: 8-way movement (including diagonals)
   const directions = [
     { dx: 0, dy: -1 }, // North
@@ -190,11 +195,7 @@ export function calculateReachableArea(options: MovementCalculationOptions): Rea
     { dx: -1, dy: 0 }, // West
     { dx: -1, dy: -1 }, // NW
   ];
-  
-  // For diagonal movement cost (D&D 5e: first diagonal = 5ft, second = 10ft, alternating)
-  // We'll use the "alternating" rule by default
-  let diagonalCount = 0;
-  
+
   while (openSet.length > 0) {
     // Find node with lowest fCost
     let currentIndex = 0;
@@ -203,39 +204,37 @@ export function calculateReachableArea(options: MovementCalculationOptions): Rea
         currentIndex = i;
       }
     }
-    
+
     const current = openSet[currentIndex];
-    
+
     // Remove from open set
     openSet.splice(currentIndex, 1);
-    closedSet.add(current.index);
-    
+    closedSet.add(current.index * 2 + current.diagonalCount % 2);
+
     // If we've exceeded movement range, skip expanding
     if (current.gCost > maxMovementFeet) continue;
-    
+
     // Check neighbors
     for (let dirIndex = 0; dirIndex < directions.length; dirIndex++) {
       const dir = directions[dirIndex];
       const nx = current.x + dir.dx;
       const ny = current.y + dir.dy;
-      
+
       // Bounds check
       if (nx < 0 || nx >= terrainGrid.width || ny < 0 || ny >= terrainGrid.height) continue;
-      
+
       const nIndex = ny * terrainGrid.width + nx;
-      
-      // Skip if already evaluated
-      if (closedSet.has(nIndex)) continue;
-      
+
       // Check terrain
       const terrainType = terrainGrid.terrain[nIndex] ?? 'normal';
-      
+
       // Check if we can traverse this terrain
       if (!canTraverse(mode, terrainType)) continue;
-      
+
       // Calculate movement cost
       let moveCost = feetPerSquare; // Base cost per square
-      
+      let nextDiagonalCount = current.diagonalCount;
+
       // Diagonal movement
       const isDiagonal = dir.dx !== 0 && dir.dy !== 0;
       if (isDiagonal) {
@@ -244,29 +243,32 @@ export function calculateReachableArea(options: MovementCalculationOptions): Rea
         const ortho2Index = ny * terrainGrid.width + current.x;
         const ortho1Terrain = terrainGrid.terrain[ortho1Index] ?? 'normal';
         const ortho2Terrain = terrainGrid.terrain[ortho2Index] ?? 'normal';
-        
+
         if (!canTraverse(mode, ortho1Terrain) && !canTraverse(mode, ortho2Terrain)) {
           continue; // Can't cut corners
         }
-        
-        // D&D 5e alternating diagonal rule
-        diagonalCount++;
-        moveCost = (diagonalCount % 2 === 1) ? feetPerSquare : feetPerSquare * 2;
-      } else {
-        diagonalCount = 0; // Reset on orthogonal move
+
+        // D&D 5e alternating diagonal rule (carried per-path without resetting)
+        nextDiagonalCount += 1;
+        moveCost = (nextDiagonalCount % 2 === 1) ? feetPerSquare : feetPerSquare * 2;
       }
-      
+
+      // Reaching a square with a different diagonal parity can change the
+      // cost of the next step, so both states must be searched independently.
+      const stateKey = nIndex * 2 + nextDiagonalCount % 2;
+      if (closedSet.has(stateKey)) continue;
+
       // Apply terrain multiplier
       const terrainMultiplier = ignoreAllTerrain ? 1 : getTerrainMultiplier(mode, terrainType, ignoreDifficultTerrain ?? false, ignoreHazardousTerrain ?? false);
       moveCost *= terrainMultiplier;
-      
+
       const newGCost = current.gCost + moveCost;
-      
+
       // Skip if exceeds movement range
       if (newGCost > maxMovementFeet) continue;
-      
+
       // Get or create neighbor node
-      let neighbor = nodeMap.get(nIndex);
+      let neighbor = nodeMap.get(stateKey);
       if (!neighbor) {
         neighbor = {
           x: nx,
@@ -274,20 +276,19 @@ export function calculateReachableArea(options: MovementCalculationOptions): Rea
           index: nIndex,
           gCost: Infinity,
           fCost: Infinity,
+          diagonalCount: 0,
           parent: null,
         };
-        nodeMap.set(nIndex, neighbor);
+        nodeMap.set(stateKey, neighbor);
       }
-      
+
       // If this path is better
       if (newGCost < neighbor.gCost) {
         neighbor.gCost = newGCost;
+        neighbor.diagonalCount = nextDiagonalCount;
         neighbor.parent = current;
-        
-        // Heuristic: Manhattan distance * feetPerSquare (admissible)
-        const hCost = (Math.abs(nx - startX) + Math.abs(ny - startY)) * feetPerSquare;
-        neighbor.fCost = neighbor.gCost + hCost;
-        
+        neighbor.fCost = newGCost;
+
         // Add to open set if not already there
         if (!openSet.includes(neighbor)) {
           openSet.push(neighbor);
@@ -299,8 +300,13 @@ export function calculateReachableArea(options: MovementCalculationOptions): Rea
   // Build reachable squares from explored nodes
   const reachable: ReachableSquare[] = [];
   
+  const cheapestBySquare = new Map<number, Node>();
   for (const node of nodeMap.values()) {
-    if (node.gCost <= maxMovementFeet && node.gCost > 0) { // Exclude start position
+    const previous = cheapestBySquare.get(node.index);
+    if (!previous || node.gCost < previous.gCost) cheapestBySquare.set(node.index, node);
+  }
+  for (const node of cheapestBySquare.values()) {
+    if (node.index !== startIndex && node.gCost <= maxMovementFeet && node.gCost > 0) {
       // Reconstruct path
       const path: { x: number; y: number }[] = [];
       let pathNode: Node | null = node;

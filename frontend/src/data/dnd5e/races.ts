@@ -3,8 +3,7 @@
  * Complete PHB races with ability score increases, features, and traits
  */
 
-import type { DnD5eCharacterData, DnD5eSkills } from '@/types/game-systems';
-import type { FeatureEntry } from '@/utils/featureEntries';
+import type { DnD5eCharacterData, DnD5eStats } from '@/types/game-systems';
 
 export interface RaceFeature {
   name: string;
@@ -18,7 +17,7 @@ export interface RaceData {
   name: string;
   description: string;
   /** Ability score increases: { ability: increase } */
-  abilityScoreIncrease: Partial<Record<keyof DnD5eCharacterData['stats'], number>>;
+  abilityScoreIncrease: Partial<Record<keyof DnD5eStats, number>>;
   /** Base speed in feet */
   speed: number;
   /** Size category */
@@ -32,32 +31,6 @@ export interface RaceData {
   /** Source book */
   source: 'PHB' | 'EE' | 'SCAG' | 'XGtE' | 'TCE';
 }
-
-/** Return an empty skills object with all 18 skills initialized */
-function getEmptySkills(): DnD5eSkills {
-  return {
-    acrobatics: { proficient: false, expertise: false, bonus: 0 },
-    animalHandling: { proficient: false, expertise: false, bonus: 0 },
-    arcana: { proficient: false, expertise: false, bonus: 0 },
-    athletics: { proficient: false, expertise: false, bonus: 0 },
-    deception: { proficient: false, expertise: false, bonus: 0 },
-    history: { proficient: false, expertise: false, bonus: 0 },
-    insight: { proficient: false, expertise: false, bonus: 0 },
-    intimidation: { proficient: false, expertise: false, bonus: 0 },
-    investigation: { proficient: false, expertise: false, bonus: 0 },
-    medicine: { proficient: false, expertise: false, bonus: 0 },
-    nature: { proficient: false, expertise: false, bonus: 0 },
-    perception: { proficient: false, expertise: false, bonus: 0 },
-    performance: { proficient: false, expertise: false, bonus: 0 },
-    persuasion: { proficient: false, expertise: false, bonus: 0 },
-    religion: { proficient: false, expertise: false, bonus: 0 },
-    sleightOfHand: { proficient: false, expertise: false, bonus: 0 },
-    stealth: { proficient: false, expertise: false, bonus: 0 },
-    survival: { proficient: false, expertise: false, bonus: 0 },
-  };
-}
-
-
 
 // ============================================
 // PHB RACES
@@ -140,8 +113,14 @@ export const DND5E_RACES: RaceData[] = [
             name: 'Dwarven Toughness',
             description: 'Your hit point maximum increases by 1, and it increases by 1 every time you gain a level.',
             effect: (sheet) => {
-              const currentHp = sheet.hp || { maximum: 0, current: 0, temporary: 0 };
-              return { hp: { ...currentHp, maximum: (currentHp.maximum || 0) + 1 } };
+              const maximum = (sheet.hp?.maximum ?? 0) + 1;
+              return {
+                hp: {
+                  maximum,
+                  current: (sheet.hp?.current ?? 0) + 1,
+                  temporary: sheet.hp?.temporary ?? 0,
+                },
+              };
             }
           },
         ],
@@ -189,12 +168,9 @@ export const DND5E_RACES: RaceData[] = [
         name: 'Keen Senses',
         description: 'You have proficiency in the Perception skill.',
         effect: (sheet) => {
-          const baseSkills = sheet.skills || getEmptySkills();
+          if (!sheet.skills) return {};
           return {
-            skills: {
-              ...baseSkills,
-              perception: { ...baseSkills.perception, proficient: true },
-            },
+            skills: { ...sheet.skills, perception: { ...sheet.skills.perception, proficient: true } },
           };
         },
       },
@@ -417,12 +393,9 @@ export const DND5E_RACES: RaceData[] = [
         name: 'Menacing',
         description: 'You gain proficiency in the Intimidation skill.',
         effect: (sheet) => {
-          const baseSkills = sheet.skills || getEmptySkills();
+          if (!sheet.skills) return {};
           return {
-            skills: {
-              ...baseSkills,
-              intimidation: { ...baseSkills.intimidation, proficient: true },
-            },
+            skills: { ...sheet.skills, intimidation: { ...sheet.skills.intimidation, proficient: true } },
           };
         },
       },
@@ -640,11 +613,6 @@ export function applyRaceToSheet(sheet: DnD5eCharacterData, race: RaceData): Par
     updates.speed = race.speed;
   }
 
-  // Apply size
-  if (race.size) {
-    updates.size = race.size;
-  }
-
   // Apply languages
   if (race.languages && race.languages.length > 0) {
     const existing = sheet.proficienciesAndLanguages || [];
@@ -663,7 +631,9 @@ export function applyRaceToSheet(sheet: DnD5eCharacterData, race: RaceData): Par
         Object.assign(updates, effect);
       }
       // Add feature to list
-      const existingFeature = featureData.find((f): f is FeatureEntry => typeof f === 'object' && f !== null && f.name === feature.name);
+      const existingFeature = featureData.find(
+        (f) => (typeof f === 'string' ? f === feature.name : f.name === feature.name)
+      );
       if (!existingFeature) {
         featureData = [...featureData, { name: feature.name, description: feature.description }];
       }

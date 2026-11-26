@@ -77,7 +77,7 @@ export default function JournalViewer({ entry, canEdit, onEdit }: JournalViewerP
 </head>
 <body>
   <h1>${entry.title}</h1>
-  <p style="color: #6b7280; font-size: 0.875rem;">${entry.visibility} · Updated ${format(new Date(entry.updatedAt), 'PPp')}</p>
+  <p style="color: #6b7280;">${entry.visibility} · Updated ${format(new Date(entry.updatedAt), 'PPp')}</p>
   <hr>
   ${entry.content}
 </body>

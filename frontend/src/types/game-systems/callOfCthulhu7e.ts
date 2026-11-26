@@ -273,6 +273,12 @@ export interface CoC7eSpellsAndMythos {
 export interface CoC7ePossession {
   name: string;
   notes?: string;
+  containerId?: string;
+  location?: 'EQUIPPED' | 'CARRIED' | 'STOWED' | 'CONTAINER';
+  weight?: number;
+  capacity?: number;
+  capacityUnit?: 'LBS' | 'BULK';
+  value?: number;
 }
 
 /**
@@ -283,6 +289,7 @@ export interface CoC7eWealth {
   cash?: number;
   assets?: string;
   notes?: string;
+  containers?: Array<{ id: string; name: string; cash: number }>;
 }
 
 /**

@@ -54,7 +54,9 @@ export const CharacterCreationFlow: React.FC<CharacterCreationFlowProps> = ({
       if (saved) {
         try {
           return JSON.parse(saved) as CharacterProposalItem[];
-        } catch {}
+        } catch {
+          // Ignore invalid stored proposal state
+        }
       }
     }
     return [
@@ -147,7 +149,7 @@ export const CharacterCreationFlow: React.FC<CharacterCreationFlowProps> = ({
     <div className="bg-surface text-ink p-6 rounded-2xl border border-edge shadow-xl max-w-2xl w-full mx-auto space-y-6">
       <div className="flex items-center justify-between border-b border-edge pb-4">
         <div className="flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-brand" />
+          <Sparkles className="w-6 h-6 text-brand-ink" />
           <div>
             <h2 className="text-lg font-bold">Collaborative Character Creation</h2>
             <p className="text-xs text-ink-muted">PRD §8.2: Player proposes &rarr; DM reviews &amp; approves &rarr; Auto-applies to sheet</p>
@@ -167,7 +169,7 @@ export const CharacterCreationFlow: React.FC<CharacterCreationFlowProps> = ({
       {/* DM View: Pending Proposals for Review */}
       {isDM ? (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-xs font-semibold text-brand">
+          <div className="flex items-center gap-2 text-xs font-semibold text-brand-ink">
             <Shield className="w-4 h-4" />
             DM Review Panel ({proposals.filter((p) => p.status === 'pending').length} Pending)
           </div>
@@ -181,7 +183,7 @@ export const CharacterCreationFlow: React.FC<CharacterCreationFlowProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm">{prop.playerName}&rsquo;s Proposal</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full capitalize bg-brand/10 text-brand">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full capitalize bg-brand/10 text-brand-ink">
                       {prop.type.replace('_', ' ')}
                     </span>
                   </div>
@@ -250,7 +252,7 @@ export const CharacterCreationFlow: React.FC<CharacterCreationFlowProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDMResolve(prop.id, 'rejected')}
-                          className="px-2.5 py-1 text-xs text-danger hover:bg-danger/10 rounded font-medium transition-colors"
+                          className="px-2.5 py-1 text-xs text-danger-ink hover:bg-danger/10 rounded font-medium transition-colors"
                         >
                           Reject
                         </button>
@@ -272,7 +274,7 @@ export const CharacterCreationFlow: React.FC<CharacterCreationFlowProps> = ({
       ) : (
         /* Player View: Propose Choices */
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-xs font-semibold text-brand">
+          <div className="flex items-center gap-2 text-xs font-semibold text-brand-ink">
             <Clock className="w-4 h-4" />
             Propose Character Choices to DM
           </div>

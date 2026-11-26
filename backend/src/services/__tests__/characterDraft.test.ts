@@ -110,6 +110,25 @@ describe('CharacterDraftService', () => {
   });
 
   describe('applyPatchToDraft', () => {
+    it.each([
+      { op: 'replace', path: '/inventory/0/name', value: 'changed' },
+      { op: 'move', from: '/inventory/0/name', path: '/other' },
+      { op: 'remove', path: '/inventory/0' },
+    ] as JsonPatch[])('rejects edits that affect a locked array field: $op $path', async (patch) => {
+      prisma.characterDraft.findUnique.mockResolvedValue({ version: 1, data: { inventory: [{ name: 'locked' }] } });
+      prisma.characterLock.findMany.mockResolvedValue([{ fieldPath: 'inventory[0].name', lockedBy: { displayName: 'DM' } }]);
+      await expect(characterDraftService.applyPatchToDraft('char-1', [patch], 1, 'user-1')).rejects.toThrow(/locked by DM/);
+    });
+
+    it('rejects copying into an array before a locked element', async () => {
+      prisma.characterDraft.findUnique.mockResolvedValue({
+        version: 1, data: { inventory: [{ name: 'first' }, { name: 'locked' }], other: { name: 'copy' } },
+      });
+      prisma.characterLock.findMany.mockResolvedValue([{ fieldPath: 'inventory[1].name', lockedBy: { displayName: 'DM' } }]);
+      await expect(characterDraftService.applyPatchToDraft('char-1', [
+        { op: 'copy', from: '/other', path: '/inventory/0' },
+      ], 1, 'user-1')).rejects.toThrow(/locked by DM/);
+    });
     it('should apply patches with optimistic locking', async () => {
       const mockDraft = {
         id: 'draft-1',

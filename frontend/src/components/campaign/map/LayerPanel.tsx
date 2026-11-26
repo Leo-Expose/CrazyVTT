@@ -165,7 +165,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
   const fetchLayers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<{ layers: MapLayer[] }>(`/campaigns/${campaign?.id}/maps/${mapId}/layers`);
+      const response = await api.get<{ layers: MapLayer[] }>(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers`);
       const fetchedLayers = response.data.layers || [];
       setLayers(fetchedLayers);
       // Initialize opacity values
@@ -191,7 +191,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
     if (!isDM) return;
 
     try {
-      await api.put(`/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}`, updates);
+      await api.put(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}`, updates);
     } catch {
       console.error('Failed to update layer');
       showToast('Failed to update layer', 'error');
@@ -202,7 +202,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
     if (!isDM) return;
 
     try {
-      await api.delete(`/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}`);
+      await api.delete(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}`);
       showToast('Layer deleted', 'success');
     } catch {
       console.error('Failed to delete layer');
@@ -214,7 +214,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
     if (!isDM) return;
 
     try {
-      await api.post(`/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}/duplicate`);
+      await api.post(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}/duplicate`);
       showToast('Layer duplicated', 'success');
     } catch {
       console.error('Failed to duplicate layer');
@@ -226,7 +226,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
     if (!isDM) return;
 
     try {
-      await api.post(`/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}/merge-down`);
+      await api.post(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers/${layerId}/merge-down`);
       showToast('Layer merged down', 'success');
     } catch {
       console.error('Failed to merge layer');
@@ -238,7 +238,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
     if (!isDM) return;
 
     try {
-      await api.post(`/campaigns/${campaign?.id}/maps/${mapId}/layers/reorder`, { layerIds });
+      await api.post(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers/reorder`, { layerIds });
     } catch {
       console.error('Failed to reorder layers');
       showToast('Failed to reorder layers', 'error');
@@ -250,7 +250,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
     if (!isDM) return;
 
     try {
-      await api.post(`/campaigns/${campaign?.id}/maps/${mapId}/layers/initialize`);
+      await api.post(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers/initialize`);
       showToast('Default layers created', 'success');
     } catch {
       console.error('Failed to initialize layers');
@@ -262,7 +262,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
     if (!isDM) return;
 
     try {
-      await api.post(`/campaigns/${campaign?.id}/maps/${mapId}/layers`, {
+      await api.post(`/api/campaigns/${campaign?.id}/maps/${mapId}/layers`, {
         name,
         type,
         order: layers.length,
@@ -374,7 +374,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
 
   const isProtected = (layer: MapLayer) => PROTECTED_LAYER_TYPES.includes(layer.type);
 
-  const canMergeDown = (layer: MapLayer, _index?: number) => {
+  const canMergeDown = (layer: MapLayer) => {
     if (!isDM || isProtected(layer) || layer.locked) return false;
     const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
     const currentIndex = sortedLayers.findIndex(l => l.id === layer.id);
@@ -457,8 +457,7 @@ export default function LayerPanel({ mapId, isDM, onClose, activeLayerId, onActi
         ) : (
           <ul className="space-y-1" role="list">
             {displayLayers.map((layer) => {
-              const actualIndex = sortedLayers.findIndex(l => l.id === layer.id);
-              const canMerge = canMergeDown(layer, actualIndex);
+              const canMerge = canMergeDown(layer);
               const isActive = activeLayerId === layer.id;
               
               return (

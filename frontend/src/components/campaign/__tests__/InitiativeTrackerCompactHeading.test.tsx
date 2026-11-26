@@ -30,7 +30,7 @@ const Compact = ({ children }: { children: ReactNode }) => <LayoutProvider compa
 
 beforeEach(() => {
   useGameStore.getState().setTokens([]);
-  useGameStore.getState().setCombatState({ active: true, round: 3, currentIndex: 0, currentTokenId: null, combatants: [entry('g', 'Goblin', 12)] });
+  useGameStore.getState().setCombatState({ active: true, round: 3, currentTokenId: null, combatants: [entry('g', 'Goblin', 12)] });
 });
 
 it('has no heading or fold of its own on the compact layout, and shows the round', () => {

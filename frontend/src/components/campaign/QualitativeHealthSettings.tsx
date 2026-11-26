@@ -50,7 +50,7 @@ export const QualitativeHealthSettings: React.FC<QualitativeHealthSettingsProps>
     <div className="space-y-6 text-ink">
       <div>
         <h3 className="text-base font-semibold flex items-center gap-2 mb-1">
-          <Shield className="w-5 h-5 text-brand" />
+          <Shield className="w-5 h-5 text-brand-ink" />
           Enemy Health Representation
         </h3>
         <p className="text-xs text-ink-muted">
@@ -87,7 +87,7 @@ export const QualitativeHealthSettings: React.FC<QualitativeHealthSettingsProps>
           }`}
         >
           <div className="font-semibold text-sm mb-1 flex items-center gap-1.5">
-            Qualitative <span className="text-[10px] px-1.5 py-0.2 bg-brand/20 text-brand rounded font-normal">PRD §14</span>
+            Qualitative <span className="text-[10px] px-1.5 py-0.2 bg-brand/20 text-brand-ink rounded font-normal">PRD §14</span>
           </div>
           <div className="text-xs text-ink-muted leading-relaxed">
             Players see descriptive health tiers (&ldquo;Healthy&rdquo;, &ldquo;Wounded&rdquo;, &ldquo;Bloodied&rdquo;) with colored rings. Zero exact HP sent.
@@ -125,7 +125,7 @@ export const QualitativeHealthSettings: React.FC<QualitativeHealthSettingsProps>
               type="button"
               disabled={disabled}
               onClick={handleResetDefaults}
-              className="text-xs text-brand hover:underline font-medium"
+              className="text-xs text-brand-ink hover:underline font-medium"
             >
               Reset to Defaults
             </button>
@@ -238,7 +238,7 @@ export const QualitativeHealthSettings: React.FC<QualitativeHealthSettingsProps>
           </div>
 
           <div className="flex items-start gap-2 p-3 bg-brand/5 border border-brand/20 rounded-lg text-xs text-ink-muted">
-            <Info className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+            <Info className="w-4 h-4 text-brand-ink shrink-0 mt-0.5" />
             <div>
               <strong>Server-enforced payload safety:</strong> When Qualitative or None is selected, exact enemy HP values (<code className="font-mono">hp.current</code>, <code className="font-mono">hp.max</code>) are stripped from network payloads sent to player browsers, preventing network tab leakage.
             </div>

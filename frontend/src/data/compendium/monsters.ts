@@ -35,7 +35,7 @@ export interface CompendiumMonster {
   xp: number;
   xpInLair?: number;
   specialAbilities: Array<{ name: string; desc: string }>;
-  actions: Array<{ name: string; desc: string; attack_bonus?: number | null; damage?: any }>;
+  actions: Array<{ name: string; desc: string; attack_bonus?: number | null; damage?: unknown }>;
   bonusActions?: Array<{ name: string; desc: string }>;
   reactions?: Array<{ name: string; desc: string }>;
   legendaryActions: Array<{ name: string; desc: string }>;
@@ -44,7 +44,7 @@ export interface CompendiumMonster {
     ability: string;
     spell_save_dc: number;
     spell_attack_bonus: number;
-    spells: any[];
+    spells: unknown[];
   };
   version: '2014' | '2024';
 }

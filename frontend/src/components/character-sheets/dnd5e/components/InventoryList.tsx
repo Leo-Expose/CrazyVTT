@@ -10,6 +10,7 @@ import { Package, Coins, Star } from 'lucide-react';
 
 import type { DnD5eInventoryItem as InventoryItem, DnD5eCurrency as Currency } from '@/types/game-systems';
 import { carryingCapacity } from '@/utils/rules/dnd5e';
+import { itemValueInGold } from '@/utils/itemValue';
 
 interface InventoryListProps {
   inventory?: InventoryItem[];
@@ -40,7 +41,7 @@ const CurrencyDisplay: React.FC<{ currency: Currency }> = ({ currency }) => {
         {coins.map(({ label, value }) => (
           <div key={label} className="text-center">
             <div className="text-xs text-ink-muted mb-1">{label}</div>
-            <div className="text-lg font-bold text-ink">{value}</div>
+            <div className="text-lg font-bold text-ink">{value ?? 0}</div>
           </div>
         ))}
       </div>
@@ -94,7 +95,7 @@ const InventoryItemRow: React.FC<{ item: InventoryItem }> = ({ item }) => {
         </div>
         <div className="text-right">
           <div className="text-xs text-ink-muted">Value</div>
-          <div>{item.value != null ? `${item.value} gp` : '—'}</div>
+          <div>{item.value != null ? `${itemValueInGold(item.value)} gp` : '—'}</div>
         </div>
       </div>
     </div>

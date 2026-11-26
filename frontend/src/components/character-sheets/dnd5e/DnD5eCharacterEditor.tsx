@@ -30,6 +30,7 @@ import type {
   DnD5eSpellSlots,
 } from '../../../types/game-systems';
 import { apiErrorMessage, errorSummary } from '@/utils/errors';
+import { itemValueInGold } from '@/utils/itemValue';
 import { DND5E_CONDITIONS } from '@/utils/conditions';
 import { collectSheetFeatures, readFeatureEntriesForEditing } from '@/utils/featureEntries';
 import { useServerConfigQuery } from '@/hooks/queries';
@@ -1471,7 +1472,7 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
             onClick={() => updateField('rulesetVersion', '2014')}
             className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
               (formData.rulesetVersion || '2014') === '2014'
-                ? 'bg-brand text-white shadow-xs'
+                ? 'bg-brand text-brand-text shadow-xs'
                 : 'text-ink-secondary hover:text-ink'
             }`}
           >
@@ -1482,7 +1483,7 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
             onClick={() => updateField('rulesetVersion', '2024')}
             className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
               formData.rulesetVersion === '2024'
-                ? 'bg-brand text-white shadow-xs'
+                ? 'bg-brand text-brand-text shadow-xs'
                 : 'text-ink-secondary hover:text-ink'
             }`}
           >
@@ -3069,7 +3070,7 @@ export const DnD5eCharacterEditor: React.FC<DnD5eCharacterEditorProps> = ({
                     step="0.01"
                     // Prices run to silver and copper: 5 sp is 0.5 gp.
                     integer={false}
-                    value={item.value}
+                    value={itemValueInGold(item.value)}
                     onChange={(v: number) => updateField(`inventory.${index}.value`, v)}
                     className="w-full px-2 py-1 border border-ink/20 rounded-sm text-center focus:outline-hidden focus:ring-2 focus:ring-brand"
                   fallback={0}

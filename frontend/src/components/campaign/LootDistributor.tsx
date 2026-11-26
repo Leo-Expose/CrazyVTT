@@ -339,7 +339,7 @@ export function LootDistributor({ distributionId, onClose }: { distributionId: s
       showToast('Distribution completed and currency deposited to party pool', 'success');
       setShowDepositModal(false);
       if (onClose) onClose();
-    } catch (err) {
+    } catch {
       showToast('Failed to deposit to pool', 'error');
     } finally {
       setDepositing(false);

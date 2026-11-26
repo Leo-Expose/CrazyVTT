@@ -144,7 +144,7 @@ export function RaceSelect({ value, onChange, className, disabled, error }: Race
                     }}
                     className={cn(
                       'w-full px-3 py-2 text-left text-sm rounded transition-colors',
-                      value === race.id || value?.toLowerCase() === race.name.toLowerCase() ? 'bg-brand/10 text-brand font-medium' : 'text-ink hover:bg-ink/5'
+                      value === race.id || value?.toLowerCase() === race.name.toLowerCase() ? 'bg-brand/10 text-brand-ink font-medium' : 'text-ink hover:bg-ink/5'
                     )}
                   >
                     <div className="font-medium">{race.name}</div>
@@ -162,7 +162,7 @@ export function RaceSelect({ value, onChange, className, disabled, error }: Race
                       }}
                       className={cn(
                         'w-full px-3 py-2 pl-8 text-left text-sm rounded transition-colors',
-                        value === subrace.id || value?.toLowerCase() === subrace.name.toLowerCase() ? 'bg-brand/10 text-brand font-medium' : 'text-ink hover:bg-ink/5'
+                        value === subrace.id || value?.toLowerCase() === subrace.name.toLowerCase() ? 'bg-brand/10 text-brand-ink font-medium' : 'text-ink hover:bg-ink/5'
                       )}
                     >
                       <div className="font-medium">{subrace.name}</div>
@@ -273,7 +273,7 @@ export function ClassSelect({ value, onChange, className, disabled, error }: Cla
                   }}
                   className={cn(
                     'w-full px-3 py-2 text-left text-sm rounded transition-colors',
-                    value === cls.id || value?.toLowerCase() === cls.name.toLowerCase() ? 'bg-brand/10 text-brand font-medium' : 'text-ink hover:bg-ink/5'
+                    value === cls.id || value?.toLowerCase() === cls.name.toLowerCase() ? 'bg-brand/10 text-brand-ink font-medium' : 'text-ink hover:bg-ink/5'
                   )}
                 >
                   <div className="font-medium">{cls.name}</div>
@@ -353,7 +353,7 @@ export function SubclassSelect({ classId, value, onChange, className, disabled }
                 }}
                 className={cn(
                   'w-full px-3 py-2 text-left text-sm rounded transition-colors',
-                  value === subclass.id ? 'bg-brand/10 text-brand font-medium' : 'text-ink hover:bg-ink/5'
+                  value === subclass.id ? 'bg-brand/10 text-brand-ink font-medium' : 'text-ink hover:bg-ink/5'
                 )}
               >
                 <div className="font-medium">{subclass.name}</div>
@@ -476,7 +476,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
     } finally {
       setApplying(false);
     }
-  }, [formData, updateField, clearErrorsAt]);
+  }, [classId, formData, updateField, clearErrorsAt]);
 
   return (
     <div className="space-y-4">
@@ -488,7 +488,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
             <button
               type="button"
               onClick={() => setShowRaceDetails(raceData.id)}
-              className="text-xs text-brand hover:underline"
+              className="text-xs text-brand-ink hover:underline"
             >
               Details
             </button>
@@ -500,7 +500,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
           error={fieldError('race') as string}
           disabled={applying}
         />
-        {applying && <div className="mt-2 flex items-center gap-2 text-sm text-brand"><Loader2 className="w-4 h-4 animate-spin" /> Applying racial traits...</div>}
+        {applying && <div className="mt-2 flex items-center gap-2 text-sm text-brand-ink"><Loader2 className="w-4 h-4 animate-spin" /> Applying racial traits...</div>}
       </div>
 
       {/* Class Selector */}
@@ -511,7 +511,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
             <button
               type="button"
               onClick={() => setShowClassDetails(classData.id)}
-              className="text-xs text-brand hover:underline"
+              className="text-xs text-brand-ink hover:underline"
             >
               Details
             </button>
@@ -523,7 +523,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
           error={fieldError('class') as string}
           disabled={applying}
         />
-        {applying && <div className="mt-2 flex items-center gap-2 text-sm text-brand"><Loader2 className="w-4 h-4 animate-spin" /> Applying class features...</div>}
+        {applying && <div className="mt-2 flex items-center gap-2 text-sm text-brand-ink"><Loader2 className="w-4 h-4 animate-spin" /> Applying class features...</div>}
       </div>
 
       {/* Subclass Selector */}
@@ -571,7 +571,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
                   Skills: Choose {classData.skillChoices[0]?.choose} from {classData.skillChoices[0]?.from.join(', ')}
                 </div>
                 {subclassData && (
-                  <div className="text-xs text-brand mt-1">
+                  <div className="text-xs text-brand-ink mt-1">
                     Subclass: {subclassData.name}
                   </div>
                 )}
@@ -615,7 +615,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
               </div>
             </div>
             <div className="p-4 border-t border-ink/10 flex justify-end">
-              <button onClick={() => setShowRaceDetails(null)} className="px-4 py-2 bg-brand text-white rounded hover:bg-brand/90">
+              <button onClick={() => setShowRaceDetails(null)} className="px-4 py-2 bg-brand text-brand-text rounded hover:bg-brand/90">
                 Close
               </button>
             </div>
@@ -662,7 +662,7 @@ export function RaceClassManager({ formData, updateField, clearErrorsAt, fieldEr
               </div>
             </div>
             <div className="p-4 border-t border-ink/10 flex justify-end">
-              <button onClick={() => setShowClassDetails(null)} className="px-4 py-2 bg-brand text-white rounded hover:bg-brand/90">
+              <button onClick={() => setShowClassDetails(null)} className="px-4 py-2 bg-brand text-brand-text rounded hover:bg-brand/90">
                 Close
               </button>
             </div>

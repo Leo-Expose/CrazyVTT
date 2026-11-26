@@ -3,7 +3,7 @@
  * TipTap-based rich text editor for journal entries
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
@@ -87,7 +87,7 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
   const [isSaving, setIsSaving] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
-  const [linkTarget, setLinkTarget] = useState<HTMLAnchorElement | null>(null);
+  const [linkTarget, setLinkTarget] = useState<{ from: number; to: number } | null>(null);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -114,19 +114,23 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
     },
   });
 
+  const loadDraft = useEffectEvent((currentEditor: Editor, entryId: string) => {
+    const draft = localStorage.getItem(`journal-draft-${entryId}`);
+    if (draft && draft !== entry.content) {
+      const useDraft = window.confirm('A draft was found. Load it?');
+      if (useDraft) {
+        currentEditor.commands.setContent(draft);
+      } else {
+        localStorage.removeItem(`journal-draft-${entryId}`);
+      }
+    }
+  });
+
   useEffect(() => {
     editorRef.current = editor;
-    // Load draft from localStorage on mount
+    // Load draft from localStorage on mount or when switching entries.
     if (editor) {
-      const draft = localStorage.getItem(`journal-draft-${entry.id}`);
-      if (draft && draft !== entry.content) {
-        const useDraft = window.confirm('A draft was found. Load it?');
-        if (useDraft) {
-          editor.commands.setContent(draft);
-        } else {
-          localStorage.removeItem(`journal-draft-${entry.id}`);
-        }
-      }
+      loadDraft(editor, entry.id);
     }
     return () => {
       editorRef.current = null;
@@ -147,19 +151,19 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
       await onSave(content);
       localStorage.removeItem(`journal-draft-${entry.id}`);
       showToast('Saved', 'success');
-    } catch (err) {
+    } catch {
       showToast('Failed to save', 'error');
     } finally {
       setIsSaving(false);
     }
-  }, [editor, entry.id, onSave]);
+  }, [editor, entry.id, onSave, showToast]);
 
   const handleAddLink = useCallback(() => {
     if (!editor) return;
     const { from, to } = editor.state.selection;
     if (from !== to) {
       // Text selected - add link to selection
-      setLinkTarget({ from, to } as any);
+      setLinkTarget({ from, to });
       setShowLinkDialog(true);
     } else {
       setShowLinkDialog(true);
@@ -191,12 +195,12 @@ export default function JournalEditor({ entry, readOnly = false, onSave }: Journ
       editor.chain().focus().setImage({ src: imageUrl }).run();
       setShowImageDialog(false);
       setImageUrl('');
-    } catch (err) {
+    } catch {
       showToast('Failed to add image', 'error');
     } finally {
       setUploadingImage(false);
     }
-  }, [editor, imageUrl]);
+  }, [editor, imageUrl, showToast]);
 
   const addTable = useCallback(() => {
     if (!editor) return;

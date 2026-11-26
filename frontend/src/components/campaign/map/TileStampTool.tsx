@@ -155,7 +155,7 @@ export default function TileStampTool({
 
     // Send to server
     try {
-      await api.put(`/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/layers/${selectedLayerId}`, {
+      await api.put(`/api/campaigns/${useGameStore.getState().campaignId}/maps/${mapId}/layers/${selectedLayerId}`, {
         data: { tiles }
       });
     } catch {

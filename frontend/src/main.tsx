@@ -14,25 +14,25 @@ import './index.css';
 // Recover once by reloading into the currently served entry bundle.
 window.addEventListener('vite:preloadError', function(event) {
   event.preventDefault();
-  var retryKey = 'crazyvtt:chunk-reload-at';
+  const retryKey = 'crazyvtt:chunk-reload-at';
   try {
-    var lastReload = Number(sessionStorage.getItem(retryKey) || 0);
+    const lastReload = Number(sessionStorage.getItem(retryKey) || 0);
     if (Date.now() - lastReload > 15000) {
       sessionStorage.setItem(retryKey, String(Date.now()));
       window.location.reload();
     }
-  } catch (e) {
+  } catch {
     window.location.reload();
   }
 });
 
 // Error Boundary to catch React rendering errors
-var ErrorBoundary = function(_ref: { children?: React.ReactNode }) {
-  var children = _ref.children;
-  var _React$useState = React.useState(false),
+const ErrorBoundary = function(_ref: { children?: React.ReactNode }) {
+  const children = _ref.children;
+  const _React$useState = React.useState(false),
       hasError = _React$useState[0],
       setHasError = _React$useState[1];
-  var _React$useState2 = React.useState<Error | null>(null),
+  const _React$useState2 = React.useState<Error | null>(null),
       error = _React$useState2[0],
       setError = _React$useState2[1];
 
@@ -44,14 +44,14 @@ var ErrorBoundary = function(_ref: { children?: React.ReactNode }) {
     }
     window.addEventListener('error', handleError);
     return function() { return window.removeEventListener('error', handleError); };
-  }, []);
+  }, [setError, setHasError]);
 
   if (hasError) {
     return React.createElement('div', {
       style: {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         background: '#1a1a2e', color: '#e8e8e8', zIndex: 99999,
-        padding: '2rem', fontFamily: 'monospace', fontSize: '14px',
+        padding: '2rem', fontFamily: 'monospace',
         overflow: 'auto', whiteSpace: 'pre-wrap', display: 'flex',
         flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
       }
@@ -71,19 +71,19 @@ var ErrorBoundary = function(_ref: { children?: React.ReactNode }) {
 };
 
 // Global error handlers to catch and display any uncaught errors
-var errorDiv = document.createElement('div');
+const errorDiv = document.createElement('div');
 errorDiv.id = 'crazyvtt-error-display';
 errorDiv.style.cssText = '\
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;\
   background: #1a1a2e; color: #e8e8e8; z-index: 99999;\
-  padding: 2rem; font-family: monospace; font-size: 14px;\
+  padding: 2rem; font-family: monospace;\
   overflow: auto; white-space: pre-wrap; display: none;\
 ';
 document.body.appendChild(errorDiv);
 
 function showError(message: string, error: Error | null | undefined) {
   errorDiv.style.display = 'block';
-  var stack = error?.stack || '';
+  const stack = error?.stack || '';
   errorDiv.textContent = 'CRAZYVTT ERROR:\n' + message + '\n\n' + stack;
   console.error('CRAZYVTT UNCAUGHT ERROR:', message, error);
 }
@@ -96,23 +96,6 @@ window.addEventListener('error', function(event) {
 window.addEventListener('unhandledrejection', function(event) {
   showError('Unhandled Promise Rejection', event.reason instanceof Error ? event.reason : new Error(String(event.reason)));
   return false;
-});
-
-// A tab can keep an old entry bundle open across a deployment. Its next lazy
-// import may request a hashed chunk that the new release no longer contains.
-// Recover once by reloading into the currently served entry bundle.
-window.addEventListener('vite:preloadError', function(event) {
-  event.preventDefault();
-  var retryKey = 'crazyvtt:chunk-reload-at';
-  try {
-    var lastReload = Number(sessionStorage.getItem(retryKey) || 0);
-    if (Date.now() - lastReload > 15000) {
-      sessionStorage.setItem(retryKey, String(Date.now()));
-      window.location.reload();
-    }
-  } catch (e) {
-    window.location.reload();
-  }
 });
 
 // Note: React.StrictMode is intentionally omitted here.

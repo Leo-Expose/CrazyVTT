@@ -55,7 +55,6 @@ const EMPTY_COMBAT: CombatState = {
   active: false,
   round: 0,
   currentTokenId: null,
-  currentIndex: 0,
   combatants: [],
 };
 

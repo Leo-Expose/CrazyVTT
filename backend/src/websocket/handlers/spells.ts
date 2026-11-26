@@ -2,44 +2,39 @@
  * WebSocket Handlers for Spell Casting and AoE Templates
  */
 
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
+import type { AuthenticatedSocket } from '../auth';
+import { withinCeiling } from '../shared';
 import { evaluateSpellAoE, type SpellCastResolutionInput } from '../../services/spellResolution';
 import logger from '../../utils/logger';
 
-const castWindows = new Map<string, { startedAt: number; count: number }>();
-const SPELL_CAST_LIMIT = 30;
-const SPELL_CAST_WINDOW_MS = 60_000;
-
-function allowSpellCast(socketId: string): boolean {
-  const now = Date.now();
-  const current = castWindows.get(socketId);
-  if (!current || now - current.startedAt >= SPELL_CAST_WINDOW_MS) {
-    castWindows.set(socketId, { startedAt: now, count: 1 });
-    return true;
-  }
-  if (current.count >= SPELL_CAST_LIMIT) return false;
-  current.count += 1;
-  return true;
-}
-
-export function registerSpellHandlers(io: Server, socket: Socket) {
-  socket.on('disconnect', () => {
-    castWindows.delete(socket.id);
-  });
-
-  // Player initiates a spell cast with an AoE template
+export function registerSpellHandlers(io: Server, socket: AuthenticatedSocket) {
+  // Player or DM initiates a spell cast with an AoE template
   socket.on('spell:cast', (data: SpellCastResolutionInput) => {
-    if (!allowSpellCast(socket.id)) {
-      socket.emit('error', { message: 'Spell cast rate limit exceeded' });
+    if (!socket.campaignId || !socket.userId) {
+      socket.emit('error', { message: 'Not authenticated to a campaign' });
+      return;
+    }
+    if (!withinCeiling(socket, 'spell:cast')) return;
+    if (socket.role === 'SPECTATOR') {
+      socket.emit('error', { message: 'Spectators cannot cast spells' });
+      return;
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !data.castId || !data.spellName || !data.origin || !Array.isArray(data.tokens)) {
+      socket.emit('error', { message: 'Invalid spell cast payload' });
+      return;
+    }
+    if (data.campaignId && data.campaignId !== socket.campaignId) {
+      socket.emit('error', { message: 'Cannot cast spells in another campaign' });
       return;
     }
     try {
-      const evaluation = evaluateSpellAoE(data);
+      const evaluation = evaluateSpellAoE({ ...data, campaignId: socket.campaignId });
 
-      // Broadcast review prompt to DM and caster
-      io.to(`campaign:${data.campaignId}`).emit('spell:review', {
+      // Broadcast review prompt to campaign room
+      io.to(socket.campaignId).emit('spell:review', {
         castId: data.castId,
-        campaignId: data.campaignId,
+        campaignId: socket.campaignId,
         spellName: data.spellName,
         casterTokenId: data.casterTokenId,
         casterName: data.casterName,
@@ -60,7 +55,7 @@ export function registerSpellHandlers(io: Server, socket: Socket) {
     'spell:resolve',
     (data: {
       castId: string;
-      campaignId: string;
+      campaignId?: string;
       spellName: string;
       results: Array<{
         tokenId: string;
@@ -69,9 +64,26 @@ export function registerSpellHandlers(io: Server, socket: Socket) {
         savePassed?: boolean;
       }>;
     }) => {
+      if (!socket.campaignId || !socket.userId) {
+        socket.emit('error', { message: 'Not authenticated to a campaign' });
+        return;
+      }
+      if (!withinCeiling(socket, 'spell:resolve')) return;
+      if (socket.role !== 'DM') {
+        socket.emit('error', { message: 'Only the DM can resolve spell casts' });
+        return;
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !data.castId || !data.spellName || !Array.isArray(data.results)) {
+        socket.emit('error', { message: 'Invalid spell resolution payload' });
+        return;
+      }
+      if (data.campaignId && data.campaignId !== socket.campaignId) {
+        socket.emit('error', { message: 'Cannot resolve spells in another campaign' });
+        return;
+      }
       try {
         // Broadcast final resolved results to the entire campaign
-        io.to(`campaign:${data.campaignId}`).emit('spell:resolved', {
+        io.to(socket.campaignId).emit('spell:resolved', {
           castId: data.castId,
           spellName: data.spellName,
           results: data.results,

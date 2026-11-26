@@ -4,7 +4,7 @@
  * with atomic transactions, audit trail, and permission controls.
  */
 
-import { PartyResourcePool, PartyResourceTransaction, GameSystem } from '@prisma/client';
+import { PartyResourcePool, PartyResourceTransaction, GameSystem, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../config/database';
 
@@ -212,12 +212,13 @@ export async function deletePool(poolId: string, force: boolean = false): Promis
  * Uses default container first, then others if needed
  */
 async function removeCurrencyFromCharacter(
+  tx: Prisma.TransactionClient,
   characterId: string,
   amounts: PoolCurrencyAmount,
   createdById: string,
   description: string
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  {
     const containers = await tx.currencyContainer.findMany({
       where: { characterId },
       orderBy: [{ isDefault: 'desc' }, { sortOrder: 'asc' }],
@@ -309,25 +310,26 @@ async function removeCurrencyFromCharacter(
         remaining = subtractAmounts(remaining, toRemove);
       }
     }
-  });
+  }
 }
 
 /**
  * Add currency to character's default container (for withdrawal)
  */
 async function addCurrencyToCharacter(
+  tx: Prisma.TransactionClient,
   characterId: string,
   amounts: PoolCurrencyAmount,
   createdById: string,
   description: string
 ): Promise<void> {
-  const container = await prisma.currencyContainer.findFirst({
+  const container = await tx.currencyContainer.findFirst({
     where: { characterId, isDefault: true },
   });
 
   if (!container) {
     // Create default container if it doesn't exist
-    await prisma.currencyContainer.create({
+    await tx.currencyContainer.create({
       data: {
         characterId,
         name: 'Main Purse',
@@ -345,7 +347,7 @@ async function addCurrencyToCharacter(
     });
   } else {
     const existingCustom = (container.custom as Record<string, number> || {});
-    const updateData: Record<string, any> = {
+    const updateData: Prisma.CurrencyContainerUpdateInput = {
       cp: { increment: amounts.cp },
       sp: { increment: amounts.sp },
       ep: { increment: amounts.ep },
@@ -357,14 +359,14 @@ async function addCurrencyToCharacter(
     if (amounts.custom) {
       updateData.custom = { ...existingCustom, ...amounts.custom };
     }
-    await prisma.currencyContainer.update({
+    await tx.currencyContainer.update({
       where: { id: container.id },
       data: updateData,
     });
   }
 
   // Record character currency transaction
-  await prisma.currencyTransaction.create({
+  await tx.currencyTransaction.create({
     data: {
       characterId,
       toContainerId: container?.id,
@@ -400,10 +402,10 @@ export async function contributeToPool(
 
   await prisma.$transaction(async (tx) => {
     // Remove from character
-    await removeCurrencyFromCharacter(characterId, amounts, userId, description);
+    await removeCurrencyFromCharacter(tx, characterId, amounts, userId, description);
 
     // Add to pool
-    const updateData: Record<string, any> = {
+    const updateData: Prisma.PartyResourcePoolUpdateInput = {
       cp: { increment: amounts.cp },
       sp: { increment: amounts.sp },
       ep: { increment: amounts.ep },
@@ -467,8 +469,9 @@ export async function withdrawFromPool(
 
   await prisma.$transaction(async (tx) => {
     // Remove from pool
-    await tx.partyResourcePool.update({
-      where: { id: poolId },
+    const debit = await tx.partyResourcePool.updateMany({
+      where: { id: poolId, cp: { gte: amounts.cp }, sp: { gte: amounts.sp }, ep: { gte: amounts.ep },
+        gp: { gte: amounts.gp }, pp: { gte: amounts.pp }, nuyen: { gte: amounts.nuyen }, cash: { gte: amounts.cash } },
       data: {
         cp: { decrement: amounts.cp },
         sp: { decrement: amounts.sp },
@@ -477,11 +480,12 @@ export async function withdrawFromPool(
         pp: { decrement: amounts.pp },
         nuyen: { decrement: amounts.nuyen },
         cash: { decrement: amounts.cash },
-      } as any,
+      },
     });
+    if (debit.count !== 1) throw new Error('Insufficient funds in pool');
 
     // Add to character
-    await addCurrencyToCharacter(characterId, amounts, userId, description);
+    await addCurrencyToCharacter(tx, characterId, amounts, userId, description);
 
     // Record pool transaction
     await tx.partyResourceTransaction.create({
@@ -529,7 +533,7 @@ export async function adjustPool(
   }
 
   await prisma.$transaction(async (tx) => {
-    const updateData: Record<string, { increment: number } | { decrement: number } | Record<string, number>> = {};
+    const updateData: Prisma.PartyResourcePoolUpdateInput = {};
     if (amounts.cp !== 0) updateData.cp = { increment: amounts.cp };
     if (amounts.sp !== 0) updateData.sp = { increment: amounts.sp };
     if (amounts.ep !== 0) updateData.ep = { increment: amounts.ep };
@@ -543,7 +547,7 @@ export async function adjustPool(
 
     await tx.partyResourcePool.update({
       where: { id: poolId },
-      data: updateData as any,
+      data: updateData,
     });
 
     // Record pool transaction (use absolute amounts for the transaction record)
@@ -594,8 +598,9 @@ export async function spendFromPool(
 
   await prisma.$transaction(async (tx) => {
     // Remove from pool
-    await tx.partyResourcePool.update({
-      where: { id: poolId },
+    const debit = await tx.partyResourcePool.updateMany({
+      where: { id: poolId, cp: { gte: amounts.cp }, sp: { gte: amounts.sp }, ep: { gte: amounts.ep },
+        gp: { gte: amounts.gp }, pp: { gte: amounts.pp }, nuyen: { gte: amounts.nuyen }, cash: { gte: amounts.cash } },
       data: {
         cp: { decrement: amounts.cp },
         sp: { decrement: amounts.sp },
@@ -604,8 +609,9 @@ export async function spendFromPool(
         pp: { decrement: amounts.pp },
         nuyen: { decrement: amounts.nuyen },
         cash: { decrement: amounts.cash },
-      } as any,
+      },
     });
+    if (debit.count !== 1) throw new Error('Insufficient funds in pool');
 
     // Record pool transaction
     await tx.partyResourceTransaction.create({
@@ -653,18 +659,22 @@ export async function depositLootToPool(
   if (distribution.status !== 'COMPLETED') throw new Error('Distribution must be completed first');
 
   // Extract currency from distribution (JSON field)
-  const currency = (distribution.currency as Record<string, unknown>) || {};
+  const currency = z.object({
+    cp: z.number().default(0), sp: z.number().default(0), ep: z.number().default(0),
+    gp: z.number().default(0), pp: z.number().default(0), nuyen: z.number().default(0),
+    cash: z.number().default(0), custom: z.record(z.string(), z.number()).optional(),
+  }).parse(distribution.currency || {});
 
   await prisma.$transaction(async (tx) => {
     // Add to pool
-    const updateData: Record<string, any> = {
-      cp: { increment: currency.cp || 0 },
-      sp: { increment: currency.sp || 0 },
-      ep: { increment: currency.ep || 0 },
-      gp: { increment: currency.gp || 0 },
-      pp: { increment: currency.pp || 0 },
-      nuyen: { increment: currency.nuyen || 0 },
-      cash: { increment: currency.cash || 0 },
+    const updateData: Prisma.PartyResourcePoolUpdateInput = {
+      cp: { increment: currency.cp },
+      sp: { increment: currency.sp },
+      ep: { increment: currency.ep },
+      gp: { increment: currency.gp },
+      pp: { increment: currency.pp },
+      nuyen: { increment: currency.nuyen },
+      cash: { increment: currency.cash },
     };
     const currencyCustom = currency.custom as Record<string, number> | undefined;
     if (currencyCustom && typeof currencyCustom === 'object' && !Array.isArray(currencyCustom)) {
@@ -710,7 +720,7 @@ export function formatPoolCurrency(
 ): FormattedPoolCurrency {
   const parts: string[] = [];
   const shortParts: string[] = [];
-  let totalInLowest = 0;
+  let totalInLowest: number;
 
   switch (gameSystem) {
     case GameSystem.DND_5E:
